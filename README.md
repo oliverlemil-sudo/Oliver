@@ -1,31 +1,36 @@
 # 👹 MOG MONSTERS
 
-Et Roblox-spil, hvor monstre går ned ad en lang bane. Har du høj nok **MOG**, kan du
-**mogge** dem, og så løber de hjem til din base og tjener penge til dig.
+Et Roblox-spil med en lang **MOG ROAD** delt op i **8 zoner**. Hver zone kræver mere **MOG**,
+og jo længere ud du kommer, desto sjældnere monstre finder du. **Mog** dem, så løber de hjem
+til din base og tjener penge til dig.
 Scriptet bygger selv hele kortet.
 
 ## 🎮 Sådan spilles det
-1. **Monster Lane:** Monstrene kommer ud af MONSTER GATE og går ned ad den røde bane.
-2. Over hvert monster står det, hvor meget **MOG** du skal have.
+1. **MOG ROAD:** Gå fra din base ud ad vejen. Den har 8 zoner med en port mellem hver.
+2. **Portene:** Zone 1 er åben. De næste kræver mere MOG (zone 2: 40, zone 3: 200 … zone 8: 100M).
+   Har du for lidt MOG, bliver du skubbet tilbage.
+3. Monstrene går rundt i deres zone. Over hvert monster står, hvor meget **MOG** det kræver.
    **Grøn** betyder, at du kan mogge det. **Rød** betyder, at du skal træne mere MOG.
-3. **Hold E** på monsteret (**"MOG IT!"**). Så flyver det hjem til din **indhegnede base**.
-4. Monstrene i din base **tjener penge hvert sekund**.
-5. Brug pengene i **UPGRADES**:
-   - **Train MOG**, så du kan mogge sjældnere monstre
+4. **Hold E** på monsteret (**"MOG IT!"**). Så flyver det hjem til din **indhegnede base**.
+5. Monstrene i din base **tjener penge hvert sekund**.
+6. Brug pengene i **UPGRADES**:
+   - **Train MOG**, så du kan komme ind i nye zoner og mogge sjældnere monstre
    - **Money Boost**, så monstrene tjener mere
    - **Flere pladser** til monstre
 
 ## 🎲 Sjældenheder
-| Sjældenhed | Chance | MOG du skal have | Penge/sek |
+| Zone | Sjældenhed | MOG for at komme ind | Penge/sek |
 |---|---|---|---|
-| Common | ca. 1 ud af 1,3 | 10 | $2 |
-| Uncommon | 1 ud af 6 | 40 | $6 |
-| Rare | 1 ud af 25 | 200 | $25 |
-| Epic | 1 ud af 150 | 1.500 | $100 |
-| Legendary | 1 ud af 1.500 | 12.000 | $600 |
-| Mythic | 1 ud af 25.000 | 100.000 | $4.000 |
-| Secret | 1 ud af 1.000.000 | 2.000.000 | $50.000 |
-| **GODLY (GIGAMOG)** | **1 ud af 1.000.000.000** | 100.000.000 | $1.000.000 |
+| 1 | Common | 0 | $2 |
+| 2 | Uncommon | 40 | $6 |
+| 3 | Rare | 200 | $25 |
+| 4 | Epic | 1.500 | $100 |
+| 5 | Legendary | 12.000 | $600 |
+| 6 | Mythic | 100.000 | $4.000 |
+| 7 | Secret | 2.000.000 | $50.000 |
+| 8 | **GODLY: GIGAMOG**, chance **1 ud af 1.000.000.000** | 100.000.000 | $1.000.000 |
+
+Jo længere ude zonen er, desto færre monstre er der ad gangen, og desto længere tid går der mellem nye.
 
 ## ✨ Niveauer
 | Niveau | Chance | Bonus |
@@ -55,7 +60,7 @@ Hver rebirth giver **+1x penge OG +1x MOG**. Rebirth 2 og 5 giver flere vault-pl
 rebirth 3+ gør dig hurtigere, og rebirth 10 giver en eksklusiv **Golden Phoenixmog**.
 
 ## 🌀 Events
-- **Lucky Rush** hvert 10. minut: 3x held og flere monstre på banen i 60 sekunder.
+- **Lucky Rush** hvert 10. minut: 3x held og monstre kommer 3x hurtigere i alle zoner i 60 sekunder.
 - **Daily Reward**: Dag 7 giver et gratis Epic- eller Legendary-monster.
 - Hele serveren får besked, når nogen mogger eller stjæler noget sjældent.
 
@@ -85,8 +90,8 @@ De sjældneste monstre kan **ikke** købes for Robux. Dem skal man selv mogge.
 
 I **Output** (fanen **Script** → **Output**) skal der stå:
 ```
-MOG MONSTERS server v1 started OK!
-MOG MONSTERS client v1 started OK!
+MOG MONSTERS server v2 started OK!
+MOG MONSTERS client v2 started OK!
 ```
 
 ### Eller sæt scripts ind selv

@@ -6,9 +6,13 @@ Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og send
 
 ## Spillet (nuværende idé – Olivers egen)
 "👹 MOG MONSTERS". Erstatter tidligere versioner (Floor is Lava, Egg Heist, Power Empire – ligger i git-historikken).
-- Monstre går ned ad en lang **Monster Lane** (x = -130 → 130). Hver har et MOG-krav.
-  Er spillerens **MOG** ≥ kravet: hold E ("MOG IT!") → monsteret flyver hjem til basen.
-- 8 **indhegnede baser** (hegn, ikke vægge) i en cirkel. Monstre står på pladser og **tjener penge/sek**.
+- **MOG ROAD** (x = 0 → 440) med **8 zoner** (én pr. sjældenhed, 55 studs lange). Port mellem zoner kræver MOG
+  (zone k kræver RARITIES[k].Mog); spillere med for lidt MOG skubbes tilbage (server-loop).
+  Monstre spawner i deres zone (Every/Max i ZONES) og vandrer rundt. Hold E ("MOG IT!") hvis MOG ≥ krav.
+  GIGAMOG: 1/1.000.000.000 chance pr. spawn → zone 8.
+- Oliver bad om "alt fra Steal an Egg" – vi kopierer IKKE andres spil (udseende/navne); vi tog kun zone-idéen.
+- 8 **indhegnede baser** (hegn) i to rækker (x -300..-60, z ±88) ved en hub; Fusion Machine i hub (x -170).
+  Monstre står på pladser og **tjener penge/sek**.
 - Oliver ville IKKE have hul/graveri (det blev droppet midt i byggeriet). Monstre graver ikke.
 - Sjældenheder Common → … → Secret (1/1M) → **GODLY: GIGAMOG 1 ud af 1.000.000.000**.
 - Niveauer (variants): Normal, Golden, Diamond, Rainbow, Cosmic, **Rainbow Cosmic** (1/1M, x100).
@@ -26,7 +30,7 @@ Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og send
 - `README.md` → dansk guide til Oliver.
 
 ## Status
-- Output ved start: `MOG MONSTERS server v1 started OK!` / `MOG MONSTERS client v1 started OK!`
+- Output ved start: `MOG MONSTERS server v2 started OK!` / `MOG MONSTERS client v2 started OK!`
 - Testet i hjemmelavet Roblox-mock (API-dump-valideret, 2 spillere, ~13 min spil, med/uden DataStore) → 0 fejl.
   **Endnu ikke testet i rigtig Roblox Studio.**
 - Kendte Studio-faldgruber vi allerede har løst: GetDataStore i pcall (ikke-udgivet place), ZIndexBehavior Sibling,

@@ -457,7 +457,7 @@ refreshUpgrades = function()
 		return
 	end
 	upgradePanel.Text("MOG " .. fmt(info.Mog) .. "  ->  " .. fmt(info.NextMog), Color3.fromRGB(255, 120, 200))
-	upgradePanel.ButtonRow("Train MOG (mog better monsters!)", "$" .. fmt(info.MogCost), GREEN, function()
+	upgradePanel.ButtonRow("Train MOG (unlock new zones!)", "$" .. fmt(info.MogCost), GREEN, function()
 		buy("TrainMog")
 	end)
 	upgradePanel.Text("Money Boost: x" .. info.Boost .. (info.NextBoost and ("  ->  x" .. info.NextBoost) or ""), Color3.fromRGB(110, 255, 110))
@@ -520,7 +520,7 @@ local function refreshIndex()
 	local found = 0
 	indexPanel.Text("MONSTERS", Color3.fromRGB(255, 210, 80))
 	for _, m in ipairs(info.Index) do
-		local odds = m.Exclusive and "Rebirth 10 only" or ("1 in " .. fmt(m.Odds))
+		local odds = m.Exclusive and "Rebirth 10 only" or ("Zone " .. m.Zone .. (m.Odds > 1 and (", 1 in " .. fmt(m.Odds)) or ""))
 		if m.Found then
 			found = found + 1
 			indexPanel.Text(m.Name .. "  (" .. RARITY_NAMES[m.Rarity] .. ", " .. odds .. ")", RARITY_COLORS[m.Rarity], 26)
@@ -767,7 +767,7 @@ end)
 -- WELCOME
 ----------------------------------------------------------------------
 task.delay(2, function()
-	showMessage("Welcome to MOG MONSTERS! Hold E on monsters with GREEN mog to MOG them!", Color3.fromRGB(255, 210, 60))
+	showMessage("Welcome to MOG MONSTERS! Walk down the MOG ROAD and hold E on monsters to MOG them!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v1 started OK!")
+print("MOG MONSTERS client v2 started OK!")

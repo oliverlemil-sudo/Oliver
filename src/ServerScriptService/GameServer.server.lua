@@ -4,8 +4,9 @@
 	Put this as a *Script* in ServerScriptService.
 
 	This script builds the whole map and runs the game:
-	  * Monsters walk down the MONSTER LANE. If your MOG is high enough,
-	    hold E to MOG them - then they run home to your fenced base.
+	  * The MOG ROAD has 8 ZONES. Every gate needs more MOG to pass.
+	    Further out = rarer monsters. Hold E to MOG them - then they
+	    run home to your fenced base.
 	  * Monsters in your base make money every second.
 	  * Variants: Normal, Golden, Diamond, Rainbow, Cosmic, RAINBOW COSMIC.
 	  * Rarities down to GIGAMOG: 1 in 1,000,000,000!
@@ -25,8 +26,7 @@ local CONFIG = {
 	START_SLOTS = 6,          -- monster spots you start with
 	MAX_SLOTS = 12,           -- spots you can buy with cash
 	SLOT_BASE_COST = 500,     -- price of spot 7 (then x3 every spot)
-	SPAWN_EVERY = 2.5,        -- seconds between new monsters on the lane
-	LANE_SPEED = 6,           -- how fast monsters walk (studs per second)
+	WANDER_SPEED = 4,         -- how fast monsters walk around in their zone
 	LOCK_TIME = 45,
 	LOCK_COOLDOWN = 45,
 	LOOSE_TIME = 15,          -- seconds a dropped monster stays on the ground
@@ -51,18 +51,31 @@ local CONFIG = {
 	CASH_PACK_PRODUCT_ID = 0,   -- 10 minutes of income (min 5K)
 }
 
--- Chance = chance per monster that walks out of the gate
--- Mog = MOG you need to take it, Income = money per second
+-- Mog = MOG you need (also the MOG to enter that zone), Income = money per second
 local RARITIES = {
-	{ Name = "Common",    Chance = nil,            Mog = 10,        Income = 2,       Color = Color3.fromRGB(200, 200, 200) },
-	{ Name = "Uncommon",  Chance = 1 / 6,          Mog = 40,        Income = 6,       Color = Color3.fromRGB(90, 220, 90) },
-	{ Name = "Rare",      Chance = 1 / 25,         Mog = 200,       Income = 25,      Color = Color3.fromRGB(70, 150, 255) },
-	{ Name = "Epic",      Chance = 1 / 150,        Mog = 1500,      Income = 100,     Color = Color3.fromRGB(180, 90, 255) },
-	{ Name = "Legendary", Chance = 1 / 1500,       Mog = 12000,     Income = 600,     Color = Color3.fromRGB(255, 200, 40) },
-	{ Name = "Mythic",    Chance = 1 / 25000,      Mog = 100000,    Income = 4000,    Color = Color3.fromRGB(255, 60, 120) },
-	{ Name = "Secret",    Chance = 1 / 1000000,    Mog = 2000000,   Income = 50000,   Color = Color3.fromRGB(30, 30, 30) },
-	{ Name = "GODLY",     Chance = 1 / 1000000000, Mog = 100000000, Income = 1000000, Color = Color3.fromRGB(255, 255, 255) },
+	{ Name = "Common",    Mog = 10,        Income = 2,       Color = Color3.fromRGB(200, 200, 200) },
+	{ Name = "Uncommon",  Mog = 40,        Income = 6,       Color = Color3.fromRGB(90, 220, 90) },
+	{ Name = "Rare",      Mog = 200,       Income = 25,      Color = Color3.fromRGB(70, 150, 255) },
+	{ Name = "Epic",      Mog = 1500,      Income = 100,     Color = Color3.fromRGB(180, 90, 255) },
+	{ Name = "Legendary", Mog = 12000,     Income = 600,     Color = Color3.fromRGB(255, 200, 40) },
+	{ Name = "Mythic",    Mog = 100000,    Income = 4000,    Color = Color3.fromRGB(255, 60, 120) },
+	{ Name = "Secret",    Mog = 2000000,   Income = 50000,   Color = Color3.fromRGB(30, 30, 30) },
+	{ Name = "GODLY",     Mog = 100000000, Income = 1000000, Color = Color3.fromRGB(255, 255, 255) },
 }
+
+-- One ZONE per rarity along the Mog Road. Need = MOG to enter.
+-- Every = seconds between new monsters, Max = most monsters at once.
+local ZONES = {
+	{ Every = 3,   Max = 10 },
+	{ Every = 5,   Max = 8 },
+	{ Every = 8,   Max = 6 },
+	{ Every = 15,  Max = 5 },
+	{ Every = 30,  Max = 4 },
+	{ Every = 60,  Max = 3 },
+	{ Every = 180, Max = 2 },
+	{ Every = nil, Max = 1 }, -- GODLY zone: only a GIGAMOG (1 in a billion per spawn)
+}
+local GIGAMOG_CHANCE = 1 / 1000000000
 
 local MONSTERS = {
 	{ Id = "Blobby",      Name = "Blobby",      Rarity = 1, Color = Color3.fromRGB(100, 220, 100) },
@@ -193,18 +206,6 @@ for _, def in ipairs(MONSTERS) do
 	end
 end
 
-local function rarityChance(r)
-	local c = RARITIES[r].Chance
-	if c then
-		return c
-	end
-	local rest = 1
-	for i = 2, #RARITIES do
-		rest = rest - RARITIES[i].Chance
-	end
-	return rest
-end
-
 local function variantChance(v)
 	local c = VARIANTS[v].Chance
 	if c then
@@ -223,7 +224,10 @@ local function oddsOf(id, variant)
 	if def.Exclusive then
 		return 0
 	end
-	local chance = rarityChance(def.Rarity) / SPECIES_PER_RARITY[def.Rarity] * variantChance(variant or 1)
+	local chance = variantChance(variant or 1)
+	if def.Rarity == #RARITIES then
+		chance = chance * GIGAMOG_CHANCE
+	end
 	return math.floor(1 / chance + 0.5)
 end
 
@@ -324,32 +328,56 @@ local function sign(position, title, color)
 	return labels[2]
 end
 
--- Ground + plaza
-block(Vector3.new(560, 2, 560), CFrame.new(0, -1, 0), Color3.fromRGB(85, 165, 75), Enum.Material.Grass)
-local plaza = block(Vector3.new(2, 220, 220), CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(170, 170, 180), Enum.Material.Slate)
-plaza.Shape = Enum.PartType.Cylinder
+-- Ground + hub (between the two rows of bases)
+block(Vector3.new(980, 2, 520), CFrame.new(70, -1, 0), Color3.fromRGB(85, 165, 75), Enum.Material.Grass)
+block(Vector3.new(330, 0.2, 100), CFrame.new(-180, 0.1, 0), Color3.fromRGB(165, 160, 150), Enum.Material.Cobblestone)
 
--- MONSTER LANE (along the X axis)
-local LANE_START, LANE_END = -130, 130
-local lane = block(Vector3.new(LANE_END - LANE_START, 1, 14), CFrame.new(0, 0.6, 0), Color3.fromRGB(150, 30, 40), Enum.Material.Fabric)
-lane.Name = "MonsterLane"
-for _, z in ipairs({ -7.5, 7.5 }) do
-	local edge = block(Vector3.new(LANE_END - LANE_START, 1.6, 1), CFrame.new(0, 0.9, z), Color3.fromRGB(255, 200, 40), Enum.Material.Neon)
-	edge.CanCollide = false
-end
-for _, x in ipairs({ LANE_START, LANE_END }) do
-	for _, z in ipairs({ -9, 9 }) do
-		block(Vector3.new(2, 16, 2), CFrame.new(x, 8, z), Color3.fromRGB(60, 30, 80), Enum.Material.Basalt)
+-- MOG ROAD with zones (along +X)
+local ROAD_X0 = 0
+local ZONE_LEN = 55
+local ROAD_W = 44
+local ROAD_END = ROAD_X0 + ZONE_LEN * #ZONES
+block(Vector3.new(40, 0.4, ROAD_W), CFrame.new(-20, 0.2, 0), Color3.fromRGB(165, 160, 150), Enum.Material.Cobblestone)
+local zoneInfo = {}
+for k = 1, #ZONES do
+	local rarity = RARITIES[k]
+	local x0 = ROAD_X0 + (k - 1) * ZONE_LEN
+	local floorPart = block(Vector3.new(ZONE_LEN, 0.4, ROAD_W), CFrame.new(x0 + ZONE_LEN / 2, 0.2, 0), rarity.Color:Lerp(Color3.fromRGB(40, 40, 50), 0.55), Enum.Material.Slate)
+	floorPart.Name = "Zone" .. k
+	-- side rails
+	for _, z in ipairs({ -ROAD_W / 2, ROAD_W / 2 }) do
+		local rail = block(Vector3.new(ZONE_LEN, 1.2, 0.8), CFrame.new(x0 + ZONE_LEN / 2, 1, z), rarity.Color, Enum.Material.Neon)
+		rail.CanCollide = false
 	end
-	local top = block(Vector3.new(2, 3, 20), CFrame.new(x, 17, 0), Color3.fromRGB(60, 30, 80), Enum.Material.Basalt)
-	surfaceText(top, x == LANE_START and "MONSTER GATE" or "EXIT", Enum.NormalId.Right)
-	surfaceText(top, x == LANE_START and "MONSTER GATE" or "EXIT", Enum.NormalId.Left)
+	-- gate arch + barrier
+	for _, z in ipairs({ -ROAD_W / 2 - 1, ROAD_W / 2 + 1 }) do
+		block(Vector3.new(2, 18, 2), CFrame.new(x0, 9, z), Color3.fromRGB(45, 40, 60), Enum.Material.Basalt)
+	end
+	local top = block(Vector3.new(2, 4, ROAD_W + 4), CFrame.new(x0, 19, 0), Color3.fromRGB(45, 40, 60), Enum.Material.Basalt)
+	local gateText = "ZONE " .. k .. ": " .. rarity.Name:upper() .. (k > 1 and ("  |  NEED " .. fmt(rarity.Mog) .. " MOG") or "")
+	surfaceText(top, gateText, Enum.NormalId.Left).TextColor3 = rarity.Color
+	surfaceText(top, gateText, Enum.NormalId.Right).TextColor3 = rarity.Color
+	if k > 1 then
+		local barrier = block(Vector3.new(0.4, 16, ROAD_W), CFrame.new(x0, 8, 0), rarity.Color, Enum.Material.ForceField)
+		barrier.CanCollide = false
+		barrier.CanQuery = false
+		barrier.Transparency = 0.3
+	end
+	zoneInfo[k] = { X0 = x0, X1 = x0 + ZONE_LEN, Need = k == 1 and 0 or rarity.Mog }
 end
-local rushLabel = sign(Vector3.new(0, 22, 0), "MONSTER LANE", Color3.fromRGB(255, 80, 80))
-local LANE_Y = 1.1
+local endWall = block(Vector3.new(2, 20, ROAD_W + 4), CFrame.new(ROAD_END + 1, 10, 0), Color3.fromRGB(45, 40, 60), Enum.Material.Basalt)
+surfaceText(endWall, "MORE ZONES COMING SOON...", Enum.NormalId.Left)
+local rushLabel = sign(Vector3.new(-12, 24, 0), "MOG ROAD", Color3.fromRGB(255, 80, 80))
+
+local function zoneAtX(x)
+	if x < ROAD_X0 then
+		return 0
+	end
+	return math.clamp(math.floor((x - ROAD_X0) / ZONE_LEN) + 1, 1, #ZONES)
+end
 
 -- FUSION MACHINE
-local fusionPos = Vector3.new(0, 0, -62)
+local fusionPos = Vector3.new(-170, 0, 0)
 local fusionBase = block(Vector3.new(2, 16, 16), CFrame.new(fusionPos + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 30, 80), Enum.Material.Metal)
 fusionBase.Shape = Enum.PartType.Cylinder
 local fusionCore = block(Vector3.new(6, 6, 6), CFrame.new(fusionPos + Vector3.new(0, 7, 0)), Color3.fromRGB(200, 80, 255), Enum.Material.ForceField)
@@ -363,9 +391,8 @@ fusionPrompt.RequiresLineOfSight = false
 fusionPrompt.Parent = fusionCore
 sign(fusionPos + Vector3.new(0, 14, 0), "FUSION MACHINE", Color3.fromRGB(200, 80, 255)).Text = "2 same monsters = next level!"
 
--- BASES (fenced pens in a circle around the plaza)
+-- BASES (fenced pens in two rows next to the hub)
 local PLOT_W, PLOT_D = 72, 64
-local BASE_RADIUS = 175
 local PLOT_COLORS = {
 	Color3.fromRGB(255, 120, 120), Color3.fromRGB(120, 180, 255), Color3.fromRGB(140, 230, 140), Color3.fromRGB(255, 210, 110),
 	Color3.fromRGB(210, 140, 255), Color3.fromRGB(120, 230, 230), Color3.fromRGB(255, 160, 210), Color3.fromRGB(220, 220, 220),
@@ -384,9 +411,10 @@ local plots = {}
 local playerPlot = {}
 
 local function buildPlot(index)
-	local angle = math.rad(22.5 + (index - 1) * 45)
-	local center = Vector3.new(math.sin(angle) * BASE_RADIUS, 0, math.cos(angle) * BASE_RADIUS)
-	local cf = CFrame.lookAt(center, Vector3.new(0, 0, 0)) -- -Z points at the plaza
+	local north = index <= 4
+	local col = (index - 1) % 4
+	local center = Vector3.new(-300 + col * 80, 0, north and 88 or -88)
+	local cf = CFrame.lookAt(center, center + Vector3.new(0, 0, north and -1 or 1)) -- -Z points at the hub
 	local color = PLOT_COLORS[index]
 	local folder = Instance.new("Folder")
 	folder.Name = "Base" .. index
@@ -488,27 +516,15 @@ local function plotAt(position)
 	return nil
 end
 
--- DECORATIONS: paths, lamps, trees
+-- DECORATIONS: lamps and trees
 do
 	local deco = Instance.new("Folder")
 	deco.Name = "Decorations"
 	deco.Parent = map
-	local PLAZA_R = 110
-	local pathDirs = {}
-	for _, plot in ipairs(plots) do
-		local door = (plot.CF * CFrame.new(0, 0, -PLOT_D / 2)).Position
-		local d = Vector3.new(door.X, 0, door.Z).Unit
-		table.insert(pathDirs, d)
-		local inner, outer = PLAZA_R - 4, Vector3.new(door.X, 0, door.Z).Magnitude
-		local center = d * ((inner + outer) / 2) + Vector3.new(0, 0.1, 0)
-		block(Vector3.new(16, 0.2, outer - inner), CFrame.lookAt(center, center + d), Color3.fromRGB(150, 140, 125), Enum.Material.Cobblestone, deco)
-	end
-	for i = 0, 7 do
-		local a = math.rad(i * 45)
-		local pos = Vector3.new(math.sin(a) * (PLAZA_R - 3), 0, math.cos(a) * (PLAZA_R - 3))
-		if math.abs(pos.Z) > 20 then
-			block(Vector3.new(0.8, 12, 0.8), CFrame.new(pos + Vector3.new(0, 6, 0)), Color3.fromRGB(40, 40, 50), Enum.Material.Metal, deco)
-			local bulb = block(Vector3.new(2.2, 2.2, 2.2), CFrame.new(pos + Vector3.new(0, 12.6, 0)), Color3.fromRGB(255, 220, 150), Enum.Material.Neon, deco)
+	for x = -330, -30, 50 do
+		for _, z in ipairs({ -46, 46 }) do
+			block(Vector3.new(0.8, 12, 0.8), CFrame.new(x, 6, z), Color3.fromRGB(40, 40, 50), Enum.Material.Metal, deco)
+			local bulb = block(Vector3.new(2.2, 2.2, 2.2), CFrame.new(x, 12.6, z), Color3.fromRGB(255, 220, 150), Enum.Material.Neon, deco)
 			bulb.Shape = Enum.PartType.Ball
 			bulb.CanCollide = false
 			local light = Instance.new("PointLight")
@@ -519,26 +535,14 @@ do
 	end
 	local rng = Random.new(42)
 	local placed = 0
-	for _ = 1, 500 do
-		if placed >= 70 then
+	for _ = 1, 600 do
+		if placed >= 80 then
 			break
 		end
-		local pos = Vector3.new(rng:NextNumber(-270, 270), 0, rng:NextNumber(-270, 270))
-		local ok = pos.Magnitude > PLAZA_R + 8 and not (math.abs(pos.Z) < 14 and math.abs(pos.X) < 145)
-		for _, plot in ipairs(plots) do
-			if (plot.CF.Position - pos).Magnitude < 58 then
-				ok = false
-			end
-		end
-		if ok then
-			for _, d in ipairs(pathDirs) do
-				local along = pos:Dot(d)
-				if along > 0 and along < 150 and (pos - d * along).Magnitude < 14 then
-					ok = false
-				end
-			end
-		end
-		if ok then
+		local pos = Vector3.new(rng:NextNumber(-400, 540), 0, rng:NextNumber(-250, 250))
+		local inBases = pos.X > -350 and pos.X < -10 and math.abs(pos.Z) < 130
+		local onRoad = pos.X > -40 and pos.X < ROAD_END + 20 and math.abs(pos.Z) < ROAD_W / 2 + 12
+		if not inBases and not onRoad then
 			placed = placed + 1
 			local h = rng:NextNumber(7, 13)
 			local trunk = block(Vector3.new(h, 1.8, 1.8), CFrame.new(pos + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(110, 75, 45), Enum.Material.Wood, deco)
@@ -719,19 +723,6 @@ local function luck()
 	return l
 end
 
-local function rollRarity(extraLuck)
-	local l = luck() * (extraLuck or 1)
-	local r = math.random()
-	local acc = 0
-	for i = #RARITIES, 2, -1 do
-		acc = acc + RARITIES[i].Chance * (i >= 4 and l or 1)
-		if r < acc then
-			return i
-		end
-	end
-	return 1
-end
-
 local function rollVariant(extraLuck)
 	local l = luck() * (extraLuck or 1)
 	local r = math.random()
@@ -777,7 +768,7 @@ end
 local function updateLabel(m)
 	local info = m.InfoLabel
 	if m.State == "Lane" then
-		info.Text = "MOG " .. fmt(m.MogReq) .. "  |  $" .. fmt(m.Income) .. "/s"
+		info.Text = "NEED " .. fmt(m.MogReq) .. " MOG  |  $" .. fmt(m.Income) .. "/s"
 	elseif m.State == "Placed" or m.State == "Flying" then
 		info.Text = "$" .. fmt(m.Income) .. "/s" .. (isVaultSlot(m.Slot) and "  (VAULT)" or "")
 	elseif m.State == "Loose" then
@@ -869,7 +860,8 @@ local function createMonster(id, variant)
 	local _, labels = billboard(body, 250, 84, Vector3.new(0, s * 0.5 + 2.6, 0), 3)
 	labels[1].Text = displayName(id, variant)
 	labels[1].TextColor3 = variant > 1 and (v.Color or Color3.fromRGB(255, 120, 255)) or rarity.Color
-	labels[2].Text = rarity.Name .. "  |  1 in " .. fmt(oddsOf(id, variant))
+	local odds = oddsOf(id, variant)
+	labels[2].Text = rarity.Name .. ((odds > 1) and ("  |  1 in " .. fmt(odds)) or "")
 	labels[2].TextColor3 = rarity.Color
 	if def.Rarity >= 7 then
 		labels[2].TextStrokeColor3 = Color3.new(1, 1, 1)
@@ -923,9 +915,12 @@ local function monsterAlive(m)
 	return monstersByPart[m.Part] == m
 end
 
+local leaveZone -- defined below
 local function destroyMonster(m)
 	monstersByPart[m.Part] = nil
-	laneMonsters[m] = nil
+	if laneMonsters[m] then
+		leaveZone(m)
+	end
 	if m.Plot and m.Plot.Slots[m.Slot] == m then
 		m.Plot.Slots[m.Slot] = nil
 	end
@@ -1169,22 +1164,44 @@ applyMovement = function(player)
 end
 
 ----------------------------------------------------------------------
--- MONSTER LANE
+-- ZONE SPAWNING
 ----------------------------------------------------------------------
-local function spawnLaneMonster()
-	local rarity = rollRarity()
-	local id = randomSpecies(rarity)
+local zoneCount = {}
+for k = 1, #ZONES do
+	zoneCount[k] = 0
+end
+
+leaveZone = function(m)
+	if laneMonsters[m] then
+		laneMonsters[m] = nil
+		zoneCount[m.Zone] = math.max(0, zoneCount[m.Zone] - 1)
+	end
+end
+
+local function randomPointInZone(k)
+	local z = zoneInfo[k]
+	return Vector3.new(math.random() * (ZONE_LEN - 12) + z.X0 + 6, 0, (math.random() - 0.5) * (ROAD_W - 10))
+end
+
+local function spawnZoneMonster(k, id)
+	id = id or randomSpecies(k)
 	local variant = rollVariant()
 	local m = createMonster(id, variant)
-	local y = LANE_Y + m.Part.Size.Y / 2
-	m.Part.CFrame = CFrame.lookAt(Vector3.new(LANE_START, y, 0), Vector3.new(LANE_START + 1, y, 0))
-	m.LaneY = y
+	local y = 0.4 + m.Part.Size.Y / 2 + 0.3
+	local start = randomPointInZone(k)
+	m.Part.CFrame = CFrame.new(start.X, y, start.Z)
+	m.Zone = k
+	m.GroundY = y
+	m.Target = randomPointInZone(k)
+	m.Pause = 0
 	m.Walked = 0
 	setState(m, "Lane")
 	updateLabel(m)
 	laneMonsters[m] = true
-	if rarity >= 6 or variant >= 4 or (rarity >= 5 and variant >= 2) then
-		announce("A " .. RARITIES[rarity].Name:upper() .. " " .. displayName(id, variant) .. " (1 in " .. fmt(oddsOf(id, variant)) .. ") is on the MONSTER LANE!")
+	zoneCount[k] = zoneCount[k] + 1
+	effect(m.Part.Position, RARITIES[k].Color, nil)
+	if k >= 6 or variant >= 4 or (k >= 5 and variant >= 2) then
+		announce("A " .. RARITIES[k].Name:upper() .. " " .. displayName(id, variant) .. " appeared in ZONE " .. k .. "!")
 	end
 end
 
@@ -1218,7 +1235,7 @@ onMonsterPrompt = function(m, action, player)
 			notify(player, "Your base is full! Sell a monster or buy more spots (UPGRADES).")
 			return
 		end
-		laneMonsters[m] = nil
+		leaveZone(m)
 		effect(m.Part.Position, RARITIES[m.Def.Rarity].Color, "MOGGED!")
 		flyToSlot(m, plot, slot, player)
 		discover(player, m)
@@ -1511,7 +1528,7 @@ local function getInfo(player)
 	for _, def in ipairs(MONSTERS) do
 		table.insert(index, {
 			Id = def.Id, Name = def.Name, Rarity = def.Rarity, Found = data.Discovered[def.Id] == true,
-			Odds = oddsOf(def.Id, 1), Exclusive = def.Exclusive == true,
+			Odds = oddsOf(def.Id, 1), Zone = def.Rarity, Exclusive = def.Exclusive == true,
 		})
 	end
 	local variants = {}
@@ -1903,22 +1920,42 @@ local function timeText(seconds)
 	return string.format("%d:%02d", seconds // 60, seconds % 60)
 end
 
--- Monsters walking down the lane + spawning
-local spawnTimer = 0
+-- Spawning in every zone + monsters walking around
+local zoneTimers = {}
+for k = 1, #ZONES do
+	zoneTimers[k] = (ZONES[k].Every or 0) * 0.8 -- first monsters come quickly
+end
 RunService.Heartbeat:Connect(function(dt)
-	spawnTimer = spawnTimer + dt
-	local every = os.clock() < rushUntil and 1 or CONFIG.SPAWN_EVERY
-	if spawnTimer >= every then
-		spawnTimer = 0
-		spawnLaneMonster()
+	local rush = os.clock() < rushUntil
+	for k, zone in ipairs(ZONES) do
+		if zone.Every then
+			zoneTimers[k] = zoneTimers[k] + dt * (rush and 3 or 1)
+			if zoneTimers[k] >= zone.Every then
+				zoneTimers[k] = 0
+				if math.random() < GIGAMOG_CHANCE * luck() and zoneCount[#ZONES] < ZONES[#ZONES].Max then
+					spawnZoneMonster(#ZONES, "Gigamog")
+				elseif zoneCount[k] < zone.Max then
+					spawnZoneMonster(k)
+				end
+			end
+		end
 	end
 	for m in pairs(laneMonsters) do
-		m.Walked = m.Walked + CONFIG.LANE_SPEED * dt
-		local x = LANE_START + m.Walked
-		local bob = math.abs(math.sin(m.Walked * 1.2)) * 0.6
-		m.Part.CFrame = CFrame.lookAt(Vector3.new(x, m.LaneY + bob, 0), Vector3.new(x + 1, m.LaneY + bob, 0))
-		if x > LANE_END then
-			destroyMonster(m)
+		local pos = m.Part.Position
+		if m.Pause > 0 then
+			m.Pause = m.Pause - dt
+		else
+			local flat = Vector3.new(m.Target.X - pos.X, 0, m.Target.Z - pos.Z)
+			if flat.Magnitude < 1 then
+				m.Target = randomPointInZone(m.Zone)
+				m.Pause = math.random() * 3
+			else
+				local step = flat.Unit * math.min(flat.Magnitude, CONFIG.WANDER_SPEED * dt)
+				m.Walked = m.Walked + step.Magnitude
+				local bob = math.abs(math.sin(m.Walked * 1.5)) * 0.6
+				local newPos = Vector3.new(pos.X + step.X, m.GroundY + bob, pos.Z + step.Z)
+				m.Part.CFrame = CFrame.lookAt(newPos, newPos + Vector3.new(step.X, 0, step.Z))
+			end
 		end
 	end
 end)
@@ -1991,6 +2028,25 @@ task.spawn(function()
 			end
 		end
 
+		-- zone gates: push players back if their MOG is too low
+		for _, player in ipairs(Players:GetPlayers()) do
+			local char = player.Character
+			local root = char and char:FindFirstChild("HumanoidRootPart")
+			if root and isAlive(player) then
+				local here = zoneAtX(root.Position.X)
+				local mog = playerMog(player)
+				for k = 2, here do
+					if mog < zoneInfo[k].Need then
+						local z = math.clamp(root.Position.Z, -ROAD_W / 2 + 3, ROAD_W / 2 - 3)
+						local back = Vector3.new(zoneInfo[k].X0 - 5, root.Position.Y + 1, z)
+						char:PivotTo(CFrame.lookAt(back, back - Vector3.new(1, 0, 0)))
+						notify(player, "You need " .. fmt(zoneInfo[k].Need) .. " MOG for ZONE " .. k .. "! Train MOG in UPGRADES.")
+						break
+					end
+				end
+			end
+		end
+
 		for _, plot in ipairs(plots) do
 			plot.AlarmLight.Enabled = now < plot.AlarmUntil and flash
 			if plot.Owner and now < plot.LockUntil then
@@ -2009,4 +2065,4 @@ task.spawn(function()
 	end
 end)
 
-print("MOG MONSTERS server v1 started OK!")
+print("MOG MONSTERS server v2 started OK!")
