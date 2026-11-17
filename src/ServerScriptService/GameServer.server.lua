@@ -78,6 +78,11 @@ local POWERS = {
 	{ Id = "Dragon",    Name = "Dragon",    Rarity = 5, Price = 120000,  Income = 1000,  Color = Color3.fromRGB(220, 40, 40),   Element = "Dragon",    Market = true },
 	{ Id = "Void",      Name = "Void",      Rarity = 6, Price = 700000,  Income = 5000,  Color = Color3.fromRGB(10, 0, 30),     Element = "Gravity",   Market = true },
 	{ Id = "Celestial", Name = "Celestial", Rarity = 7, Price = 5000000, Income = 25000, Color = Color3.fromRGB(255, 250, 220), Element = "Dragon",    Market = true },
+	{ Id = "Sand",      Name = "Sand",      Rarity = 1, Price = 140,     Income = 6,     Color = Color3.fromRGB(230, 200, 130), Element = "Gravity",   Market = true },
+	{ Id = "Water",     Name = "Water",     Rarity = 2, Price = 750,     Income = 18,    Color = Color3.fromRGB(40, 120, 255),  Element = "Ice",       Market = true },
+	{ Id = "Crystal",   Name = "Crystal",   Rarity = 3, Price = 3800,    Income = 60,    Color = Color3.fromRGB(160, 255, 255), Element = "Ice",       Market = true },
+	{ Id = "Light",     Name = "Light",     Rarity = 4, Price = 22000,   Income = 250,   Color = Color3.fromRGB(255, 255, 200), Element = "Lightning", Market = true },
+	{ Id = "Time",      Name = "Time",      Rarity = 5, Price = 150000,  Income = 1200,  Color = Color3.fromRGB(200, 170, 90),  Element = "Shadow",    Market = true },
 
 	-- Fusion-only powers
 	{ Id = "Magma",          Name = "Magma",           Rarity = 2, Price = 900,      Income = 30,     Color = Color3.fromRGB(255, 70, 0),    Element = "Fire" },
@@ -92,6 +97,11 @@ local POWERS = {
 	{ Id = "Phoenix",        Name = "Phoenix",         Rarity = 6, Price = 1000000,  Income = 8000,   Color = Color3.fromRGB(255, 120, 40),  Element = "Fire" },
 	{ Id = "BlackHole",      Name = "Black Hole",      Rarity = 6, Price = 1600000,  Income = 12000,  Color = Color3.fromRGB(5, 5, 5),       Element = "Gravity" },
 	{ Id = "Eclipse",        Name = "Eclipse",         Rarity = 7, Price = 10000000, Income = 60000,  Color = Color3.fromRGB(255, 140, 0),   Element = "Shadow" },
+	{ Id = "Glass",          Name = "Glass",           Rarity = 2, Price = 800,      Income = 28,     Color = Color3.fromRGB(200, 240, 255), Element = "Ice" },
+	{ Id = "Tsunami",        Name = "Tsunami",         Rarity = 3, Price = 4500,     Income = 80,     Color = Color3.fromRGB(0, 90, 200),    Element = "Ice" },
+	{ Id = "Prism",          Name = "Prism",           Rarity = 4, Price = 60000,    Income = 700,    Color = Color3.fromRGB(255, 150, 255), Element = "Lightning" },
+	{ Id = "ChronoDragon",   Name = "Chrono Dragon",   Rarity = 6, Price = 700000,   Income = 5000,   Color = Color3.fromRGB(190, 140, 40),  Element = "Dragon" },
+	{ Id = "Supernova",      Name = "Supernova",       Rarity = 7, Price = 12000000, Income = 70000,  Color = Color3.fromRGB(255, 255, 255), Element = "Dragon" },
 }
 
 -- Fusion recipes (order doesn't matter). Players have to discover them!
@@ -107,6 +117,11 @@ local RECIPES = {
 	{ "Dragon", "Lightning", "ThunderDragon" },
 	{ "Gravity", "Void", "BlackHole" },
 	{ "Celestial", "Shadow", "Eclipse" },
+	{ "Sand", "Fire", "Glass" },
+	{ "Water", "Wind", "Tsunami" },
+	{ "Crystal", "Light", "Prism" },
+	{ "Time", "Dragon", "ChronoDragon" },
+	{ "Light", "Celestial", "Supernova" },
 }
 
 -- Chance is in percent
@@ -143,6 +158,20 @@ local Debris = game:GetService("Debris")
 
 Players.RespawnTime = CONFIG.RESPAWN_TIME
 Lighting.ClockTime = 14.5
+local function addLightingEffect(className, props)
+	if Lighting:FindFirstChildOfClass(className) then
+		return
+	end
+	local e = Instance.new(className)
+	for k, v in pairs(props) do
+		e[k] = v
+	end
+	e.Parent = Lighting
+end
+addLightingEffect("Atmosphere", { Density = 0.25, Haze = 1, Color = Color3.fromRGB(200, 215, 255), Decay = Color3.fromRGB(120, 140, 200) })
+addLightingEffect("BloomEffect", { Intensity = 0.7, Size = 24, Threshold = 1.5 })
+addLightingEffect("ColorCorrectionEffect", { Saturation = 0.15, Contrast = 0.05 })
+addLightingEffect("SunRaysEffect", { Intensity = 0.06, Spread = 0.8 })
 
 for key, value in pairs({
 	DoubleMoneyPassId = CONFIG.DOUBLE_MONEY_PASS_ID,
@@ -170,6 +199,7 @@ local announceRemote = remote("RemoteEvent", "Announce")
 local alarmRemote = remote("RemoteEvent", "Alarm")
 local panelRemote = remote("RemoteEvent", "OpenPanel")
 local throwRemote = remote("RemoteEvent", "Throw")
+local effectRemote = remote("RemoteEvent", "Effect")
 local blastRemote = remote("RemoteEvent", "Blast")
 local requestRemote = remote("RemoteFunction", "Request")
 remotes.Parent = ReplicatedStorage
@@ -179,6 +209,10 @@ local function notify(player, text)
 end
 local function announce(text)
 	announceRemote:FireAllClients(text)
+end
+-- burst of particles + floating text, shown on every screen
+local function effect(position, color, text)
+	effectRemote:FireAllClients(position, color, text)
 end
 
 local function fmt(n)
@@ -467,6 +501,79 @@ local function plotAt(position)
 		end
 	end
 	return nil
+end
+
+-- DECORATIONS: paths, lamps and trees
+do
+	local deco = Instance.new("Folder")
+	deco.Name = "Decorations"
+	deco.Parent = map
+	local PLAZA_R = 110
+	local pathDirs = {}
+
+	for _, plot in ipairs(plots) do
+		local door = (plot.CF * CFrame.new(0, 0, -PLOT_D / 2)).Position
+		local d = Vector3.new(door.X, 0, door.Z).Unit
+		table.insert(pathDirs, d)
+		local inner, outer = PLAZA_R - 4, door.Magnitude
+		local center = d * ((inner + outer) / 2) + Vector3.new(0, 0.1, 0)
+		local path = block(Vector3.new(16, 0.2, outer - inner), CFrame.lookAt(center, center + d), Color3.fromRGB(150, 140, 125), Enum.Material.Cobblestone, deco)
+		path.Name = "Path"
+		for _, side in ipairs({ -1, 1 }) do
+			local edge = block(Vector3.new(0.6, 0.6, outer - inner), CFrame.lookAt(center, center + d) * CFrame.new(side * 8.3, 0.2, 0), Color3.fromRGB(255, 200, 60), Enum.Material.Neon, deco)
+			edge.CanCollide = false
+		end
+	end
+
+	-- lamp posts around the plaza, between the paths
+	for i = 0, 7 do
+		local a = math.rad(22.5 + i * 45)
+		local pos = Vector3.new(math.sin(a) * (PLAZA_R - 3), 0, math.cos(a) * (PLAZA_R - 3))
+		block(Vector3.new(0.8, 12, 0.8), CFrame.new(pos + Vector3.new(0, 6, 0)), Color3.fromRGB(40, 40, 50), Enum.Material.Metal, deco)
+		local bulb = block(Vector3.new(2.2, 2.2, 2.2), CFrame.new(pos + Vector3.new(0, 12.6, 0)), Color3.fromRGB(255, 220, 150), Enum.Material.Neon, deco)
+		bulb.Shape = Enum.PartType.Ball
+		bulb.CanCollide = false
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 210, 140)
+		light.Range = 28
+		light.Brightness = 1.5
+		light.Parent = bulb
+	end
+
+	-- trees out on the grass (same layout every time)
+	local rng = Random.new(42)
+	local placed = 0
+	for _ = 1, 400 do
+		if placed >= 70 then
+			break
+		end
+		local pos = Vector3.new(rng:NextNumber(-265, 265), 0, rng:NextNumber(-265, 265))
+		local r = pos.Magnitude
+		local ok = r > PLAZA_R + 8
+		for _, plot in ipairs(plots) do
+			if (plot.CF.Position - pos).Magnitude < 58 then
+				ok = false
+			end
+		end
+		if ok and r < 160 then
+			for _, d in ipairs(pathDirs) do
+				local along = pos:Dot(d)
+				local off = (pos - d * along).Magnitude
+				if along > 0 and off < 14 then
+					ok = false
+				end
+			end
+		end
+		if ok then
+			placed = placed + 1
+			local h = rng:NextNumber(7, 13)
+			local trunk = block(Vector3.new(h, 1.8, 1.8), CFrame.new(pos + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(110, 75, 45), Enum.Material.Wood, deco)
+			trunk.Shape = Enum.PartType.Cylinder
+			local size = rng:NextNumber(8, 13)
+			local leaves = block(Vector3.new(size, size, size), CFrame.new(pos + Vector3.new(0, h + size * 0.3, 0)), Color3.fromRGB(rng:NextInteger(50, 90), rng:NextInteger(140, 190), rng:NextInteger(50, 80)), Enum.Material.Grass, deco)
+			leaves.Shape = Enum.PartType.Ball
+		end
+	end
 end
 
 ----------------------------------------------------------------------
@@ -962,6 +1069,7 @@ local function deliver(power, player, plot, slot)
 			updateStats(player)
 		end
 		local name = displayName(power.Id, power.Mut)
+		effect(power.Part.Position, Color3.fromRGB(255, 60, 60), "STOLEN!")
 		notify(player, "You stole " .. name .. " from " .. victim.Name .. "!")
 		if victim.Parent then
 			notify(victim, player.Name .. " STOLE your " .. name .. "!")
@@ -1122,6 +1230,7 @@ onPowerPrompt = function(power, action, player)
 				marketStock[i] = nil
 			end
 		end
+		effect(power.Part.Position, RARITIES[def.Rarity].Color, "+" .. name)
 		flyToSlot(power, plot, slot, player)
 		if def.Rarity >= 5 then
 			announce(player.Name .. " bought a " .. RARITIES[def.Rarity].Name .. " " .. name .. "!")
@@ -1511,6 +1620,7 @@ portal.Touched:Connect(function(hit)
 	local mut = rollMutation(2)
 	if givePower(player, id, mut, portal.Position) then
 		notify(player, "The portal gave you " .. displayName(id, mut) .. "!")
+		effect(portal.Position, Color3.fromRGB(170, 60, 255), displayName(id, mut) .. "!")
 		if rarity >= 5 then
 			announce(player.Name .. " got a " .. RARITIES[rarity].Name .. " " .. displayName(id, mut) .. " from the SECRET PORTAL!")
 		end
@@ -1633,6 +1743,7 @@ local function doFuse(player, slotA, slotB)
 
 	local name = displayName(resultId, mut)
 	local rarity = POWER_BY_ID[resultId].Rarity
+	effect(fusionCore.Position, RARITIES[rarity].Color, name .. "!")
 	if discoveredNew then
 		notify(player, "NEW RECIPE DISCOVERED: " .. name .. "!")
 		if rarity >= 4 then
@@ -2102,4 +2213,4 @@ task.spawn(function()
 	end
 end)
 
-print("POWER EMPIRE server v3 started OK!")
+print("POWER EMPIRE server v4 started OK!")

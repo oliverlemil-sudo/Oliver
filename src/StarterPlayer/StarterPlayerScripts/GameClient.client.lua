@@ -27,6 +27,8 @@ local panelRemote = remotes:WaitForChild("OpenPanel")
 local throwRemote = remotes:WaitForChild("Throw")
 local blastRemote = remotes:WaitForChild("Blast")
 local requestRemote = remotes:WaitForChild("Request")
+local effectRemote = remotes:WaitForChild("Effect")
+local Debris = game:GetService("Debris")
 
 local RARITY_NAMES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 local RARITY_COLORS = {
@@ -183,6 +185,51 @@ alarmRemote.OnClientEvent:Connect(function(text)
 		task.wait(0.5)
 	end
 	alarmText.Text = ""
+end)
+
+----------------------------------------------------------------------
+-- EFFECTS: particle burst + floating text
+----------------------------------------------------------------------
+effectRemote.OnClientEvent:Connect(function(position, color, text)
+	if typeof(position) ~= "Vector3" then
+		return
+	end
+	color = typeof(color) == "Color3" and color or Color3.new(1, 1, 1)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Transparency = 1
+	p.Size = Vector3.new(1, 1, 1)
+	p.CFrame = CFrame.new(position)
+	p.Parent = workspace
+
+	local burst = Instance.new("ParticleEmitter")
+	burst.Color = ColorSequence.new(color)
+	burst.LightEmission = 1
+	burst.Rate = 0
+	burst.Speed = NumberRange.new(12, 24)
+	burst.SpreadAngle = Vector2.new(180, 180)
+	burst.Lifetime = NumberRange.new(0.5, 1)
+	burst.Size = NumberSequence.new(1.2, 0)
+	burst.Parent = p
+	burst:Emit(40)
+
+	if type(text) == "string" then
+		local bb = Instance.new("BillboardGui")
+		bb.Size = UDim2.new(0, 260, 0, 50)
+		bb.StudsOffset = Vector3.new(0, 3, 0)
+		bb.AlwaysOnTop = true
+		bb.MaxDistance = 120
+		bb.Parent = p
+		local l = label(bb, text, UDim2.fromScale(1, 1))
+		l.TextColor3 = color
+		l.TextStrokeTransparency = 0
+		TweenService:Create(bb, TweenInfo.new(1.6), { StudsOffset = Vector3.new(0, 10, 0) }):Play()
+		TweenService:Create(l, TweenInfo.new(1.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	end
+	Debris:AddItem(p, 2)
 end)
 
 ----------------------------------------------------------------------
@@ -732,4 +779,4 @@ task.delay(2, function()
 	showMessage("Welcome to POWER EMPIRE! Buy powers in the MARKET, steal from others, press F to THROW!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("POWER EMPIRE client v3 started OK!")
+print("POWER EMPIRE client v4 started OK!")

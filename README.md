@@ -36,14 +36,14 @@ Scriptet bygger selv hele kortet: 8 baser i en cirkel og et fælles område i mi
 
 ### 🧪 Power Fusion (unik funktion)
 Kombinér 2 kræfter ved **Fusion Station** og få en ny og stærkere kraft.
-**11 hemmelige opskrifter** skal spillerne selv finde frem til. De bliver gemt i **INDEX**.
+**16 hemmelige opskrifter** skal spillerne selv finde frem til. De bliver gemt i **INDEX**.
 
 | Opskrift | Resultat |
 |---|---|
 | Fire + Lightning | Plasma |
 | Ice + Shadow | Frozen Darkness |
 | Dragon + Lightning | Thunder Dragon |
-| …og 8 hemmelige mere | (spoilers 🤫) |
+| …og 13 hemmelige mere | (spoilers 🤫) |
 
 Kombinerer man to kræfter, der ikke er en opskrift, får man en tilfældig kraft, og nogle gange er den en sjældenhed højere.
 
@@ -85,7 +85,7 @@ Udenfor arenaen virker angrebet kun mod tyve, så man ikke kan genere folk tilf�
 - **Daily Rewards:** Bonussen bliver større for hver dag i træk, du logger ind. **Dag 7 giver en gratis Epic-kraft eller bedre.**
 - **Beskeder til hele serveren**, når nogen stjæler, finder eller laver noget sjældent. Det er her, man kan drille sine venner!
 
-### 💎 Sjældenheder (18 kræfter)
+### 💎 Sjældenheder (28 kræfter)
 Common → Uncommon → Rare → Epic → Legendary → Mythic → **Secret**
 
 ---
