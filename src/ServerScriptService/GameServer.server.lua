@@ -19,7 +19,7 @@
 
 	REALISTIC MONSTERS (optional):
 	  In ServerStorage there is a Folder "MonsterModels". Put a 3D Model
-	  inside and name it like a monster (for example "Frostfang").
+	  inside and name it like a monster (for example "Werewolf").
 	  The game will use your model instead of the built-in one.
 	  Scripts inside the model are removed automatically.
 

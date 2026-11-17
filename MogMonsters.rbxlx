@@ -1,6 +1,6 @@
 <roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
-<Item class="Workspace" referent="RBXF6E6A9F5466345698C0996F2030DCEAA"><Properties><string name="Name">Workspace</string></Properties></Item>
-<Item class="ServerScriptService" referent="RBX48F6ED416E964C5AA50433F3069077D3"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX21D492C52A144586954277FDEE3251FD"><Properties><string name="Name">GameServer</string><bool name="Disabled">false</bool><token name="RunContext">0</token><ProtectedString name="Source"><![CDATA[--[[
+<Item class="Workspace" referent="RBXF931FF3C1E4D4B41B3DAD0CFDA2FE583"><Properties><string name="Name">Workspace</string></Properties></Item>
+<Item class="ServerScriptService" referent="RBX9D46485C79704F03BE4605735ECD8F2D"><Properties><string name="Name">ServerScriptService</string></Properties><Item class="Script" referent="RBX09C2A5720D8A468E969933D3F3756556"><Properties><string name="Name">GameServer</string><bool name="Disabled">false</bool><token name="RunContext">0</token><ProtectedString name="Source"><![CDATA[--[[
 	👹 MOG MONSTERS 👹
 	==================
 	Put this as a *Script* in ServerScriptService.
@@ -21,7 +21,7 @@
 
 	REALISTIC MONSTERS (optional):
 	  In ServerStorage there is a Folder "MonsterModels". Put a 3D Model
-	  inside and name it like a monster (for example "Frostfang").
+	  inside and name it like a monster (for example "Werewolf").
 	  The game will use your model instead of the built-in one.
 	  Scripts inside the model are removed automatically.
 
@@ -2726,8 +2726,8 @@ end)
 
 print("MOG MONSTERS server v5 started OK!")
 ]]></ProtectedString></Properties></Item></Item>
-<Item class="ServerStorage" referent="RBX990DDC3418714FA1B8B786CA220021D7"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBX8013BB5DA37140E8AB29D1320110B36B"><Properties><string name="Name">MonsterModels</string></Properties></Item></Item>
-<Item class="StarterPlayer" referent="RBX2FA28E858CDE47B4B4FCE05D607F998A"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX5B0AD1ABABF84D3A970044446E739513"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX5E0C0AD7432D4BBA84C3B4FA5AFC8B03"><Properties><string name="Name">GameClient</string><bool name="Disabled">false</bool><token name="RunContext">0</token><ProtectedString name="Source"><![CDATA[--[[
+<Item class="ServerStorage" referent="RBX7F82EAD9118844799FBBB924088345EB"><Properties><string name="Name">ServerStorage</string></Properties><Item class="Folder" referent="RBXD6301693BFB44002A5130A3CB152F30E"><Properties><string name="Name">MonsterModels</string></Properties></Item></Item>
+<Item class="StarterPlayer" referent="RBX1F4E698D9C4444C19C7B7A4DD0F418D7"><Properties><string name="Name">StarterPlayer</string></Properties><Item class="StarterPlayerScripts" referent="RBX15899B1ADCDC4D42A21A24088F6BA621"><Properties><string name="Name">StarterPlayerScripts</string></Properties><Item class="LocalScript" referent="RBX19CDEA15F2904F1497AE2CD2F0B72E51"><Properties><string name="Name">GameClient</string><bool name="Disabled">false</bool><token name="RunContext">0</token><ProtectedString name="Source"><![CDATA[--[[
 	👹 MOG MONSTERS - GameClient 👹
 	===============================
 	Put this as a *LocalScript* in StarterPlayer > StarterPlayerScripts.
@@ -3962,5 +3962,5 @@ task.delay(2, function()
 end)
 
 print("MOG MONSTERS client v5 started OK!")
-]]></ProtectedString></Properties></Item></Item><Item class="StarterCharacterScripts" referent="RBX8924099930534F7894DB7E81C6F6E70E"><Properties><string name="Name">StarterCharacterScripts</string></Properties></Item></Item>
+]]></ProtectedString></Properties></Item></Item><Item class="StarterCharacterScripts" referent="RBX19A42F6DE2C044C18AE2B4A8EF9C586C"><Properties><string name="Name">StarterCharacterScripts</string></Properties></Item></Item>
 </roblox>

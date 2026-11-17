@@ -60,7 +60,7 @@ Monstrene er inspireret af gamle myter og sagn fra hele verden:
 Monstrene er bygget af runde former med arme, ben, hoveder, tøj, hatte, vinger og haler. Vil du have helt realistiske monstre, så gør sådan her:
 1. Find en 3D-model i **Toolbox**.
 2. Træk den ind i **ServerStorage → MonsterModels**.
-3. Omdøb den til monsterets navn, f.eks. `Frostfang`.
+3. Omdøb den til monsterets navn, f.eks. `Werewolf`.
 
 Scripts i modellen slettes automatisk.
 
