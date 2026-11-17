@@ -1,5 +1,5 @@
 {
-  "name": "FloorIsLavaObby",
+  "name": "EggHeist",
   "tree": {
     "$className": "DataModel",
     "ServerScriptService": {

@@ -1,30 +1,51 @@
 --[[
-	FLOOR IS LAVA OBBY  -  GameClient
-	==================================
+	EGG HEIST: THROW & STEAL  -  GameClient
+	========================================
 	Put this as a *LocalScript* in StarterPlayer > StarterPlayerScripts.
 
-	Makes the buttons and the shop on the screen, spins the coins and
-	shows messages. You don't need to change anything in here.
+	Makes the cash display, THROW button, shop, superpower list and
+	messages. You don't need to change anything in here.
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local MarketplaceService = game:GetService("MarketplaceService")
 local CollectionService = game:GetService("CollectionService")
-local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
+local camera = workspace.CurrentCamera
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
-local shopRemote = remotes:WaitForChild("Shop")
-local coinRemote = remotes:WaitForChild("CoinCollected")
 local notifyRemote = remotes:WaitForChild("Notify")
+local announceRemote = remotes:WaitForChild("Announce")
+local throwRemote = remotes:WaitForChild("Throw")
+
+local POWER_NAMES = {
+	Speed = "Super Speed",
+	Jump = "Mega Jump",
+	StrongArm = "Strong Arm",
+	Ghost = "Ghost",
+	IronGrip = "Iron Grip",
+}
+
+local function fmt(n)
+	n = math.floor(n)
+	if n >= 1e9 then
+		return string.format("%.1fB", n / 1e9)
+	elseif n >= 1e6 then
+		return string.format("%.1fM", n / 1e6)
+	elseif n >= 1e3 then
+		return string.format("%.1fK", n / 1e3)
+	end
+	return tostring(n)
+end
 
 ----------------------------------------------------------------------
 -- UI HELPERS
 ----------------------------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "ObbyGui"
+gui.Name = "EggHeistGui"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
@@ -66,7 +87,6 @@ local function button(parent, text, color, size, pos)
 	b.TextColor3 = Color3.new(1, 1, 1)
 	b.TextStrokeTransparency = 0.3
 	b.Text = text
-	b.AutoButtonColor = true
 	b.Parent = parent
 	corner(b, 10)
 	stroke(b)
@@ -80,301 +100,226 @@ local function button(parent, text, color, size, pos)
 end
 
 ----------------------------------------------------------------------
--- TOP BAR: stage + coins
+-- CASH DISPLAY
 ----------------------------------------------------------------------
-local topBar = Instance.new("Frame")
-topBar.Size = UDim2.new(0, 360, 0, 50)
-topBar.Position = UDim2.new(0.5, -180, 0, 8)
-topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-topBar.BackgroundTransparency = 0.2
-topBar.Parent = gui
-corner(topBar, 14)
-stroke(topBar)
+local cashFrame = Instance.new("Frame")
+cashFrame.Size = UDim2.new(0, 240, 0, 50)
+cashFrame.Position = UDim2.new(0.5, -120, 0, 8)
+cashFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+cashFrame.BackgroundTransparency = 0.2
+cashFrame.Parent = gui
+corner(cashFrame, 14)
+stroke(cashFrame)
+local cashLabel = label(cashFrame, "$0", UDim2.new(1, -20, 0.8, 0), UDim2.new(0, 10, 0.1, 0))
+cashLabel.TextColor3 = Color3.fromRGB(110, 255, 110)
 
-local stageLabel = label(topBar, "Stage 0", UDim2.new(0.55, -10, 0.8, 0), UDim2.new(0, 10, 0.1, 0))
-local coinsLabel = label(topBar, "Coins: 0", UDim2.new(0.45, -10, 0.8, 0), UDim2.new(0.55, 0, 0.1, 0))
-coinsLabel.TextColor3 = Color3.fromRGB(255, 215, 60)
-
-local function hookStats()
+task.spawn(function()
 	local stats = player:WaitForChild("leaderstats")
-	local stage = stats:WaitForChild("Stage")
-	local coins = stats:WaitForChild("Coins")
+	local cash = stats:WaitForChild("Cash")
 	local function refresh()
-		local total = ReplicatedStorage:GetAttribute("TotalStages") or 0
-		if stage.Value >= total and total > 0 then
-			stageLabel.Text = "FINISHED!"
-		else
-			stageLabel.Text = "Stage " .. stage.Value .. " / " .. total
-		end
-		coinsLabel.Text = "Coins: " .. coins.Value
+		cashLabel.Text = "$" .. fmt(cash.Value)
 	end
-	stage.Changed:Connect(refresh)
-	coins.Changed:Connect(refresh)
+	cash.Changed:Connect(refresh)
 	refresh()
-end
-task.spawn(hookStats)
+end)
 
 ----------------------------------------------------------------------
--- NOTIFICATIONS
+-- MESSAGES
 ----------------------------------------------------------------------
-local toast = label(gui, "", UDim2.new(0, 500, 0, 40), UDim2.new(0.5, -250, 0, 66))
+local toast = label(gui, "", UDim2.new(0, 560, 0, 36), UDim2.new(0.5, -280, 0, 64))
 toast.TextTransparency = 1
 toast.TextStrokeTransparency = 1
 local toastId = 0
 
-local function showMessage(text)
+local function showMessage(text, color)
 	toastId = toastId + 1
 	local myId = toastId
 	toast.Text = text
+	toast.TextColor3 = color or Color3.new(1, 1, 1)
 	toast.TextTransparency = 0
 	toast.TextStrokeTransparency = 0.3
-	task.delay(3, function()
+	task.delay(3.5, function()
 		if myId == toastId then
 			TweenService:Create(toast, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 		end
 	end)
 end
-notifyRemote.OnClientEvent:Connect(showMessage)
-
-----------------------------------------------------------------------
--- BUYING WITH ROBUX
-----------------------------------------------------------------------
-local function promptPass(attr)
-	local id = ReplicatedStorage:GetAttribute(attr) or 0
-	if id == 0 then
-		showMessage("Coming soon!")
-		return
-	end
-	MarketplaceService:PromptGamePassPurchase(player, id)
-end
-
-local function promptProduct(attr)
-	local id = ReplicatedStorage:GetAttribute(attr) or 0
-	if id == 0 then
-		showMessage("Coming soon!")
-		return
-	end
-	MarketplaceService:PromptProductPurchase(player, id)
-end
-
-----------------------------------------------------------------------
--- SIDE BUTTONS
-----------------------------------------------------------------------
-local side = Instance.new("Frame")
-side.BackgroundTransparency = 1
-side.Size = UDim2.new(0, 160, 0, 130)
-side.Position = UDim2.new(1, -170, 0.5, -65)
-side.Parent = gui
-
-local skipBtn = button(side, "SKIP STAGE", Color3.fromRGB(255, 120, 30), UDim2.new(1, 0, 0, 56), UDim2.new(0, 0, 0, 0))
-local shopBtn = button(side, "SHOP", Color3.fromRGB(60, 180, 90), UDim2.new(1, 0, 0, 56), UDim2.new(0, 0, 0, 70))
-
-skipBtn.Activated:Connect(function()
-	promptProduct("SkipStageProductId")
+notifyRemote.OnClientEvent:Connect(function(text)
+	showMessage(text)
+end)
+announceRemote.OnClientEvent:Connect(function(text)
+	showMessage(text, Color3.fromRGB(255, 210, 60))
 end)
 
 ----------------------------------------------------------------------
--- SHOP WINDOW
+-- SUPERPOWERS LIST (left side)
 ----------------------------------------------------------------------
+local powerFrame = Instance.new("Frame")
+powerFrame.Size = UDim2.new(0, 190, 0, 200)
+powerFrame.Position = UDim2.new(0, 10, 0.5, -100)
+powerFrame.BackgroundTransparency = 1
+powerFrame.Parent = gui
+local powerTitle = label(powerFrame, "SUPERPOWERS", UDim2.new(1, 0, 0, 26))
+powerTitle.TextColor3 = Color3.fromRGB(255, 210, 60)
+powerTitle.TextXAlignment = Enum.TextXAlignment.Left
+local powerList = label(powerFrame, "", UDim2.new(1, 0, 1, -30), UDim2.new(0, 0, 0, 30))
+powerList.TextScaled = false
+powerList.TextSize = 18
+powerList.TextXAlignment = Enum.TextXAlignment.Left
+powerList.TextYAlignment = Enum.TextYAlignment.Top
+
+local function refreshPowers()
+	local lines = {}
+	for key, name in pairs(POWER_NAMES) do
+		if player:GetAttribute("Power_" .. key) then
+			table.insert(lines, "* " .. name)
+		end
+	end
+	table.sort(lines)
+	if #lines == 0 then
+		powerList.Text = "None yet.\nHatch special eggs\nto unlock powers!"
+	else
+		powerList.Text = table.concat(lines, "\n")
+	end
+end
+player.AttributeChanged:Connect(function(name)
+	if string.sub(name, 1, 6) == "Power_" then
+		refreshPowers()
+	end
+end)
+refreshPowers()
+
+----------------------------------------------------------------------
+-- THROW
+----------------------------------------------------------------------
+local throwBtn = button(gui, "THROW! (F)", Color3.fromRGB(255, 120, 30), UDim2.new(0, 200, 0, 70), UDim2.new(0.5, -100, 1, -170))
+throwBtn.Visible = false
+
+local function throw()
+	if player:GetAttribute("Carrying") then
+		throwRemote:FireServer(camera.CFrame.LookVector)
+	end
+end
+throwBtn.Activated:Connect(throw)
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not processed and input.KeyCode == Enum.KeyCode.F then
+		throw()
+	end
+end)
+player:GetAttributeChangedSignal("Carrying"):Connect(function()
+	throwBtn.Visible = player:GetAttribute("Carrying") == true
+end)
+
+----------------------------------------------------------------------
+-- ROBUX SHOP
+----------------------------------------------------------------------
+local function prompt(attr, isPass)
+	local id = ReplicatedStorage:GetAttribute(attr) or 0
+	if id == 0 then
+		showMessage("Coming soon!")
+		return
+	end
+	if isPass then
+		MarketplaceService:PromptGamePassPurchase(player, id)
+	else
+		MarketplaceService:PromptProductPurchase(player, id)
+	end
+end
+
+local shopBtn = button(gui, "SHOP", Color3.fromRGB(60, 180, 90), UDim2.new(0, 140, 0, 54), UDim2.new(1, -150, 0.5, -27))
+
 local shop = Instance.new("Frame")
-shop.Size = UDim2.new(0, 420, 0, 420)
-shop.Position = UDim2.new(0.5, -210, 0.5, -210)
+shop.Size = UDim2.new(0, 440, 0, 400)
+shop.Position = UDim2.new(0.5, -220, 0.5, -200)
 shop.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
 shop.Visible = false
 shop.Parent = gui
 corner(shop, 16)
 stroke(shop)
-
 label(shop, "SHOP", UDim2.new(1, -80, 0, 44), UDim2.new(0, 16, 0, 8))
 local closeBtn = button(shop, "X", Color3.fromRGB(220, 60, 60), UDim2.new(0, 44, 0, 44), UDim2.new(1, -56, 0, 8))
 
-local list = Instance.new("ScrollingFrame")
-list.Size = UDim2.new(1, -24, 1, -70)
-list.Position = UDim2.new(0, 12, 0, 60)
-list.BackgroundTransparency = 1
-list.BorderSizePixel = 0
-list.ScrollBarThickness = 8
-list.AutomaticCanvasSize = Enum.AutomaticSize.Y
-list.CanvasSize = UDim2.new()
-list.Parent = shop
+local items = {
+	{ Text = "VIP: +3 egg slots + VIP tag", Attr = "VipPassId", Pass = true, Owned = "VIP" },
+	{ Text = "2x Cash forever", Attr = "DoubleCashPassId", Pass = true, Owned = "DoubleCash" },
+	{ Text = "Lucky Egg (Legendary or Mythic!)", Attr = "LuckyEggProductId" },
+	{ Text = "Super Lock (3 minutes)", Attr = "SuperLockProductId" },
+	{ Text = "+$" .. fmt(ReplicatedStorage:GetAttribute("CashPackAmount") or 0) .. " cash", Attr = "CashPackProductId" },
+}
 
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 8)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = list
-
-local order = 0
-local function row(height)
-	order = order + 1
-	local f = Instance.new("Frame")
-	f.Size = UDim2.new(1, -12, 0, height or 50)
-	f.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
-	f.LayoutOrder = order
-	f.Parent = list
-	corner(f, 10)
-	return f
-end
-
-local function header(text)
-	local f = row(34)
-	f.BackgroundTransparency = 1
-	local l = label(f, text, UDim2.fromScale(1, 1))
+local itemButtons = {}
+for i, item in ipairs(items) do
+	local row = Instance.new("Frame")
+	row.Size = UDim2.new(1, -24, 0, 56)
+	row.Position = UDim2.new(0, 12, 0, 60 + (i - 1) * 64)
+	row.BackgroundColor3 = Color3.fromRGB(55, 55, 75)
+	row.Parent = shop
+	corner(row, 10)
+	local l = label(row, item.Text, UDim2.new(0.62, -10, 0.7, 0), UDim2.new(0, 10, 0.15, 0))
 	l.TextXAlignment = Enum.TextXAlignment.Left
-	l.TextColor3 = Color3.fromRGB(255, 210, 80)
-end
-
-local refreshShop -- defined below
-
-local function buildShop()
-	for _, c in ipairs(list:GetChildren()) do
-		if c:IsA("Frame") then
-			c:Destroy()
+	local b = button(row, "BUY R$", Color3.fromRGB(40, 170, 80), UDim2.new(0.35, 0, 0.8, 0), UDim2.new(0.63, 0, 0.1, 0))
+	b.Activated:Connect(function()
+		if item.Owned and player:GetAttribute(item.Owned) then
+			return
 		end
-	end
-	order = 0
-
-	-- Robux items
-	header("ROBUX STORE")
-	local robuxItems = {
-		{ Text = "VIP: 2x coins + Rainbow trail", Attr = "VipPassId", Pass = true },
-		{ Text = "Speed: run faster!", Attr = "SpeedPassId", Pass = true },
-		{ Text = "+" .. (ReplicatedStorage:GetAttribute("CoinsProductAmount") or 0) .. " coins", Attr = "CoinsProductId", Pass = false },
-	}
-	for _, item in ipairs(robuxItems) do
-		local f = row()
-		local l = label(f, item.Text, UDim2.new(0.62, -10, 0.8, 0), UDim2.new(0, 10, 0.1, 0))
-		l.TextXAlignment = Enum.TextXAlignment.Left
-		local owned = item.Pass and item.Attr == "VipPassId" and player:GetAttribute("VIP")
-			or item.Pass and item.Attr == "SpeedPassId" and player:GetAttribute("Speed")
-		local b = button(f, owned and "OWNED" or "BUY R$", owned and Color3.fromRGB(90, 90, 90) or Color3.fromRGB(40, 170, 80),
-			UDim2.new(0.35, 0, 0.8, 0), UDim2.new(0.63, 0, 0.1, 0))
-		if not owned then
-			b.Activated:Connect(function()
-				if item.Pass then
-					promptPass(item.Attr)
-				else
-					promptProduct(item.Attr)
-				end
-			end)
-		end
-	end
-
-	-- Trails
-	header("TRAILS (buy with coins)")
-	local ok, data = shopRemote:InvokeServer("GetData")
-	if not ok then
-		return
-	end
-	local noneRow = row()
-	label(noneRow, "No trail", UDim2.new(0.62, -10, 0.8, 0), UDim2.new(0, 10, 0.1, 0)).TextXAlignment = Enum.TextXAlignment.Left
-	local noneBtn = button(noneRow, data.Equipped == "None" and "EQUIPPED" or "EQUIP", Color3.fromRGB(70, 110, 200),
-		UDim2.new(0.35, 0, 0.8, 0), UDim2.new(0.63, 0, 0.1, 0))
-	noneBtn.Activated:Connect(function()
-		shopRemote:InvokeServer("EquipTrail", "None")
-		refreshShop()
+		prompt(item.Attr, item.Pass)
 	end)
+	itemButtons[i] = b
+end
 
-	for _, t in ipairs(data.Trails) do
-		local f = row()
-		local swatch = Instance.new("Frame")
-		swatch.Size = UDim2.new(0, 30, 0, 30)
-		swatch.Position = UDim2.new(0, 10, 0.5, -15)
-		swatch.BackgroundColor3 = t.Color
-		swatch.Parent = f
-		corner(swatch, 15)
-
-		local name = t.Name .. (t.VipOnly and "  (VIP)" or "  - " .. t.Price .. " coins")
-		local l = label(f, name, UDim2.new(0.62, -50, 0.8, 0), UDim2.new(0, 50, 0.1, 0))
-		l.TextXAlignment = Enum.TextXAlignment.Left
-
-		local text, color
-		if data.Equipped == t.Name and t.Owned then
-			text, color = "EQUIPPED", Color3.fromRGB(90, 90, 90)
-		elseif t.Owned then
-			text, color = "EQUIP", Color3.fromRGB(70, 110, 200)
-		elseif t.VipOnly then
-			text, color = "GET VIP", Color3.fromRGB(200, 150, 30)
-		else
-			text, color = "BUY", Color3.fromRGB(40, 170, 80)
+local function refreshShop()
+	for i, item in ipairs(items) do
+		if item.Owned and player:GetAttribute(item.Owned) then
+			itemButtons[i].Text = "OWNED"
+			itemButtons[i].BackgroundColor3 = Color3.fromRGB(90, 90, 90)
 		end
-		local b = button(f, text, color, UDim2.new(0.35, 0, 0.8, 0), UDim2.new(0.63, 0, 0.1, 0))
-		b.Activated:Connect(function()
-			if t.Owned then
-				shopRemote:InvokeServer("EquipTrail", t.Name)
-			elseif t.VipOnly then
-				promptPass("VipPassId")
-				return
-			else
-				local _, msg = shopRemote:InvokeServer("BuyTrail", t.Name)
-				showMessage(msg)
-			end
-			refreshShop()
-		end)
-	end
-
-	-- Restart
-	header("OTHER")
-	local f = row()
-	label(f, "Restart from stage 1", UDim2.new(0.62, -10, 0.8, 0), UDim2.new(0, 10, 0.1, 0)).TextXAlignment = Enum.TextXAlignment.Left
-	local restart = button(f, "RESTART", Color3.fromRGB(200, 70, 70), UDim2.new(0.35, 0, 0.8, 0), UDim2.new(0.63, 0, 0.1, 0))
-	restart.Activated:Connect(function()
-		local _, msg = shopRemote:InvokeServer("Restart")
-		showMessage(msg)
-		shop.Visible = false
-	end)
-end
-
-refreshShop = function()
-	if shop.Visible then
-		buildShop()
 	end
 end
+player:GetAttributeChangedSignal("VIP"):Connect(refreshShop)
+player:GetAttributeChangedSignal("DoubleCash"):Connect(refreshShop)
+refreshShop()
 
 shopBtn.Activated:Connect(function()
 	shop.Visible = not shop.Visible
-	refreshShop()
 end)
 closeBtn.Activated:Connect(function()
 	shop.Visible = false
 end)
 
--- Update shop when a game pass is bought
-player:GetAttributeChangedSignal("VIP"):Connect(refreshShop)
-player:GetAttributeChangedSignal("Speed"):Connect(refreshShop)
+----------------------------------------------------------------------
+-- EGG PROMPTS: only show the ones that make sense for you
+----------------------------------------------------------------------
+local function updatePrompts(part)
+	local state = part:GetAttribute("State")
+	local mine = part:GetAttribute("OwnerId") == player.UserId
+	for _, p in ipairs(part:GetChildren()) do
+		if p:IsA("ProximityPrompt") then
+			local n = p.Name
+			p.Enabled = (n == "Buy" and state == "Road")
+				or (n == "Steal" and state == "Placed" and not mine)
+				or (n == "Sell" and state == "Placed" and mine)
+				or (n == "Grab" and state == "Loose")
+		end
+	end
+end
+
+local function trackEgg(part)
+	updatePrompts(part)
+	part.AttributeChanged:Connect(function()
+		updatePrompts(part)
+	end)
+	part.ChildAdded:Connect(function()
+		updatePrompts(part)
+	end)
+end
+for _, part in ipairs(CollectionService:GetTagged("Egg")) do
+	trackEgg(part)
+end
+CollectionService:GetInstanceAddedSignal("Egg"):Connect(trackEgg)
 
 ----------------------------------------------------------------------
--- COINS: spin + hide after pickup
+-- WELCOME
 ----------------------------------------------------------------------
-local coinBase = {}
-
-local function trackCoin(coin)
-	coinBase[coin] = coin.CFrame
-end
-for _, coin in ipairs(CollectionService:GetTagged("Coin")) do
-	trackCoin(coin)
-end
-CollectionService:GetInstanceAddedSignal("Coin"):Connect(trackCoin)
-CollectionService:GetInstanceRemovedSignal("Coin"):Connect(function(coin)
-	coinBase[coin] = nil
-end)
-
-local spin = 0
-RunService.RenderStepped:Connect(function(dt)
-	spin = spin + dt * 2
-	local bob = math.sin(spin * 1.5) * 0.3
-	for coin, base in pairs(coinBase) do
-		coin.CFrame = base * CFrame.new(0, bob, 0) * CFrame.Angles(0, spin, 0)
-	end
-end)
-
-coinRemote.OnClientEvent:Connect(function(coin, respawnTime, amount)
-	if coin and coin.Parent then
-		coin.Transparency = 1
-		task.delay(respawnTime, function()
-			if coin.Parent then
-				coin.Transparency = 0
-			end
-		end)
-	end
-	showMessage("+" .. tostring(amount) .. " coins")
+task.delay(2, function()
+	showMessage("Buy eggs on the EGG ROAD. Steal from others. Press F to THROW!")
 end)

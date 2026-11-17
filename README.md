@@ -1,99 +1,98 @@
-# 🔥 Floor is Lava Obby
+# 🥚 Egg Heist: Throw & Steal
 
-Et færdigt Roblox-spil, som du kan sætte ind i Roblox Studio på 5 minutter.
-Scriptet **bygger selv hele banen**, så du ikke skal bygge noget i hånden.
+Et helt nyt Roblox-spil, der blander **stjæle**, **kaste** og **superkræfter**.
+Scriptet bygger selv hele banen, så du ikke skal bygge noget i hånden.
 
-## Hvad er der i spillet?
+## Sådan spiller man
 
-- **30 stages** med 6 slags forhindringer: hop, lava-striber, forsvindende glasplader,
-  roterende lava-stang, line-gang og klatring op ad et tårn
-- Bliver **sværere og sværere** jo længere man kommer
-- **Checkpoints**, så man starter ved sidste checkpoint, når man dør
-- **Mønter**, man samler op og får for at nå nye stages
-- **Shop** med trails (farvede spor efter spilleren), som købes for mønter
-- **Gemmer** spillerens stage, mønter og trails
-- **Leaderboard** (Stage, Coins, Wins)
-- **Tjen Robux**:
-  - Game Pass **VIP**: 2x mønter + eksklusivt Rainbow-trail
-  - Game Pass **Speed**: løb hurtigere
-  - Developer Product **Skip Stage**: spring en stage over (kan købes igen og igen)
-  - Developer Product **+500 Coins**
+1. **Køb æg** på **Egg Road** (transportbåndet i midten). Hold **E** på et æg.
+2. Æggene flyver hjem til din **base** og giver **penge hvert sekund**.
+3. **Stjæl æg** fra andres baser (hold **E** på deres æg). Ægget ligger nu på dit hoved.
+4. **Det nye:** Tryk **F** for at **KASTE** ægget. Lander det i din base, er det dit!
+   Lander det et andet sted, kan alle samle det op.
+5. **Bonk Bat:** Slå en tyv, så taber de ægget. Ejeren kan samle det op og få det tilbage.
+6. **Lås din base:** Stå på den røde **LOCK**-plade. Så bliver tyve smidt ud i 45 sekunder.
+7. Når et æg **klækker**, giver det **dobbelt så mange penge**. Specielle æg giver en **SUPERKRAFT**:
 
-Teksten i spillet er på engelsk, fordi de fleste Roblox-spillere taler engelsk.
-Så kan flere spille det, og du kan tjene flere penge.
+| Æg | Sjældenhed | Superkraft |
+|---|---|---|
+| Zap Egg | Rare | ⚡ Super Speed: løb hurtigere |
+| Bouncy Egg | Rare | 🦘 Mega Jump: hop højere |
+| Muscle Egg | Epic | 💪 Strong Arm: kast meget længere |
+| Phantom Egg | Legendary | 👻 Ghost: gå ind i låste baser |
+| Titan Egg | Legendary | 🛡️ Iron Grip: du kan ikke blive slået, så du taber ægget |
+| Cosmic Egg | **Mythic** | 💰 Kæmpe indtjening |
+
+Der er 10 slags æg i 5 sjældenheder: Common, Rare, Epic, Legendary og Mythic.
+
+## Sådan tjener du Robux
+
+| Ting | Type | Forslag til pris |
+|---|---|---|
+| **VIP**: +3 ekstra æg-pladser og VIP-skilt | Game Pass | 249 R$ |
+| **2x Cash**: dobbelt penge for altid | Game Pass | 199 R$ |
+| **Lucky Egg**: få et Legendary- eller Mythic-æg | Developer Product | 99 R$ |
+| **Super Lock**: lås basen i 3 minutter | Developer Product | 29 R$ |
+| **+25K Cash** | Developer Product | 49 R$ |
+
+**Lucky Egg** bliver annonceret for hele serveren, så de andre spillere kan se det, og det får dem til at ville have et.
 
 ---
 
 ## Trin 1: Sæt spillet ind i Roblox Studio
 
-1. Hent **Roblox Studio** på https://create.roblox.com og log ind.
-2. Klik **New** → vælg **Baseplate**.
-3. Find **ServerScriptService** i vinduet **Explorer** til højre.
-   (Kan du ikke se Explorer? Gå til fanen **View** → klik **Explorer**.)
-4. Hold musen over **ServerScriptService** → klik **+** → vælg **Script**.
-5. Slet alt i det nye script, og kopiér **hele** indholdet af
+1. Åbn **Roblox Studio** → **New** → vælg **Baseplate**.
+2. Find **ServerScriptService** i **Explorer** (fanen **View** → **Explorer**, hvis du ikke kan se den).
+3. Hold musen over **ServerScriptService** → klik **+** → vælg **Script**.
+4. Slet alt i det, og kopiér **hele** indholdet af
    [`src/ServerScriptService/GameServer.server.lua`](src/ServerScriptService/GameServer.server.lua) ind.
-6. Åbn **StarterPlayer** i Explorer → hold musen over **StarterPlayerScripts** → **+** → vælg **LocalScript**.
-7. Slet alt i det, og kopiér hele indholdet af
+5. Åbn **StarterPlayer** → hold musen over **StarterPlayerScripts** → **+** → **LocalScript**.
+6. Slet alt i det, og kopiér hele indholdet af
    [`src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua`](src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua) ind.
-8. Tryk **Play** (den blå knap øverst). Banen bygges automatisk! 🎉
+7. Tryk **Play**. Banen bygges automatisk! 🎉
 
-> ⚠️ Vigtigt: Det første script skal være et **Script** (ikke LocalScript),
-> og det andet skal være et **LocalScript**. Ellers virker det ikke.
+> ⚠️ Det første skal være et **Script**, og det andet skal være et **LocalScript**.
 
-## Trin 2: Udgiv spillet
+### Test med flere spillere (for at prøve at stjæle)
+Fanen **Test** → vælg **2 Players** under *Clients and Servers* → klik **Start**.
+Så får du to vinduer og kan stjæle fra dig selv.
 
-1. **File** → **Publish to Roblox** → giv det et navn, f.eks. *Floor is Lava Obby*.
-2. Gå til **Home** → **Game Settings** → **Security** → slå
-   **Enable Studio Access to API Services** til. Så virker det også at gemme i Studio.
-3. Gå til https://create.roblox.com → **Creations** → dit spil → sæt det til **Public**.
+## Trin 2: Udgiv
 
-## Trin 3: Tjen penge (Game Passes og Products)
+1. **File** → **Publish to Roblox**.
+2. **Game Settings** → **Security** → slå **Enable Studio Access to API Services** til, så spillet gemmer.
+3. **Game Settings** → **Places**: sæt **Max Players** til **8**, for der er 8 baser.
+4. På https://create.roblox.com: sæt spillet til **Public**.
 
-1. Gå til https://create.roblox.com → dit spil → **Monetization**.
-2. Under **Passes**: opret to passes:
-   - **VIP** (forslag: 199 Robux)
-   - **Speed** (forslag: 99 Robux)
-3. Under **Developer Products**: opret to produkter:
-   - **Skip Stage** (forslag: 25 Robux)
-   - **500 Coins** (forslag: 49 Robux)
-4. Hvert pass og produkt har et **ID** (et langt tal). Kopiér dem ind i toppen af
-   `GameServer`-scriptet under **CONFIG**:
+## Trin 3: Opret Game Passes og Products
+
+1. https://create.roblox.com → dit spil → **Monetization**.
+2. Opret 2 **Passes**: VIP og 2x Cash.
+3. Opret 3 **Developer Products**: Lucky Egg, Super Lock og 25K Cash.
+4. Kopiér hvert **ID** ind i toppen af `GameServer` under **CONFIG**:
 
 ```lua
 VIP_PASS_ID = 123456789,
-SPEED_PASS_ID = 123456789,
-SKIP_STAGE_PRODUCT_ID = 123456789,
-COINS_PRODUCT_ID = 123456789,
+DOUBLE_CASH_PASS_ID = 123456789,
+LUCKY_EGG_PRODUCT_ID = 123456789,
+SUPER_LOCK_PRODUCT_ID = 123456789,
+CASH_PACK_PRODUCT_ID = 123456789,
 ```
 
-5. Publish igen (**File → Publish to Roblox**). Færdig!
+5. Publish igen. Indtil et ID er sat, viser knappen bare "Coming soon!".
 
-Så længe et ID er `0`, viser knappen bare "Coming soon!", så spillet virker fint uden dem.
+## Nemme ting at ændre (i CONFIG og EGGS)
 
-## Ting du nemt kan ændre (i CONFIG)
+- `EGGS`: tilføj nye æg med navn, pris, indtjening, farve og superkraft.
+- `EGG_SPAWN_EVERY`, `ROAD_SPEED`: hvor tit og hvor hurtigt æggene kommer.
+- `LOCK_TIME`, `THROW_POWER`, `START_CASH` osv.
 
-| Indstilling | Hvad den gør |
-|---|---|
-| `TOTAL_STAGES` | Antal stages (prøv 50!) |
-| `SEED` | Skift tallet for at få en helt ny bane |
-| `COIN_VALUE`, `STAGE_BONUS`, `FINISH_BONUS` | Hvor mange mønter man får |
-| `TRAILS` | Tilføj nye trails med navn, pris og farver |
+## Få spillere
 
-## Få spillere til spillet
+- Lav et sjovt **ikon** og **thumbnails**, f.eks. en figur der kaster et glødende æg.
+- Opdatér tit med nye æg og superkræfter. "UPDATE 🥚 NEW MYTHIC EGG" i titlen virker godt.
+- Få venner til at spille og trykke 👍.
 
-- Lav et flot **ikon** og **thumbnails** (billeder af spillet). Det er det første, folk ser.
-- Få venner til at spille det og give **likes**.
-- Senere kan du bruge Robux på **annoncer** (Ads Manager på create.roblox.com).
-- Opdatér spillet tit med nye stages og trails. Så kommer spillerne tilbage.
-
-## Om at få rigtige penge
-
-Robux kan veksles til rigtige penge med **DevEx**. Du skal være mindst 13 år
-og have tjent mindst 30.000 Robux. Hvis du er under 18, så tag en voksen med på den del.
-
----
-
-### For viderekomne: Rojo
-Projektet har en `default.project.json`, så det kan synkes ind i Studio med
-[Rojo](https://rojo.space), hvis du på et tidspunkt vil bruge VS Code.
+## Rigtige penge
+Robux kan veksles via **DevEx**. Du skal være mindst 13 år og have mindst 30.000 tjente Robux.
+Hvis du er under 18, så tag en voksen med.
