@@ -463,7 +463,7 @@ local function refreshBase()
 	basePanel.Text("Hit thieves with Power Blast to make them drop it", nil, 26)
 	basePanel.Text("REBIRTH", Color3.fromRGB(255, 210, 80))
 	basePanel.Text("Rebirths: " .. info.Rebirths .. "  |  Next: $" .. fmt(info.RebirthCost), nil, 26)
-	basePanel.Text("Go to the white Rebirth Station in the middle", nil, 26)
+	basePanel.Text("Press the REBIRTH button on the right side", nil, 26)
 end
 
 ----------------------------------------------------------------------
@@ -641,14 +641,15 @@ end)
 ----------------------------------------------------------------------
 local menu = Instance.new("Frame")
 menu.BackgroundTransparency = 1
-menu.Size = UDim2.new(0, 130, 0, 260)
-menu.Position = UDim2.new(1, -140, 0.5, -110)
+menu.Size = UDim2.new(0, 130, 0, 320)
+menu.Position = UDim2.new(1, -140, 0.5, -140)
 menu.Parent = gui
 local menuItems = {
 	{ "SHOP", Color3.fromRGB(40, 170, 80), shopPanel, refreshShop },
 	{ "BASE", Color3.fromRGB(70, 120, 220), basePanel, refreshBase },
 	{ "DAILY", Color3.fromRGB(230, 160, 30), dailyPanel, refreshDaily },
 	{ "INDEX", Color3.fromRGB(150, 70, 220), indexPanel, refreshIndex },
+	{ "REBIRTH", Color3.fromRGB(255, 150, 30), rebirthPanel, refreshRebirth },
 }
 for i, item in ipairs(menuItems) do
 	local b = button(menu, item[1], item[2], UDim2.new(1, 0, 0, 54), UDim2.new(0, 0, 0, (i - 1) * 64))
@@ -730,3 +731,5 @@ end)
 task.delay(2, function()
 	showMessage("Welcome to POWER EMPIRE! Buy powers in the MARKET, steal from others, press F to THROW!", Color3.fromRGB(255, 210, 60))
 end)
+
+print("POWER EMPIRE client v3 started OK!")

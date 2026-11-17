@@ -141,7 +141,7 @@ local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
 
-Players.CharacterAutoLoads = false
+Players.RespawnTime = CONFIG.RESPAWN_TIME
 Lighting.ClockTime = 14.5
 
 for key, value in pairs({
@@ -332,17 +332,6 @@ fusionPrompt.MaxActivationDistance = 16
 fusionPrompt.RequiresLineOfSight = false
 fusionPrompt.Parent = fusionCore
 stationSign(fusionPos + Vector3.new(0, 14, 0), "POWER FUSION", Color3.fromRGB(200, 80, 255)).Text = "Combine 2 powers!"
-
--- REBIRTH STATION
-local rebirthPos = Vector3.new(70, 0, 0)
-local rebirthPillar = block(Vector3.new(8, 12, 8), CFrame.new(rebirthPos + Vector3.new(0, 6, 0)), Color3.fromRGB(255, 255, 255), Enum.Material.Neon)
-local rebirthPrompt = Instance.new("ProximityPrompt")
-rebirthPrompt.ActionText = "Rebirth"
-rebirthPrompt.ObjectText = "Rebirth Station"
-rebirthPrompt.MaxActivationDistance = 14
-rebirthPrompt.RequiresLineOfSight = false
-rebirthPrompt.Parent = rebirthPillar
-stationSign(rebirthPos + Vector3.new(0, 16, 0), "REBIRTH", Color3.fromRGB(255, 255, 255)).Text = "Start over, get stronger!"
 
 -- BATTLE ARENA
 local ARENA_CENTER = Vector3.new(0, 0, 62)
@@ -1494,9 +1483,6 @@ end
 fusionPrompt.Triggered:Connect(function(player)
 	panelRemote:FireClient(player, "Fusion")
 end)
-rebirthPrompt.Triggered:Connect(function(player)
-	panelRemote:FireClient(player, "Rebirth")
-end)
 
 local function near(player, position, distance)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -1664,9 +1650,6 @@ local function doRebirth(player)
 	if not plot then
 		return false, "No base"
 	end
-	if not near(player, rebirthPos, 30) then
-		return false, "Go to the Rebirth Station!"
-	end
 	local cost = rebirthCost(data)
 	if data.Cash < cost then
 		return false, "You need $" .. fmt(cost)
@@ -1684,7 +1667,7 @@ local function doRebirth(player)
 	updateStats(player)
 	announce(player.Name .. " reached REBIRTH " .. data.Rebirths .. "!")
 	if data.Rebirths == 10 then
-		givePower(player, "Phoenix", "Golden", rebirthPillar.Position)
+		givePower(player, "Phoenix", "Golden")
 		announce(player.Name .. " unlocked the exclusive PHOENIX power!")
 	end
 	saveData(player)
@@ -1870,10 +1853,6 @@ local function onCharacter(player, char)
 		if power then
 			returnHome(power)
 		end
-		task.wait(CONFIG.RESPAWN_TIME)
-		if player.Parent then
-			player:LoadCharacter()
-		end
 	end)
 end
 
@@ -1928,7 +1907,9 @@ local function onPlayerAdded(player)
 	player.CharacterAdded:Connect(function(char)
 		onCharacter(player, char)
 	end)
-	player:LoadCharacter()
+	if player.Character then
+		task.spawn(onCharacter, player, player.Character)
+	end
 
 	if not plot then
 		notify(player, "All bases are taken, try another server!")
@@ -2120,3 +2101,5 @@ task.spawn(function()
 		end
 	end
 end)
+
+print("POWER EMPIRE server v3 started OK!")
