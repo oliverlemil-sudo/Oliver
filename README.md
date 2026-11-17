@@ -23,6 +23,39 @@ vind **MOG BATTLES** mod monstre, og bær dem hjem til din indhegning, før noge
 5. Monstrene **går frit rundt** i din indhegning og tjener penge hvert sekund.
    De **går rigtigt**: benene går skiftevis, armene svinger, vingerne basker, og halerne svajer.
 
+## ⚔️ Kampene (nyt i v8)
+- **MOG CLASH** har nu **HP**: Hvert klik giver skade, og **tal flyver ud** af monsteret. Gule tal er **CRIT** (dobbelt skade).
+- Monsteret **slår igen**! Når der står **"IT ATTACKS – DODGE (Q)"**, så tryk **Q** eller **DODGE**-knappen.
+  Ellers falder din **MOG METER**. Når den er tom, eller tiden (15 sek.) løber ud, taber du.
+- **5 evner (abilities)**, som du låser op med levels:
+
+| Tast | Evne | Level | Hvad den gør |
+|---|---|---|---|
+| Z | Power Stare | 5 | De næste 5 klik giver x3 skade |
+| X | Flex | 12 | Monsteret er lammet i 3 sek. |
+| C | Aura Burst | 25 | Fjerner 15 % af monsterets HP |
+| V | Sigma Shield | 40 | Blokerer næste angreb |
+| B | Final Mog | 60 | Vinder med det samme, når monsteret har under 25 % HP |
+
+## ⭐ Level, XP og 💎 Gems
+- Du får **XP** for at vinde kampe og træne. En blå bar under dine penge viser dit **level**.
+- Hvert level giver **gems**. Du får også gems for at **finde et nyt monster** første gang, fra **quests** og fra **bosser**.
+- Gems bruges til **potions** i SHOP (2x XP i 15 min. eller 2x penge i 10 min.) og til **Evolve**.
+
+## 📜 Daily Quests
+Under **QUESTS** får du **3 nye opgaver hver dag**, f.eks. "Vind 10 kampe" eller "Bring 6 monstre hjem". Tryk **CLAIM!**, når en er klaret.
+
+## 👑 Bosser
+Der kommer en **boss** i zone 2, 4, 6 og 8 (den første efter 2 min., og igen 10 min. efter den er besejret).
+Alle på serveren slår den **sammen med hammeren**. Øverst på skærmen er der en rød **HP-bar**.
+Bossen laver **chokbølger**, der skubber dig væk, og den bliver **ENRAGED**, når den kommer under 66 % og 33 % HP.
+Alle, der har hjulpet, får penge, gems og XP. Den, der har givet mest skade, har **25 % chance for at få bossen som monster**.
+Bossen kan **ikke** købes for Robux.
+
+## 🧬 Evolve
+Har du **5 ens monstre** (samme slags og niveau), kan du ved **Fusion Machine** trykke på et af dem og så på **EVOLVE**.
+De bliver til **ét Elder-monster**: større og **3x penge**. Det koster lidt gems.
+
 ## 📏 Størrelse og vægt
 Hvert monster har sin egen **størrelse i KG**. **Større monstre tjener flere penge.**
 Cirka 1 ud af 60 er **HUGE** (næsten dobbelt så stort), og det får hele serveren besked om.
@@ -45,7 +78,7 @@ Over hvert vildt monster står **EASY**, **MEDIUM**, **HARD** eller **TOO STRONG
 | **Rebirth** | +1x MOG og +1x penge for altid |
 
 ## 🛍️ Menuerne
-**SHOP**, **UPGRADES**, **AURAS** og **REBIRTH** viser alt som **kort ved siden af hinanden**:
+**SHOP**, **UPGRADES**, **AURAS**, **QUESTS** og **REBIRTH** viser alt som **kort ved siden af hinanden**:
 - farvet baggrund efter sjældenhed (Common, Rare, Epic, Legendary, Mythic, Secret og regnbuefarvet Divine)
 - en lille figur, der drejer rundt med auraen omkring sig
 - et mærke som "x5 MOG" og en stor knap med pris, EQUIP eller UNEQUIP
@@ -99,8 +132,8 @@ De sjældneste monstre kan **ikke** købes.
 
 Output (fanen **Script** → **Output**) skal sige:
 ```
-MOG MONSTERS server v7 started OK!
-MOG MONSTERS client v7 started OK!
+MOG MONSTERS server v8 started OK!
+MOG MONSTERS client v8 started OK!
 ```
 
 **Tip:** Sæt `START_CASH = 1000000` i CONFIG for at teste hurtigt. Sæt den tilbage til `0`, før du udgiver.

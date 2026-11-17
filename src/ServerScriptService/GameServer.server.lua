@@ -13,6 +13,10 @@
 	    players can hit you with a hammer or a TRAP to make it run away!
 	    (You can NOT steal from bases, only on the road.)
 	  * Every monster has its own SIZE (KG). Bigger = more money. HUGE ones are rare!
+	  * Battles have HP, damage numbers, crits, monster attacks you can DODGE
+	    and 5 ABILITIES you unlock with LEVELS (XP). Earn GEMS for potions and EVOLVE.
+	  * 4 BOSSES (zone 2, 4, 6, 8) that everyone fights together with hammers.
+	  * 3 DAILY QUESTS.
 	  * Monsters walk around in your enclosure and make money.
 	    Upgrade the enclosure to keep more monsters.
 	  * Levels: Normal, Silver, Golden, Diamond, Rainbow, Cosmic, RAINBOW COSMIC.
@@ -111,6 +115,11 @@ local MONSTERS = {
 	{ Id = "Gigamog",    Name = "GIGAMOG",        Rarity = 8, Plan = "dragon",                              Color = rgb(255, 205, 60), Accent = rgb(255, 255, 255), Scale = 1.2, Crown = true },
 	-- Only from Rebirth 10:
 	{ Id = "Phoenixmog", Name = "Phoenixmog",     Rarity = 6, Plan = "bird",                                Color = rgb(255, 130, 50), Accent = rgb(255, 225, 70), Exclusive = true },
+	-- BOSSES (and boss drops):
+	{ Id = "BarnBrute",     Name = "Barn Brute",     Rarity = 3, Plan = "humanoid", Style = "troll", Height = 1.1, Skin = rgb(160, 120, 80), Shirt = rgb(205, 175, 95), Pants = rgb(95, 65, 45), Hair = rgb(235, 205, 110), Exclusive = true, Boss = true },
+	{ Id = "PhantomDuke",   Name = "Phantom Duke",   Rarity = 5, Plan = "humanoid", Style = "vampire", Skin = rgb(205, 215, 255), Shirt = rgb(70, 45, 130), Pants = rgb(35, 30, 55), Hair = rgb(235, 235, 255), Shoes = rgb(25, 25, 35), Accent = rgb(140, 200, 255), Exclusive = true, Boss = true },
+	{ Id = "MagmaColossus", Name = "Magma Colossus", Rarity = 6, Plan = "humanoid", Style = "troll", Height = 1.2, Skin = rgb(75, 45, 40), Shirt = rgb(75, 45, 40), Pants = rgb(255, 95, 25), Hair = rgb(255, 130, 40), Material = Enum.Material.Basalt, Exclusive = true, Boss = true },
+	{ Id = "FirstMog",      Name = "The First Mog",  Rarity = 8, Plan = "dragon", Color = rgb(255, 240, 200), Accent = rgb(255, 180, 40), Crown = true, Exclusive = true, Boss = true },
 }
 
 -- Levels. Chance is per monster. Mult boosts money AND the MOG you need.
@@ -165,6 +174,40 @@ local AURAS = {
 	{ Name = "Cosmic Aura",  Tier = "Secret",    Mult = 8,    Cost = 30000000,   Color = Color3.fromRGB(90, 40, 255) },
 	{ Name = "Rainbow Aura", Tier = "Divine",    Mult = 12,   Cost = 250000000,  Color = Color3.fromRGB(255, 120, 220), Rainbow = true },
 }
+
+-- LEVELS: XP needed for the next level = 100 * level ^ 1.5
+-- ABILITIES you can use in MOG battles (unlock at a level)
+local ABILITIES = {
+	{ Id = "Stare", Name = "Power Stare", Level = 5, Cooldown = 20, Text = "Next 5 clicks x3 damage" },
+	{ Id = "Flex", Name = "Flex", Level = 12, Cooldown = 30, Text = "Monster is stunned for 3s" },
+	{ Id = "Burst", Name = "Aura Burst", Level = 25, Cooldown = 45, Text = "Deals 15% of max HP" },
+	{ Id = "Shield", Name = "Sigma Shield", Level = 40, Cooldown = 40, Text = "Blocks the next attack" },
+	{ Id = "Final", Name = "Final Mog", Level = 60, Cooldown = 90, Text = "Instant win under 25% HP" },
+}
+-- POTIONS (bought with gems)
+local POTIONS = {
+	{ Id = "XP", Name = "2x XP Potion", Minutes = 15, Gems = 25 },
+	{ Id = "Coins", Name = "2x Coins Potion", Minutes = 10, Gems = 40 },
+}
+-- DAILY QUESTS (3 random ones every day)
+local QUEST_TYPES = {
+	{ Id = "Win", Text = "Win %d MOG battles", Goals = { 5, 10, 20 }, Gems = { 10, 20, 35 } },
+	{ Id = "Train", Text = "Hit your Mog Stone %d times", Goals = { 100, 300, 600 }, Gems = { 10, 20, 35 } },
+	{ Id = "Rare", Text = "Beat %d Rare or better monsters", Goals = { 1, 3, 6 }, Gems = { 15, 30, 50 } },
+	{ Id = "Special", Text = "Beat %d Silver+ or HUGE monsters", Goals = { 1, 2, 4 }, Gems = { 15, 30, 50 } },
+	{ Id = "Boss", Text = "Hit a BOSS %d times", Goals = { 20, 50, 100 }, Gems = { 15, 30, 50 } },
+	{ Id = "Home", Text = "Bring %d monsters home", Goals = { 3, 6, 12 }, Gems = { 10, 20, 35 } },
+}
+-- BOSSES: one in zone 2, 4, 6 and 8. Everyone fights them together with hammers.
+local BOSSES = {
+	{ Id = "BarnBrute",     Zone = 2, HP = 4000,       Coins = 5000,      Gems = 25,  XP = 500,    Scale = 3.2 },
+	{ Id = "PhantomDuke",   Zone = 4, HP = 60000,      Coins = 80000,     Gems = 60,  XP = 3000,   Scale = 3 },
+	{ Id = "MagmaColossus", Zone = 6, HP = 5000000,    Coins = 3000000,   Gems = 150, XP = 20000,  Scale = 3 },
+	{ Id = "FirstMog",      Zone = 8, HP = 5000000000, Coins = 500000000, Gems = 500, XP = 200000, Scale = 2.2 },
+}
+local BOSS_FIRST = 120   -- first boss 2 minutes after the server starts
+local BOSS_RESPAWN = 600 -- then 10 minutes after it was beaten
+local BOSS_DROP_CHANCE = 0.25 -- the best fighter can get the boss as a monster
 
 -- Money Boost upgrade levels
 local BOOST_MULTS = { 1, 1.5, 2, 3, 5, 8, 12, 20, 35, 60 }
@@ -242,6 +285,7 @@ local announceRemote = remote("RemoteEvent", "Announce")
 local panelRemote = remote("RemoteEvent", "OpenPanel")
 local effectRemote = remote("RemoteEvent", "Effect")
 local battleRemote = remote("RemoteEvent", "Battle")
+local levelRemote = remote("RemoteEvent", "LevelUp")
 local requestRemote = remote("RemoteFunction", "Request")
 remotes.Parent = ReplicatedStorage
 
@@ -679,6 +723,7 @@ local function newData()
 	return {
 		Cash = CONFIG.START_CASH, Mog = CONFIG.START_MOG, Hammer = 1, Swing = 1, Auras = {}, Aura = "",
 		Boost = 0, Slots = CONFIG.START_SLOTS, Rebirths = 0, Monsters = {}, Discovered = {}, LastDaily = 0, Streak = 0,
+		Level = 1, XP = 0, Gems = 0, Quests = {}, XPBoostUntil = 0, CoinBoostUntil = 0, BossKills = 0,
 	}
 end
 
@@ -719,7 +764,7 @@ local function saveData(player)
 	if plot then
 		for slot, m in pairs(plot.Slots) do
 			if m.Owner == player then
-				table.insert(monsters, { Id = m.Id, V = m.Variant, S = slot, Z = m.SizeMult })
+				table.insert(monsters, { Id = m.Id, V = m.Variant, S = slot, Z = m.SizeMult, E = m.Elder or nil })
 			end
 		end
 	end
@@ -742,16 +787,26 @@ local function playerMog(player)
 	return data and math.floor(data.Mog) or 0
 end
 
+local function xpNeed(level)
+	return math.floor(100 * level ^ 1.5)
+end
+
 local function updateStats(player)
 	local data = sessions[player]
 	local stats = player:FindFirstChild("leaderstats")
 	if data and stats then
 		stats.MOG.Value = math.floor(data.Mog)
 		stats.Cash.Value = math.floor(data.Cash)
-		stats.Rebirths.Value = data.Rebirths
+		stats.Level.Value = data.Level
 	end
 	if data then
 		player:SetAttribute("Mog", math.floor(data.Mog))
+		player:SetAttribute("Gems", math.floor(data.Gems))
+		player:SetAttribute("Level", data.Level)
+		player:SetAttribute("XP", math.floor(data.XP))
+		player:SetAttribute("XPNeed", xpNeed(data.Level))
+		player:SetAttribute("XPBoost", math.max(0, (data.XPBoostUntil or 0) - os.time()))
+		player:SetAttribute("CoinBoost", math.max(0, (data.CoinBoostUntil or 0) - os.time()))
 	end
 end
 
@@ -773,6 +828,9 @@ local function moneyMultiplier(player)
 	if player:GetAttribute("VIP") then
 		m = m * 1.2
 	end
+	if data and os.time() < (data.CoinBoostUntil or 0) then
+		m = m * 2
+	end
 	return m
 end
 
@@ -791,6 +849,79 @@ local function mogPerHit(player)
 		m = m * 2
 	end
 	return m
+end
+
+-- damage of one click / hammer hit in battles and on bosses
+local function damagePerClick(player)
+	local data = sessions[player]
+	if not data then
+		return 1
+	end
+	return math.max(1, math.floor(data.Mog * 0.5 * (1 + (data.Level - 1) * 0.02)))
+end
+
+local function addXP(player, amount)
+	local data = sessions[player]
+	if not data then
+		return
+	end
+	if os.time() < (data.XPBoostUntil or 0) then
+		amount = amount * 2
+	end
+	data.XP = data.XP + amount
+	local leveled = false
+	while data.XP >= xpNeed(data.Level) do
+		data.XP = data.XP - xpNeed(data.Level)
+		data.Level = data.Level + 1
+		data.Gems = data.Gems + 5 * data.Level
+		leveled = true
+		for _, ab in ipairs(ABILITIES) do
+			if ab.Level == data.Level then
+				notify(player, "NEW ABILITY UNLOCKED: " .. ab.Name .. "! (" .. ab.Text .. ")")
+			end
+		end
+	end
+	if leveled then
+		levelRemote:FireClient(player, data.Level)
+	end
+	updateStats(player)
+end
+
+local function todayKey()
+	return math.floor(os.time() / 86400)
+end
+
+local function ensureQuests(data)
+	local key = todayKey()
+	if type(data.Quests) ~= "table" or data.Quests.Day ~= key or type(data.Quests.List) ~= "table" then
+		local pool = {}
+		for i = 1, #QUEST_TYPES do
+			pool[i] = i
+		end
+		local list = {}
+		for _ = 1, 3 do
+			local qt = QUEST_TYPES[table.remove(pool, math.random(1, #pool))]
+			local tier = math.random(1, #qt.Goals)
+			table.insert(list, { Id = qt.Id, Goal = qt.Goals[tier], Gems = qt.Gems[tier], XP = 150 * tier, Progress = 0, Claimed = false })
+		end
+		data.Quests = { Day = key, List = list }
+	end
+end
+
+local function questProgress(player, id, amount)
+	local data = sessions[player]
+	if not data then
+		return
+	end
+	ensureQuests(data)
+	for _, q in ipairs(data.Quests.List) do
+		if q.Id == id and q.Progress < q.Goal then
+			q.Progress = math.min(q.Goal, q.Progress + (amount or 1))
+			if q.Progress >= q.Goal then
+				notify(player, "QUEST COMPLETE! Claim your gems in QUESTS.")
+			end
+		end
+	end
 end
 
 local function rebirthCost(data)
@@ -1369,12 +1500,12 @@ local function rollSize()
 	return math.floor((0.8 + math.random() * 0.5) * 100 + 0.5) / 100
 end
 
-local function createMonster(id, variant, sizeMult)
+local function createMonster(id, variant, sizeMult, elder)
 	local def = MONSTER_BY_ID[id]
 	local rarity = RARITIES[def.Rarity]
 	local v = VARIANTS[variant]
 	sizeMult = sizeMult or 1
-	local body, s, foot, hover = buildBody(def, variant, sizeMult)
+	local body, s, foot, hover = buildBody(def, variant, sizeMult * (elder and 1.25 or 1))
 	local kg = math.floor((s ^ 3) * 1.6 * 10 + 0.5) / 10
 	local customFoot = useCustomModel(def, body, s)
 	if customFoot then
@@ -1382,7 +1513,7 @@ local function createMonster(id, variant, sizeMult)
 	end
 
 	local _, labels = billboard(body, 250, 84, Vector3.new(0, s * 0.6 + 2.8, 0), 3)
-	labels[1].Text = (sizeMult >= HUGE_SIZE and "HUGE " or "") .. displayName(id, variant)
+	labels[1].Text = (sizeMult >= HUGE_SIZE and "HUGE " or "") .. (elder and "Elder " or "") .. displayName(id, variant)
 	labels[1].TextColor3 = variant > 1 and (v.Color or Color3.fromRGB(255, 120, 255)) or rarity.Color
 	local odds = oddsOf(id, variant)
 	labels[2].Text = rarity.Name .. "  |  " .. kg .. " KG" .. ((odds > 1) and ("  |  1 in " .. fmt(odds)) or "")
@@ -1396,8 +1527,9 @@ local function createMonster(id, variant, sizeMult)
 	local m = {
 		Part = body, Id = id, Def = def, Variant = variant, State = "New", Size = s, SizeMult = sizeMult, Kg = kg,
 		Foot = foot, Hover = hover, Walked = 0, Pause = 0,
-		Income = math.floor(monsterIncome(id, variant) * sizeMult ^ 1.5 * 10 + 0.5) / 10,
-		MogReq = monsterMog(id, variant), Value = math.floor(monsterValue(id, variant) * sizeMult ^ 1.5),
+		Income = math.floor(monsterIncome(id, variant) * sizeMult ^ 1.5 * (elder and 3 or 1) * 10 + 0.5) / 10,
+		MogReq = monsterMog(id, variant), Value = math.floor(monsterValue(id, variant) * sizeMult ^ 1.5 * (elder and 3 or 1)),
+		Elder = elder == true,
 		InfoLabel = labels[3],
 	}
 
@@ -1424,6 +1556,7 @@ local function createMonster(id, variant, sizeMult)
 	end
 
 	body:SetAttribute("MonsterId", id)
+	body:SetAttribute("Elder", elder == true)
 	body:SetAttribute("Variant", v.Name)
 	body:SetAttribute("MogReq", m.MogReq)
 	body:SetAttribute("OwnerId", 0)
@@ -1602,7 +1735,10 @@ local function discover(player, m)
 	local data = sessions[player]
 	if data and not data.Discovered[m.Id] then
 		data.Discovered[m.Id] = true
-		notify(player, "NEW MONSTER DISCOVERED: " .. m.Def.Name .. "!")
+		local bonus = 5 * m.Def.Rarity
+		data.Gems = data.Gems + bonus
+		updateStats(player)
+		notify(player, "NEW MONSTER DISCOVERED: " .. m.Def.Name .. "! +" .. bonus .. " gems")
 	end
 end
 
@@ -1614,6 +1750,7 @@ local function deliver(m, player, plot, slot)
 	local name = displayName(m.Id, m.Variant)
 	effect(pos, RARITIES[m.Def.Rarity].Color, "MOGGED!")
 	notify(player, name .. " is yours!")
+	questProgress(player, "Home", 1)
 	if m.Def.Rarity >= 5 or m.Variant >= 4 then
 		announce(player.Name .. " brought home a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "!")
 	end
@@ -1790,17 +1927,33 @@ local function startBattle(m, player)
 	applyMovement(player)
 	local data = sessions[player]
 	local clickMult = 1 + ((data and data.Hammer or 1) - 1) * 0.08
+	local hp = math.floor(m.MogReq * 10 * (1 + r * 0.3) * (m.SizeMult or 1))
+	local dmg = damagePerClick(player)
+	m.BattleHP, m.BattleDmg = hp, dmg
+	local abilities = {}
+	for _, ab in ipairs(ABILITIES) do
+		if data and data.Level >= ab.Level then
+			table.insert(abilities, { Id = ab.Id, Name = ab.Name, Cooldown = ab.Cooldown })
+		end
+	end
+	local battleType = math.random() < 0.5 and "Clash" or "Timing"
+	m.BattleType = battleType
 	battleRemote:FireClient(player, m.Part, {
+		HP = hp,
+		Damage = dmg,
+		AttackEvery = math.max(2.5, 5 - r * 0.3),
+		AttackDamage = math.floor((15 + r * 4) * (0.5 + ratio * 0.5)),
+		Abilities = abilities,
 		Name = displayName(m.Id, m.Variant),
 		Color = RARITIES[r].Color,
 		ClickPower = 0.07 * clickMult,
 		ClickMult = math.floor(clickMult * 10 + 0.5) / 10,
 		Rarity = r,
-		Type = math.random() < 0.5 and "Clash" or "Timing",
+		Type = battleType,
 		Pull = 0.05 + 0.15 * ratio + r * 0.015,
 		ZoneWidth = math.clamp(0.3 - 0.12 * ratio - r * 0.015, 0.07, 0.3),
 		Speed = 0.7 + r * 0.12 + ratio * 0.3,
-		Time = 12,
+		Time = 15,
 	})
 end
 
@@ -1812,7 +1965,12 @@ local function battleResult(player, part, won)
 	local elapsed = os.clock() - (m.BattleStart or 0)
 	endBattle(m, player)
 	local name = displayName(m.Id, m.Variant)
-	if won ~= true or elapsed < CONFIG.BATTLE_MIN_TIME then
+	-- even with the best combo, crits and abilities you need a little time to beat it
+	local fastest = 0
+	if m.BattleType == "Clash" then
+		fastest = (m.BattleHP or 0) / math.max(1, (m.BattleDmg or 1) * 2 * 3 * 2 * 18)
+	end
+	if won ~= true or elapsed < math.max(CONFIG.BATTLE_MIN_TIME, fastest) then
 		effect(m.Part.Position, Color3.fromRGB(255, 80, 80), "Too strong!")
 		return true, name .. " won this time! Try again."
 	end
@@ -1828,7 +1986,23 @@ local function battleResult(player, part, won)
 	if m.Def.Rarity >= 5 or m.Variant >= 4 then
 		announce(player.Name .. " beat a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "! Hit them to take it!")
 	end
-	return true, "You won! " .. name .. " follows you - lead it HOME before someone hits you!"
+	-- rewards
+	local r = m.Def.Rarity
+	local data = sessions[player]
+	local xp = math.floor(10 * (1 + r) ^ 2 * math.sqrt(VARIANTS[m.Variant].Mult) * (m.SizeMult or 1))
+	local coins = math.floor(m.Income * 15 * moneyMultiplier(player))
+	local gems = math.random() < 0.1 + r * 0.03 and (1 + r // 2) or 0
+	data.Cash = data.Cash + coins
+	data.Gems = data.Gems + gems
+	addXP(player, xp)
+	questProgress(player, "Win", 1)
+	if r >= 3 then
+		questProgress(player, "Rare", 1)
+	end
+	if m.Variant >= 2 or (m.SizeMult or 1) >= HUGE_SIZE then
+		questProgress(player, "Special", 1)
+	end
+	return true, "You won! +" .. fmt(xp) .. " XP, +$" .. fmt(coins) .. (gems > 0 and (", +" .. gems .. " gems") or "") .. ". Lead " .. name .. " HOME!"
 end
 
 ----------------------------------------------------------------------
@@ -1887,6 +2061,7 @@ end
 ----------------------------------------------------------------------
 local lastHit = {}
 local hammers = {} -- [player] = { Tool, BaseGrip }
+local bossHit -- defined in the BOSSES section
 
 local function knockback(root, velocity)
 	local att = Instance.new("Attachment")
@@ -1923,6 +2098,9 @@ local function hammerHit(player)
 		return
 	end
 	swingHammer(player)
+	if bossHit then
+		bossHit(player, root)
+	end
 	for _, other in ipairs(Players:GetPlayers()) do
 		local oroot = other ~= player and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
 		local carrying = oroot and carriers[other]
@@ -2084,6 +2262,185 @@ for _, plot in ipairs(plots) do
 end
 
 ----------------------------------------------------------------------
+-- BOSSES
+----------------------------------------------------------------------
+local bosses = {}      -- [index] = boss
+local bossTimers = {}  -- [index] = when it spawns
+local stunnedUntil = {}
+for i = 1, #BOSSES do
+	bossTimers[i] = os.clock() + BOSS_FIRST + (i - 1) * 30
+end
+
+local function spawnBoss(i)
+	local bdef = BOSSES[i]
+	local def = MONSTER_BY_ID[bdef.Id]
+	local body, s, foot, hover = buildBody(def, 1, bdef.Scale)
+	body.Name = "Boss"
+	local region = zoneRegions[bdef.Zone]
+	local pos = regionPoint(region, { Foot = foot, Hover = hover })
+	body.CFrame = CFrame.new(pos)
+	local _, labels = billboard(body, 340, 70, Vector3.new(0, s * 0.7 + 5, 0), 2)
+	labels[1].Text = "BOSS: " .. def.Name
+	labels[1].TextColor3 = Color3.fromRGB(255, 80, 80)
+	labels[2].Text = fmt(bdef.HP) .. " HP"
+	labels[1].Parent.MaxDistance = 300
+	local light = Instance.new("PointLight")
+	light.Color = Color3.fromRGB(255, 60, 60)
+	light.Range = 40
+	light.Brightness = 3
+	light.Parent = body
+	body:SetAttribute("BossName", def.Name)
+	body:SetAttribute("HP", bdef.HP)
+	body:SetAttribute("MaxHP", bdef.HP)
+	body:SetAttribute("Phase", 1)
+	CollectionService:AddTag(body, "Boss")
+	body.Parent = monsterFolder
+	bosses[i] = {
+		Def = def, B = bdef, Part = body, Size = s, Foot = foot, Hover = hover, Region = region,
+		HP = bdef.HP, MaxHP = bdef.HP, Damage = {}, NextAttack = os.clock() + 6, Phase = 1,
+		Label = labels[2], Facing = Vector3.new(-1, 0, 0),
+	}
+	announce("BOSS " .. def.Name:upper() .. " appeared in ZONE " .. bdef.Zone .. "! Hit it with your hammers - together!")
+end
+
+local function defeatBoss(i)
+	local b = bosses[i]
+	bosses[i] = nil
+	bossTimers[i] = os.clock() + BOSS_RESPAWN
+	local total = 0
+	for _, d in pairs(b.Damage) do
+		total = total + d
+	end
+	local top, topDmg = nil, -1
+	for p, d in pairs(b.Damage) do
+		local data = sessions[p]
+		if p.Parent and data then
+			local share = 0.3 + 0.7 * (d / math.max(total, 1))
+			local coins = math.floor(b.B.Coins * share)
+			local gems = math.ceil(b.B.Gems * share)
+			data.Cash = data.Cash + coins
+			data.Gems = data.Gems + gems
+			data.BossKills = (data.BossKills or 0) + 1
+			addXP(p, math.floor(b.B.XP * share))
+			notify(p, "BOSS DEFEATED! +$" .. fmt(coins) .. ", +" .. gems .. " gems, +" .. fmt(b.B.XP * share) .. " XP")
+			if d > topDmg then
+				top, topDmg = p, d
+			end
+		end
+	end
+	effect(b.Part.Position + Vector3.new(0, b.Size * 0.5, 0), Color3.fromRGB(255, 220, 60), "BOSS DEFEATED!")
+	announce(b.Def.Name .. " was defeated!" .. (top and ("  MVP: " .. top.Name) or ""))
+	if top and math.random() < BOSS_DROP_CHANCE and giveMonster(top, b.B.Id, 1) then
+		announce(top.Name .. " tamed the boss " .. b.Def.Name .. "!")
+	end
+	b.Part:Destroy()
+end
+
+bossHit = function(player, root)
+	if stunnedUntil[player] and os.clock() < stunnedUntil[player] then
+		return
+	end
+	for i, b in pairs(bosses) do
+		if b.HP > 0 and (b.Part.Position - root.Position).Magnitude < b.Size * 0.9 + 12 then
+			local dmg = damagePerClick(player)
+			local crit = math.random() < 0.1
+			if crit then
+				dmg = dmg * 2
+			end
+			b.HP = math.max(0, b.HP - dmg)
+			b.Damage[player] = (b.Damage[player] or 0) + dmg
+			b.Part:SetAttribute("HP", b.HP)
+			b.Label.Text = fmt(b.HP) .. " / " .. fmt(b.MaxHP) .. " HP"
+			effectRemote:FireClient(player, b.Part.Position + Vector3.new(math.random(-3, 3), b.Size * 0.4, math.random(-3, 3)),
+				crit and Color3.fromRGB(255, 220, 60) or Color3.new(1, 1, 1), (crit and "CRIT -" or "-") .. fmt(dmg))
+			questProgress(player, "Boss", 1)
+			local frac = b.HP / b.MaxHP
+			local phase = frac <= 0.33 and 3 or (frac <= 0.66 and 2 or 1)
+			if phase > b.Phase then
+				b.Phase = phase
+				b.Part:SetAttribute("Phase", phase)
+				announce(b.Def.Name .. " is ENRAGED! (phase " .. phase .. ")")
+				effect(b.Part.Position, Color3.fromRGB(255, 60, 60), "ENRAGED!")
+			end
+			if b.HP <= 0 then
+				defeatBoss(i)
+			end
+			return
+		end
+	end
+end
+
+local function bossShockwave(b)
+	local center = b.Part.Position
+	local ring = Instance.new("Part")
+	ring.Anchored = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.6, 4, 4)
+	ring.CFrame = CFrame.new(center.X, b.Region.GroundY + 0.5, center.Z) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Color = Color3.fromRGB(255, 60, 60)
+	ring.Material = Enum.Material.Neon
+	ring.Transparency = 0.3
+	ring.Parent = workspace
+	TweenService:Create(ring, TweenInfo.new(0.6), { Size = Vector3.new(0.6, 64, 64), Transparency = 1 }):Play()
+	Debris:AddItem(ring, 0.7)
+	for _, p in ipairs(Players:GetPlayers()) do
+		local r = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+		if r and (r.Position - center).Magnitude < 32 then
+			local away = Vector3.new(r.Position.X - center.X, 0, r.Position.Z - center.Z)
+			knockback(r, (away.Magnitude > 0.1 and away.Unit or Vector3.new(1, 0, 0)) * 70 + Vector3.new(0, 35, 0))
+			stunnedUntil[p] = os.clock() + 1.5
+			effectRemote:FireClient(p, r.Position, Color3.fromRGB(255, 60, 60), "SHOCKWAVE!")
+		end
+	end
+end
+
+local function updateBosses(dt, now)
+	for i = 1, #BOSSES do
+		if not bosses[i] and now >= bossTimers[i] then
+			spawnBoss(i)
+		end
+	end
+	for _, b in pairs(bosses) do
+		local zone = zoneInfo[b.B.Zone]
+		local target, best = nil, math.huge
+		for _, p in ipairs(Players:GetPlayers()) do
+			local r = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+			if r and isAlive(p) and r.Position.X > zone.X0 and r.Position.X < zone.X1 then
+				local d = (r.Position - b.Part.Position).Magnitude
+				if d < best then
+					target, best = r, d
+				end
+			end
+		end
+		if target then
+			local pos = b.Part.Position
+			local flat = Vector3.new(target.Position.X - pos.X, 0, target.Position.Z - pos.Z)
+			if flat.Magnitude > 0.1 then
+				local want = flat.Unit
+				local facing = b.Facing:Lerp(want, math.min(1, dt * 2))
+				b.Facing = facing.Magnitude > 0.01 and facing.Unit or want
+			end
+			local np = pos
+			if best > b.Size * 0.8 + 6 then
+				np = pos + b.Facing * (4 + b.Phase * 2) * dt
+			end
+			local reg = b.Region
+			local lp = reg.CF:PointToObjectSpace(np)
+			local wp = reg.CF * Vector3.new(math.clamp(lp.X, reg.X1, reg.X2), 0, math.clamp(lp.Z, reg.Z1, reg.Z2))
+			np = Vector3.new(wp.X, reg.GroundY + b.Foot, wp.Z)
+			b.Part.CFrame = CFrame.lookAt(np, np + b.Facing)
+			if now >= b.NextAttack then
+				b.NextAttack = now + ({ 6, 4.5, 3 })[b.Phase]
+				bossShockwave(b)
+			end
+		end
+	end
+end
+
+----------------------------------------------------------------------
 -- STATION PROMPTS
 ----------------------------------------------------------------------
 fusionPrompt.Triggered:Connect(function(player)
@@ -2105,7 +2462,7 @@ local function myMonstersList(player)
 		for slot, m in pairs(plot.Slots) do
 			if m.Owner == player and m.State == "Placed" then
 				table.insert(list, {
-					Slot = slot, Id = m.Id, Variant = m.Variant, Name = displayName(m.Id, m.Variant), Kg = m.Kg,
+					Slot = slot, Id = m.Id, Variant = m.Variant, Name = (m.Elder and "Elder " or "") .. displayName(m.Id, m.Variant), Kg = m.Kg, Elder = m.Elder,
 					Rarity = m.Def.Rarity, Income = m.Income, Value = m.Value,
 				})
 			end
@@ -2128,7 +2485,7 @@ local function getInfo(player)
 	for _, def in ipairs(MONSTERS) do
 		table.insert(index, {
 			Id = def.Id, Name = def.Name, Rarity = def.Rarity, Found = data.Discovered[def.Id] == true,
-			Odds = oddsOf(def.Id, 1), Zone = def.Rarity, Exclusive = def.Exclusive == true,
+			Odds = oddsOf(def.Id, 1), Zone = def.Rarity, Exclusive = def.Exclusive == true, Boss = def.Boss == true,
 		})
 	end
 	local variants = {}
@@ -2142,6 +2499,25 @@ local function getInfo(player)
 	local nextHammer = HAMMERS[data.Hammer + 1]
 	local nextSwing = SWINGS[data.Swing + 1]
 	local ready, wait = dailyStatus(data)
+	ensureQuests(data)
+	local questList = {}
+	for i, q in ipairs(data.Quests.List) do
+		local text = q.Id
+		for _, qt in ipairs(QUEST_TYPES) do
+			if qt.Id == q.Id then
+				text = string.format(qt.Text, q.Goal)
+			end
+		end
+		questList[i] = { Text = text, Goal = q.Goal, Progress = q.Progress, Gems = q.Gems, XP = q.XP, Claimed = q.Claimed }
+	end
+	local potions = {}
+	for i, pdef in ipairs(POTIONS) do
+		potions[i] = { Id = pdef.Id, Name = pdef.Name, Minutes = pdef.Minutes, Gems = pdef.Gems }
+	end
+	local abilityList = {}
+	for i, ab in ipairs(ABILITIES) do
+		abilityList[i] = { Name = ab.Name, Level = ab.Level, Text = ab.Text, Cooldown = ab.Cooldown, Unlocked = data.Level >= ab.Level }
+	end
 	return {
 		Cash = data.Cash, Mog = playerMog(player), MogPerHit = mogPerHit(player),
 		Rebirths = data.Rebirths, RebirthCost = rebirthCost(data),
@@ -2155,6 +2531,8 @@ local function getInfo(player)
 		Aura = data.Aura, Auras = auras,
 		DailyReady = ready, DailyWait = wait, Streak = data.Streak,
 		Index = index, Variants = variants, Monsters = myMonstersList(player),
+		Level = data.Level, XP = data.XP, XPNeed = xpNeed(data.Level), Gems = data.Gems, Damage = damagePerClick(player),
+		Quests = questList, Potions = potions, Abilities = abilityList, BossKills = data.BossKills or 0,
 	}
 end
 
@@ -2171,7 +2549,7 @@ local function doFuse(player, slotA, slotB)
 	if not a or not b or a.Owner ~= player or b.Owner ~= player or a.State ~= "Placed" or b.State ~= "Placed" then
 		return false, "Those monsters are not in your enclosure"
 	end
-	if a.Id ~= b.Id or a.Variant ~= b.Variant then
+	if a.Id ~= b.Id or a.Variant ~= b.Variant or a.Elder ~= b.Elder then
 		return false, "You need 2 of the SAME monster with the SAME level!"
 	end
 	if a.Variant >= #VARIANTS then
@@ -2186,7 +2564,7 @@ local function doFuse(player, slotA, slotB)
 	local size = math.floor((a.SizeMult + b.SizeMult) / 2 * 100 + 0.5) / 100
 	destroyMonster(a)
 	destroyMonster(b)
-	local result = createMonster(id, variant, size)
+	local result = createMonster(id, variant, size, a.Elder)
 	result.Part.CFrame = fusionCore.CFrame
 	flyToSlot(result, plot, slotA, player)
 	updateStats(player)
@@ -2333,6 +2711,83 @@ requestRemote.OnServerInvoke = function(player, action, a, b)
 		data.Slots = data.Slots + 1
 		updateStats(player)
 		return true, "Bigger enclosure! You can keep " .. slotLimit(player) .. " monsters."
+
+	elseif action == "ClaimQuest" then
+		ensureQuests(data)
+		local q = type(a) == "number" and data.Quests.List[a]
+		if not q then
+			return false, "No quest"
+		end
+		if q.Claimed then
+			return false, "Already claimed"
+		end
+		if q.Progress < q.Goal then
+			return false, "Not done yet! (" .. q.Progress .. "/" .. q.Goal .. ")"
+		end
+		q.Claimed = true
+		data.Gems = data.Gems + q.Gems
+		addXP(player, q.XP)
+		return true, "+" .. q.Gems .. " gems, +" .. q.XP .. " XP!"
+
+	elseif action == "BuyPotion" then
+		for _, pdef in ipairs(POTIONS) do
+			if pdef.Id == a then
+				if data.Gems < pdef.Gems then
+					return false, "You need " .. pdef.Gems .. " gems"
+				end
+				data.Gems = data.Gems - pdef.Gems
+				local key = pdef.Id == "XP" and "XPBoostUntil" or "CoinBoostUntil"
+				data[key] = math.max(os.time(), data[key] or 0) + pdef.Minutes * 60
+				updateStats(player)
+				return true, pdef.Name .. " active for " .. pdef.Minutes .. " minutes!"
+			end
+		end
+		return false, "Unknown potion"
+
+	elseif action == "Evolve" then
+		local m = type(a) == "number" and plot.Slots[a]
+		if not m or m.Owner ~= player or m.State ~= "Placed" then
+			return false, "Pick a monster in your enclosure"
+		end
+		if m.Elder then
+			return false, "It is already an Elder!"
+		end
+		if not near(player, fusionPos, 30) then
+			return false, "Go to the Fusion Machine!"
+		end
+		local used = { m }
+		for _, o in pairs(plot.Slots) do
+			if o ~= m and #used < 5 and o.Owner == player and o.State == "Placed" and o.Id == m.Id and o.Variant == m.Variant and not o.Elder then
+				table.insert(used, o)
+			end
+		end
+		if #used < 5 then
+			return false, "You need 5 of the same monster (you have " .. #used .. ")"
+		end
+		local cost = 10 * m.Def.Rarity
+		if data.Gems < cost then
+			return false, "Evolving costs " .. cost .. " gems"
+		end
+		data.Gems = data.Gems - cost
+		local size = 0
+		for _, o in ipairs(used) do
+			size = size + o.SizeMult
+		end
+		size = math.floor(size / #used * 100 + 0.5) / 100
+		local id, variant, slot = m.Id, m.Variant, m.Slot
+		for _, o in ipairs(used) do
+			destroyMonster(o)
+		end
+		local elder = createMonster(id, variant, size, true)
+		elder.Part.CFrame = fusionCore.CFrame
+		flyToSlot(elder, plot, slot, player)
+		updateStats(player)
+		local name = "Elder " .. displayName(id, variant)
+		effect(fusionCore.Position, Color3.fromRGB(255, 200, 60), name .. "!")
+		if MONSTER_BY_ID[id].Rarity >= 4 then
+			announce(player.Name .. " evolved an " .. name .. "!")
+		end
+		return true, "EVOLVED! " .. name .. " makes 3x money!"
 
 	elseif action == "ClaimDaily" then
 		if not dailyStatus(data) then
@@ -2541,7 +2996,7 @@ local function onPlayerAdded(player)
 
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
-	for _, name in ipairs({ "MOG", "Cash", "Rebirths" }) do
+	for _, name in ipairs({ "MOG", "Cash", "Level" }) do
 		local v = Instance.new("IntValue")
 		v.Name = name
 		v.Parent = stats
@@ -2570,7 +3025,7 @@ local function onPlayerAdded(player)
 			local slot = tonumber(saved.S)
 			local variant = tonumber(saved.V) or 1
 			if MONSTER_BY_ID[saved.Id] and VARIANTS[variant] and slot and not plot.Slots[slot] then
-				local m = createMonster(saved.Id, variant, tonumber(saved.Z) or 1)
+				local m = createMonster(saved.Id, variant, tonumber(saved.Z) or 1, saved.E == true)
 				place(m, plot, slot, player)
 			end
 		end
@@ -2631,6 +3086,7 @@ Players.PlayerRemoving:Connect(function(player)
 		traps[player] = nil
 	end
 	lastTrap[player] = nil
+	stunnedUntil[player] = nil
 	lastHit[player] = nil
 end)
 
@@ -2719,6 +3175,8 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 	end
 
+	updateBosses(dt, now)
+
 	-- monsters you won walk behind you
 	for player, m in pairs(carriers) do
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -2748,6 +3206,8 @@ RunService.Heartbeat:Connect(function(dt)
 			t.Next = now + SWINGS[data.Swing].Time
 			local gain = mogPerHit(player)
 			data.Mog = data.Mog + gain
+			addXP(player, 0.5)
+			questProgress(player, "Train", 1)
 			updateStats(player)
 			swingHammer(player)
 			effectRemote:FireClient(player, t.Plot.Stone.Position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 120, 200), "+" .. fmt(gain) .. " MOG")
@@ -2841,4 +3301,4 @@ task.spawn(function()
 	end
 end)
 
-print("MOG MONSTERS server v7 started OK!")
+print("MOG MONSTERS server v8 started OK!")

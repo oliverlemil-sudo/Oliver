@@ -4,7 +4,7 @@ Ejeren hedder Oliver, taler **dansk** og er nybegynder i Roblox Studio (Mac → 
 Forklar alt enkelt og trin for trin, på dansk. Teksten **inde i spillet** er på engelsk.
 Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og sender en færdig `.rbxlx`-fil.
 
-## Spillet (Olivers egen idé, v7)
+## Spillet (Olivers egen idé, v8)
 "👹 MOG MONSTERS". Tidligere versioner (Floor is Lava, Egg Heist, Power Empire) ligger i git-historikken.
 - **MOG** er en stat man **træner**: MOG STONE ved hver base (prompt "Train") → hammeren slår automatisk.
   MOG pr. slag = HAMMERS[level].Power × aura × (1+rebirths) × 2x-pass. Slag-interval = SWINGS[level].Time.
@@ -38,6 +38,24 @@ Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og send
   Oliver vil have dem "realistiske" → ServerStorage › MonsterModels › <MonsterId> (Model) erstatter kroppen.
   Billeder kan ikke laves om til 3D-modeller af os; brug Toolbox-modeller. Forhåndsvisning: docs/monsters-preview.png.
 - Oliver ønsker: de sjældneste ting må IKKE kunne købes for Robux.
+- **v8 (efter docs/GAME_DESIGN_PROMPT.md):**
+  - Level/XP: xpNeed = 100·L^1.5. Hvert level giver +5·L gems.
+  - Gems: first-catch 5×rarity, quests, bosser.
+  - Potions (2x XP 25 gems, 2x Coins 40 gems): data.XPBoostUntil/CoinBoostUntil.
+  - Clash har HP = MogReq·10·(1+0.3r)·size og skade = damagePerClick (Mog·0.5·(1+(L-1)·0.02)), plus combo ≤ x2 og 10 % crit.
+  - Monsterangreb + DODGE (Q) og MOG METER (100).
+  - 5 ABILITIES (Z X C V B; level 5/12/25/40/60).
+  - Serveren afviser for hurtige sejre (HP/(Dmg·72)), kun for Clash.
+  - 3 daily quests (data.Quests {Day, List}).
+  - Evolve: 5 ens → Elder (E i save, ×1.25 size, ×3 income/value).
+  - 4 BOSSES (BarnBrute z2, PhantomDuke z4, MagmaColossus z6, FirstMog z8).
+    Man slår dem med hammeren (bossHit fra hammerHit). De har faser ved 66/33 %, chokbølge og stun 1,5 s.
+    Belønningen deles efter skade, og MVP har 25 % chance for drop. Kan ikke købes.
+  - Remote "LevelUp".
+  - Klienten har:
+    - level-/XP-bar, gems, potion-timer og boss-HP-bar
+    - QUESTS-kortpanel, potions i SHOP og EVOLVE-knap i Fusion
+    - abilities i Index
 
 ## Filer
 - `src/ServerScriptService/GameServer.server.lua` → **Script** i ServerScriptService. Bygger hele kortet.
@@ -46,9 +64,10 @@ Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og send
 - `README.md` → dansk guide til Oliver.
 
 ## Status
-- Output: `MOG MONSTERS server v7 started OK!` / `MOG MONSTERS client v7 started OK!`
+- Output: `MOG MONSTERS server v8 started OK!` / `MOG MONSTERS client v8 started OK!`
 - Testet i hjemmelavet Roblox-mock (API-dump-valideret; 2 spillere; træning, kamp, bære, hammerslag, auras,
-  leaderboard, fusion, alle knapper; med/uden DataStore) → 0 fejl. **Endnu ikke testet i rigtig Roblox Studio.**
+  leaderboard, fusion, alle knapper; med/uden DataStore; v8: XP, quests, potions, HP-kamp, dodge, abilities,
+  boss-spawn/chokbølge/sejr) → 0 fejl. **Endnu ikke testet i rigtig Roblox Studio.**
 - Kendte Studio-faldgruber vi har løst: GetDataStore i pcall, ZIndexBehavior Sibling, karakterer via auto-load.
 
 ## Vigtigt

@@ -3,8 +3,9 @@
 	===============================
 	Put this as a *LocalScript* in StarterPlayer > StarterPlayerScripts.
 
-	Makes all the screens: money, MOG, menus (Shop, Upgrades, Daily,
-	Auras, Index, Rebirth), Fusion, MOG battles, guide arrows and effects.
+	Makes all the screens: money, MOG, gems, level, menus (Shop, Upgrades,
+	Auras, Quests, Daily, Index, Rebirth), Fusion/Evolve, MOG battles with
+	HP + abilities, the boss bar, guide arrows and effects.
 	You don't need to change anything in here.
 ]]
 
@@ -26,6 +27,7 @@ local panelRemote = remotes:WaitForChild("OpenPanel")
 local effectRemote = remotes:WaitForChild("Effect")
 local requestRemote = remotes:WaitForChild("Request")
 local battleRemote = remotes:WaitForChild("Battle")
+local levelRemote = remotes:WaitForChild("LevelUp")
 
 local RARITY_NAMES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "GODLY" }
 local RARITY_COLORS = {
@@ -132,7 +134,7 @@ end
 ----------------------------------------------------------------------
 -- MESSAGES & ALARM
 ----------------------------------------------------------------------
-local toast = label(gui, "", UDim2.new(0, 620, 0, 34), UDim2.new(0.5, -310, 0, 92))
+local toast = label(gui, "", UDim2.new(0, 620, 0, 34), UDim2.new(0.5, -310, 0, 176))
 toast.TextTransparency = 1
 toast.TextStrokeTransparency = 1
 local toastId = 0
@@ -225,6 +227,111 @@ local rushLabel = label(eventBox, "", UDim2.new(1, -16, 0.42, 0), UDim2.new(0, 8
 local luckLabel = label(eventBox, "", UDim2.new(1, -16, 0.42, 0), UDim2.new(0, 8, 0.53, 0))
 rushLabel.TextXAlignment = Enum.TextXAlignment.Left
 luckLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- LEVEL + XP bar (under the cash)
+local levelBox = box(gui, UDim2.new(0, 300, 0, 30), UDim2.new(0.5, -150, 0, 88), Color3.fromRGB(30, 30, 42), 0.15)
+local xpFill = Instance.new("Frame")
+xpFill.Size = UDim2.new(0, 0, 1, 0)
+xpFill.BackgroundColor3 = Color3.fromRGB(80, 170, 255)
+xpFill.BorderSizePixel = 0
+xpFill.Parent = levelBox
+corner(xpFill, 12)
+local xpLabel = label(levelBox, "LVL 1", UDim2.new(1, -16, 0.8, 0), UDim2.new(0, 8, 0.1, 0))
+
+-- GEMS (above your MOG)
+local gemBox = box(gui, UDim2.new(0, 220, 0, 40), UDim2.new(0, 10, 1, -206), Color3.fromRGB(30, 30, 42), 0.15)
+local gemLabel = label(gemBox, "💎 0", UDim2.new(1, -16, 0.8, 0), UDim2.new(0, 8, 0.1, 0))
+gemLabel.TextColor3 = Color3.fromRGB(110, 230, 255)
+gemLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- active potions (under the events)
+local potionLabel = label(gui, "", UDim2.new(0, 230, 0, 24), UDim2.new(1, -240, 0, 76))
+potionLabel.TextColor3 = Color3.fromRGB(255, 160, 255)
+
+RunService.Heartbeat:Connect(function()
+	local level = player:GetAttribute("Level") or 1
+	local xp, need = player:GetAttribute("XP") or 0, math.max(1, player:GetAttribute("XPNeed") or 100)
+	xpFill.Size = UDim2.new(math.clamp(xp / need, 0, 1), 0, 1, 0)
+	xpLabel.Text = "LVL " .. level .. "   " .. fmt(xp) .. " / " .. fmt(need) .. " XP"
+	gemLabel.Text = "💎 " .. fmt(player:GetAttribute("Gems") or 0) .. " gems"
+	local xpB, coinB = player:GetAttribute("XPBoost") or 0, player:GetAttribute("CoinBoost") or 0
+	local parts = {}
+	if xpB > 0 then
+		table.insert(parts, "2x XP " .. timeText(xpB))
+	end
+	if coinB > 0 then
+		table.insert(parts, "2x COINS " .. timeText(coinB))
+	end
+	potionLabel.Text = table.concat(parts, "  ")
+end)
+
+-- LEVEL UP!
+levelRemote.OnClientEvent:Connect(function(level)
+	local l = label(gui, "LEVEL UP!  " .. tostring(level), UDim2.new(0, 520, 0, 90), UDim2.new(0.5, -260, 0.3, 0))
+	l.TextColor3 = Color3.fromRGB(110, 210, 255)
+	l.TextStrokeTransparency = 0
+	l.ZIndex = 20
+	local sc = Instance.new("UIScale")
+	sc.Scale = 0.3
+	sc.Parent = l
+	TweenService:Create(sc, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	task.delay(1.6, function()
+		TweenService:Create(l, TweenInfo.new(0.6), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	end)
+	Debris:AddItem(l, 2.4)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if root then
+		local burst = Instance.new("ParticleEmitter")
+		burst.Color = ColorSequence.new(Color3.fromRGB(110, 210, 255))
+		burst.LightEmission = 1
+		burst.Rate = 0
+		burst.Speed = NumberRange.new(10, 20)
+		burst.SpreadAngle = Vector2.new(180, 180)
+		burst.Lifetime = NumberRange.new(0.6, 1.2)
+		burst.Parent = root
+		burst:Emit(60)
+		Debris:AddItem(burst, 2)
+	end
+end)
+
+-- BOSS bar at the top when a boss is near you
+local bossBox = box(gui, UDim2.new(0, 420, 0, 46), UDim2.new(0.5, -210, 0, 124), Color3.fromRGB(40, 20, 25), 0.1)
+bossBox.Visible = false
+local bossFill = Instance.new("Frame")
+bossFill.Size = UDim2.new(1, 0, 0.45, 0)
+bossFill.Position = UDim2.new(0, 0, 0.55, 0)
+bossFill.BackgroundColor3 = Color3.fromRGB(230, 50, 60)
+bossFill.BorderSizePixel = 0
+bossFill.Parent = bossBox
+corner(bossFill, 8)
+local bossName = label(bossBox, "", UDim2.new(1, -16, 0.5, 0), UDim2.new(0, 8, 0.02, 0))
+bossName.TextColor3 = Color3.fromRGB(255, 120, 120)
+local bossHpText = label(bossBox, "", UDim2.new(1, -16, 0.42, 0), UDim2.new(0, 8, 0.56, 0))
+task.spawn(function()
+	while true do
+		task.wait(0.2)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local best, bestD = nil, 250
+		if root then
+			for _, boss in ipairs(CollectionService:GetTagged("Boss")) do
+				if boss:IsA("BasePart") and boss.Parent then
+					local d = (boss.Position - root.Position).Magnitude
+					if d < bestD then
+						best, bestD = boss, d
+					end
+				end
+			end
+		end
+		bossBox.Visible = best ~= nil
+		if best then
+			local hp, maxHp = best:GetAttribute("HP") or 0, math.max(1, best:GetAttribute("MaxHP") or 1)
+			local phase = best:GetAttribute("Phase") or 1
+			bossName.Text = "BOSS: " .. tostring(best:GetAttribute("BossName") or "?") .. (phase > 1 and ("  - ENRAGED " .. phase) or "")
+			bossFill.Size = UDim2.new(math.clamp(hp / maxHp, 0, 1), 0, 0.45, 0)
+			bossHpText.Text = fmt(hp) .. " / " .. fmt(maxHp) .. "   (hit it with your Hammer!)"
+		end
+	end
+end)
 
 task.spawn(function()
 	local cash = player:WaitForChild("leaderstats"):WaitForChild("Cash")
@@ -322,7 +429,7 @@ end)
 local battleFrame = Instance.new("Frame")
 battleFrame.AnchorPoint = Vector2.new(0.5, 1)
 battleFrame.Position = UDim2.new(0.5, 0, 1, -120)
-battleFrame.Size = UDim2.new(0, 720, 0, 230)
+battleFrame.Size = UDim2.new(0, 720, 0, 290)
 battleFrame.BackgroundTransparency = 1
 battleFrame.Visible = false
 battleFrame.ZIndex = 10
@@ -330,7 +437,7 @@ battleFrame.Parent = gui
 local battleScale = Instance.new("UIScale")
 battleScale.Parent = battleFrame
 local fitBattle = Instance.new("UISizeConstraint")
-fitBattle.MaxSize = Vector2.new(720, 230)
+fitBattle.MaxSize = Vector2.new(720, 290)
 fitBattle.Parent = battleFrame
 
 local bTitle = label(battleFrame, "MOG CLASH!", UDim2.new(0.6, 0, 0, 48), UDim2.new(0.2, 0, 0, 0))
@@ -433,6 +540,45 @@ local bTimer = label(battleFrame, "", UDim2.new(0, 110, 0, 30), UDim2.new(1, -22
 bTimer.TextXAlignment = Enum.TextXAlignment.Right
 local bScore = label(battleFrame, "", UDim2.new(0, 220, 0, 30), UDim2.new(0.5, -110, 0, 178))
 local quitBtn = button(battleFrame, "X", Color3.fromRGB(150, 60, 60), UDim2.new(0, 36, 0, 36), UDim2.new(1, -36, 0, 4))
+
+-- your MOG METER (your health in the battle)
+local meterBack = Instance.new("Frame")
+meterBack.Size = UDim2.new(0, 220, 0, 20)
+meterBack.Position = UDim2.new(0, 0, 0, 212)
+meterBack.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+meterBack.Parent = battleFrame
+corner(meterBack, 8)
+stroke(meterBack)
+local meterFill = Instance.new("Frame")
+meterFill.Size = UDim2.new(1, 0, 1, 0)
+meterFill.BackgroundColor3 = Color3.fromRGB(90, 220, 110)
+meterFill.BorderSizePixel = 0
+meterFill.Parent = meterBack
+corner(meterFill, 8)
+local meterText = label(meterBack, "YOUR MOG METER", UDim2.new(1, -8, 1, -2), UDim2.new(0, 4, 0, 1))
+
+-- DODGE button (or press Q)
+local dodgeBtn = button(battleFrame, "DODGE (Q)", Color3.fromRGB(70, 130, 230), UDim2.new(0, 140, 0, 56), UDim2.new(1, -140, 0, 214))
+
+-- ABILITIES (unlock with levels): keys Z X C V B
+local ABILITY_KEYS = { "Z", "X", "C", "V", "B" }
+local ABILITY_COLORS = {
+	Color3.fromRGB(230, 70, 120), Color3.fromRGB(240, 150, 40), Color3.fromRGB(170, 80, 255),
+	Color3.fromRGB(60, 190, 220), Color3.fromRGB(255, 200, 40),
+}
+local abilityButtons = {}
+local abilityReady = {} -- [id] = when you can use it again
+for i = 1, 5 do
+	local b = button(battleFrame, "", ABILITY_COLORS[i], UDim2.new(0, 88, 0, 46), UDim2.new(0, 230 + (i - 1) * 94, 0, 240))
+	b.Visible = false
+	abilityButtons[i] = b
+end
+
+-- the "monster attacks" warning
+local warnLabel = label(gui, "", UDim2.new(0, 560, 0, 60), UDim2.new(0.5, -280, 0.55, 0))
+warnLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+warnLabel.TextStrokeTransparency = 0
+warnLabel.ZIndex = 12
 
 -- AUTO MOG toggle (always on screen)
 local autoMog = false
@@ -553,6 +699,11 @@ local function finishBattle(won)
 		return
 	end
 	b.Done = true
+	warnLabel.Text = ""
+	if b.Highlight then
+		b.Highlight:Destroy()
+		b.Highlight = nil
+	end
 	bTitle.Text = won and "YOU MOGGED IT!" or "IT MOGGED YOU..."
 	bTitle.TextColor3 = won and Color3.fromRGB(140, 255, 140) or Color3.fromRGB(255, 110, 110)
 	if won and b.Elapsed < 2.2 then
@@ -573,6 +724,105 @@ local function finishBattle(won)
 			reticle = nil
 		end
 	end
+end
+
+-- damage numbers that pop out of the monster
+local function damageNumber(part, amount, crit)
+	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
+		return
+	end
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.new(0, crit and 180 or 120, 0, crit and 56 or 40)
+	bb.StudsOffset = Vector3.new(math.random(-20, 20) / 10, 2 + math.random() * 2, 0)
+	bb.AlwaysOnTop = true
+	bb.Parent = part
+	local l = label(bb, (crit and "CRIT " or "") .. "-" .. fmt(amount), UDim2.fromScale(1, 1))
+	l.TextColor3 = crit and Color3.fromRGB(255, 220, 60) or Color3.new(1, 1, 1)
+	l.TextStrokeTransparency = 0
+	TweenService:Create(bb, TweenInfo.new(0.8), { StudsOffset = bb.StudsOffset + Vector3.new(0, 4, 0) }):Play()
+	TweenService:Create(l, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	Debris:AddItem(bb, 0.9)
+end
+
+-- the monster flashes white when you hit it
+local function flash(b)
+	if typeof(b.Part) ~= "Instance" or not b.Part:IsA("BasePart") then
+		return
+	end
+	if not b.Highlight then
+		local h = Instance.new("Highlight")
+		h.FillColor = Color3.new(1, 1, 1)
+		h.OutlineColor = Color3.new(1, 1, 1)
+		h.FillTransparency = 1
+		h.OutlineTransparency = 1
+		h.Adornee = b.Part
+		h.Parent = b.Part
+		b.Highlight = h
+	end
+	b.Highlight.FillTransparency = 0.4
+	TweenService:Create(b.Highlight, TweenInfo.new(0.15), { FillTransparency = 1 }):Play()
+end
+
+local function hurtMonster(b, amount, crit)
+	b.HP = math.max(0, b.HP - amount)
+	damageNumber(b.Part, amount, crit)
+	flash(b)
+	if b.HP <= 0 then
+		task.spawn(finishBattle, true)
+	end
+end
+
+local function useAbility(i)
+	local b = battle
+	if not b or b.Done or b.Info.Type ~= "Clash" then
+		return
+	end
+	local ab = type(b.Info.Abilities) == "table" and b.Info.Abilities[i]
+	if not ab then
+		return
+	end
+	if os.clock() < (abilityReady[ab.Id] or 0) then
+		return
+	end
+	if ab.Id == "Final" and b.HP > b.MaxHP * 0.25 then
+		showMessage("FINAL MOG only works when the monster has less than 25% HP!")
+		return
+	end
+	abilityReady[ab.Id] = os.clock() + (ab.Cooldown or 30)
+	local w = label(gui, string.upper(ab.Name) .. "!", UDim2.new(0, 520, 0, 80), UDim2.new(0.5, -260, 0.22, 0))
+	w.TextColor3 = ABILITY_COLORS[i]
+	w.TextStrokeTransparency = 0
+	w.ZIndex = 12
+	TweenService:Create(w, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	Debris:AddItem(w, 1.1)
+	if ab.Id == "Stare" then
+		b.Stare = 5
+	elseif ab.Id == "Flex" then
+		b.StunnedUntil = b.Elapsed + 3
+		b.AttackAt = nil
+		warnLabel.Text = ""
+	elseif ab.Id == "Burst" then
+		hurtMonster(b, math.floor(b.MaxHP * 0.15), true)
+	elseif ab.Id == "Shield" then
+		b.Shield = true
+	elseif ab.Id == "Final" then
+		hurtMonster(b, b.HP, true)
+	end
+end
+
+local function dodge()
+	local b = battle
+	if b and not b.Done and b.AttackAt and not b.Dodged then
+		b.Dodged = true
+		warnLabel.Text = "DODGED!"
+		warnLabel.TextColor3 = Color3.fromRGB(110, 200, 255)
+	end
+end
+dodgeBtn.Activated:Connect(dodge)
+for i, b in ipairs(abilityButtons) do
+	b.Activated:Connect(function()
+		useAbility(i)
+	end)
 end
 
 local function newGreenZone(b)
@@ -599,9 +849,19 @@ local function battleAction(strength)
 			b.Combo = 1
 		end
 		b.LastClick = now
-		b.Progress = b.Progress + (b.Info.ClickPower or 0.07) * (strength or 1) * (1 + math.min(b.Combo, 50) * 0.02)
+		local dmg = (b.Info.Damage or 1) * (strength or 1) * (1 + math.min(b.Combo, 50) * 0.02)
+		local crit = math.random() < 0.1
+		if crit then
+			dmg = dmg * 2
+		end
+		if (b.Stare or 0) > 0 then
+			b.Stare = b.Stare - 1
+			dmg = dmg * 3
+			crit = true
+		end
 		pop()
 		hypeWord(false)
+		hurtMonster(b, math.max(1, math.floor(dmg)), crit)
 	else
 		if b.Needle >= b.ZoneStart and b.Needle <= b.ZoneStart + b.Info.ZoneWidth then
 			b.Hits = b.Hits + 1
@@ -629,22 +889,33 @@ battleRemote.OnClientEvent:Connect(function(part, info)
 	if type(info) ~= "table" then
 		return
 	end
-	battle = { Part = part, Info = info, Time = info.Time or 12, Elapsed = 0, Progress = 0.5, Needle = 0, Dir = 1, Hits = 0, Misses = 0, AutoTimer = 0 }
+	battle = {
+		Part = part, Info = info, Time = info.Time or 15, Elapsed = 0, Progress = 0.5, Needle = 0, Dir = 1, Hits = 0, Misses = 0, AutoTimer = 0,
+		HP = info.HP or 100, MaxHP = math.max(1, info.HP or 100), PlayerHP = 100, NextAttack = info.AttackEvery or 4,
+	}
+	warnLabel.Text = ""
 	bTitle.Text = info.Type == "Clash" and "MOG CLASH!" or "MOG STARE!"
 	bTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
 	monName.Text = tostring(info.Name)
 	monName.TextColor3 = typeof(info.Color) == "Color3" and info.Color or Color3.new(1, 1, 1)
 	monCircle.BackgroundColor3 = typeof(info.Color) == "Color3" and info.Color:Lerp(Color3.new(0, 0, 0), 0.25) or Color3.fromRGB(200, 60, 70)
-	bPower.Text = "Power x" .. tostring(info.ClickMult or 1)
+	bPower.Text = info.Type == "Clash" and ("DMG " .. fmt(info.Damage or 1)) or ("Power x" .. tostring(info.ClickMult or 1))
 	local clash = info.Type == "Clash"
 	fill.Visible = clash
 	knob.Visible = clash
 	greenZone.Visible = not clash
 	needle.Visible = not clash
-	bar.BackgroundColor3 = clash and Color3.fromRGB(235, 70, 70) or Color3.fromRGB(60, 60, 80)
-	redGrad.Enabled = clash
+	bar.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	redGrad.Enabled = false
+	greenGrad.Color = ColorSequence.new(Color3.fromRGB(255, 120, 90), Color3.fromRGB(200, 30, 50)) -- monster HP
+	meterBack.Visible = clash
+	dodgeBtn.Visible = clash
+	for i, b in ipairs(abilityButtons) do
+		local ab = clash and type(info.Abilities) == "table" and info.Abilities[i]
+		b.Visible = ab and true or false
+	end
 	if clash then
-		bHelp.Text = "CLICK / TAP / SPACE fast - keep the COMBO going!"
+		bHelp.Text = "CLICK / TAP / SPACE fast - DODGE (Q) when it attacks!"
 	else
 		bHelp.Text = "CLICK when the needle is in the GREEN zone! (3 times)"
 		newGreenZone(battle)
@@ -668,6 +939,14 @@ UserInputService.InputBegan:Connect(function(input, processed)
 	local t = input.UserInputType
 	if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch or (not processed and input.KeyCode == Enum.KeyCode.Space) then
 		battleAction(1)
+	elseif not processed and input.KeyCode == Enum.KeyCode.Q then
+		dodge()
+	elseif not processed and input.KeyCode then
+		for i, key in ipairs(ABILITY_KEYS) do
+			if input.KeyCode == Enum.KeyCode[key] then
+				useAbility(i)
+			end
+		end
 	end
 end)
 
@@ -690,24 +969,75 @@ RunService.RenderStepped:Connect(function(dt)
 			b.AutoTimer = b.AutoTimer + dt
 			if b.AutoTimer >= 0.25 then -- auto mog clicks 4 times per second
 				b.AutoTimer = 0
-				battleAction(1)
+				battleAction(0.6) -- auto mog is weaker than clicking yourself
 			end
 		end
-		b.Progress = b.Progress - (b.Info.Pull or 0.3) * dt
-		local p = math.clamp(b.Progress, 0, 1)
+		if b.Done then
+			return
+		end
+		-- the monster attacks you! (unless it is stunned)
+		local stunned = b.StunnedUntil and b.Elapsed < b.StunnedUntil
+		if stunned then
+			b.NextAttack = math.max(b.NextAttack, b.StunnedUntil)
+		elseif not b.AttackAt and b.Elapsed >= b.NextAttack then
+			b.AttackAt = b.Elapsed + 1.1
+			b.Dodged = false
+			warnLabel.Text = "!! IT ATTACKS - DODGE (Q) !!"
+			warnLabel.TextColor3 = Color3.fromRGB(255, 70, 70)
+		end
+		if b.AttackAt and b.Elapsed >= b.AttackAt then
+			b.AttackAt = nil
+			b.NextAttack = b.Elapsed + (b.Info.AttackEvery or 4)
+			if b.Dodged then
+				warnLabel.Text = ""
+			elseif b.Shield then
+				b.Shield = false
+				warnLabel.Text = "BLOCKED BY SIGMA SHIELD!"
+				warnLabel.TextColor3 = Color3.fromRGB(80, 220, 255)
+			else
+				b.PlayerHP = b.PlayerHP - (b.Info.AttackDamage or 20)
+				warnLabel.Text = "OUCH! -" .. (b.Info.AttackDamage or 20) .. " MOG METER"
+				warnLabel.TextColor3 = Color3.fromRGB(255, 120, 120)
+				battleScale.Scale = 0.96
+				TweenService:Create(battleScale, TweenInfo.new(0.2), { Scale = 1 }):Play()
+			end
+			task.delay(0.8, function()
+				if battle == b and not b.AttackAt then
+					warnLabel.Text = ""
+				end
+			end)
+			if b.PlayerHP <= 0 then
+				warnLabel.Text = ""
+				task.spawn(finishBattle, false)
+				return
+			end
+		end
+		local p = math.clamp(b.HP / b.MaxHP, 0, 1)
 		fill.Size = UDim2.new(p, 0, 1, 0)
 		knob.Position = UDim2.new(p, 0, 0.5, 0)
+		local m = math.clamp(b.PlayerHP / 100, 0, 1)
+		meterFill.Size = UDim2.new(m, 0, 1, 0)
+		meterFill.BackgroundColor3 = Color3.fromRGB(230, 70, 70):Lerp(Color3.fromRGB(90, 220, 110), m)
+		meterText.Text = "YOUR MOG METER " .. math.max(0, math.floor(b.PlayerHP)) .. "%" .. (b.Shield and "  🛡" or "")
 		if b.Combo and b.Combo > 1 and os.clock() - (b.LastClick or 0) < 0.45 then
-			bScore.Text = "COMBO x" .. b.Combo
+			bScore.Text = "COMBO x" .. b.Combo .. ((b.Stare or 0) > 0 and "  x3!" or "")
 			bScore.TextColor3 = Color3.fromRGB(255, 220, 60)
 		else
-			bScore.Text = math.floor(p * 100) .. "%"
+			bScore.Text = fmt(b.HP) .. " / " .. fmt(b.MaxHP) .. " HP"
 			bScore.TextColor3 = Color3.new(1, 1, 1)
 		end
-		if b.Progress >= 1 then
-			task.spawn(finishBattle, true)
-		elseif b.Progress <= 0 then
-			task.spawn(finishBattle, false)
+		for i, btn in ipairs(abilityButtons) do
+			local ab = type(b.Info.Abilities) == "table" and b.Info.Abilities[i]
+			if ab then
+				local wait = (abilityReady[ab.Id] or 0) - os.clock()
+				if wait > 0 then
+					btn.Text = ABILITY_KEYS[i] .. ": " .. math.ceil(wait) .. "s"
+					btn.BackgroundColor3 = Color3.fromRGB(90, 90, 100)
+				else
+					btn.Text = ABILITY_KEYS[i] .. ": " .. ab.Name
+					btn.BackgroundColor3 = ABILITY_COLORS[i]
+				end
+			end
 		end
 	else
 		b.Needle = b.Needle + b.Dir * (b.Info.Speed or 1) * dt
@@ -1094,8 +1424,23 @@ local SHOP_ITEMS = {
 	{ Title = "CASH PACK", Icon = "💵", Info = "10 min of income", Badge = "Instant cash", Attr = "CashPackProductId", Tier = "Common" },
 }
 
+local POTION_ITEMS = {
+	{ Id = "XP", Title = "2x XP POTION", Icon = "🧪", Info = "15 minutes", Badge = "x2 XP", Gems = 25, Tier = "Rare" },
+	{ Id = "Coins", Title = "2x COINS POTION", Icon = "⚗️", Info = "10 minutes", Badge = "x2 Money", Gems = 40, Tier = "Legendary" },
+}
+
 local function refreshShop()
 	shopPanel.Clear()
+	for _, item in ipairs(POTION_ITEMS) do
+		shopPanel.Card({
+			Title = item.Title, Tag = "Gem potion", Colors = TIER_COLORS[item.Tier], Icon = item.Icon,
+			Badge = item.Badge, Info = item.Info, Button = "💎 " .. item.Gems, ButtonColor = Color3.fromRGB(40, 160, 220),
+			OnClick = function()
+				local _, msg = requestRemote:InvokeServer("BuyPotion", item.Id)
+				showMessage(msg, Color3.fromRGB(255, 160, 255))
+			end,
+		})
+	end
 	for _, item in ipairs(SHOP_ITEMS) do
 		local owned = item.Owned and player:GetAttribute(item.Owned)
 		shopPanel.Card({
@@ -1259,7 +1604,7 @@ local function refreshIndex()
 	local found = 0
 	indexPanel.Text("MONSTERS", Color3.fromRGB(255, 210, 80))
 	for _, m in ipairs(info.Index) do
-		local odds = m.Exclusive and "Rebirth 10 only" or ("Zone " .. m.Zone .. (m.Odds > 1 and (", 1 in " .. fmt(m.Odds)) or ""))
+		local odds = m.Boss and "Boss drop" or m.Exclusive and "Rebirth 10 only" or ("Zone " .. m.Zone .. (m.Odds > 1 and (", 1 in " .. fmt(m.Odds)) or ""))
 		if m.Found then
 			found = found + 1
 			indexPanel.Text(m.Name .. "  (" .. RARITY_NAMES[m.Rarity] .. ", " .. odds .. ")", RARITY_COLORS[m.Rarity], 26)
@@ -1275,6 +1620,12 @@ local function refreshIndex()
 		indexPanel.Text(v.Name .. "  x" .. v.Mult .. odds, nil, 26)
 	end
 	indexPanel.Text("Fuse 2 of the same = next level!", Color3.fromRGB(220, 150, 255), 26)
+	indexPanel.Text("Evolve 5 of the same = ELDER (3x money)!", Color3.fromRGB(255, 200, 80), 26)
+	indexPanel.Text("ABILITIES (level " .. info.Level .. ")", Color3.fromRGB(255, 210, 80))
+	for i, ab in ipairs(info.Abilities) do
+		indexPanel.Text(ABILITY_KEYS[i] .. ": " .. ab.Name .. " - Level " .. ab.Level .. (ab.Unlocked and " ✔" or " 🔒") .. "  (" .. ab.Text .. ")",
+			ab.Unlocked and Color3.fromRGB(140, 255, 140) or Color3.fromRGB(180, 180, 180), 26)
+	end
 end
 
 ----------------------------------------------------------------------
@@ -1287,7 +1638,8 @@ fusionBottom.Position = UDim2.new(0, 12, 1, -108)
 fusionBottom.BackgroundTransparency = 1
 fusionBottom.Parent = fusionPanel.Frame
 local fusionPreview = label(fusionBottom, "Pick 2 of the same monster", UDim2.new(1, 0, 0.4, 0))
-local fuseBtn = button(fusionBottom, "FUSE!", Color3.fromRGB(170, 60, 255), UDim2.new(0.6, 0, 0.5, 0), UDim2.new(0.2, 0, 0.48, 0))
+local fuseBtn = button(fusionBottom, "FUSE 2!", Color3.fromRGB(170, 60, 255), UDim2.new(0.46, 0, 0.5, 0), UDim2.new(0.02, 0, 0.48, 0))
+local evolveBtn = button(fusionBottom, "EVOLVE 5! 💎", Color3.fromRGB(230, 150, 30), UDim2.new(0.46, 0, 0.5, 0), UDim2.new(0.52, 0, 0.48, 0))
 local LEVEL_NAMES = { "Normal", "Silver", "Golden", "Diamond", "Rainbow", "Cosmic", "Rainbow Cosmic" }
 
 local selected = {}
@@ -1306,11 +1658,11 @@ end
 
 local function updateFusionPreview()
 	if #selected < 2 then
-		fusionPreview.Text = "Pick 2 of the same monster (" .. #selected .. "/2)"
+		fusionPreview.Text = "Fuse: pick 2 the same (" .. #selected .. "/2).  Evolve: pick 1 (needs 5)"
 		return
 	end
 	local a, b = selected[1], selected[2]
-	if a.Id ~= b.Id or a.Variant ~= b.Variant then
+	if a.Id ~= b.Id or a.Variant ~= b.Variant or a.Elder ~= b.Elder then
 		fusionPreview.Text = "They must be the SAME monster and level!"
 	elseif a.Variant >= #LEVEL_NAMES then
 		fusionPreview.Text = "Already max level!"
@@ -1367,6 +1719,16 @@ fuseBtn.Activated:Connect(function()
 	task.wait(0.3)
 	refreshFusion()
 end)
+evolveBtn.Activated:Connect(function()
+	if #selected ~= 1 then
+		showMessage("Pick 1 monster - you need 5 of it to EVOLVE!")
+		return
+	end
+	local _, msg = requestRemote:InvokeServer("Evolve", selected[1].Slot)
+	showMessage(msg, Color3.fromRGB(255, 200, 80))
+	task.wait(0.3)
+	refreshFusion()
+end)
 
 ----------------------------------------------------------------------
 -- REBIRTH
@@ -1414,6 +1776,39 @@ local function refreshRebirth()
 	})
 end
 
+----------------------------------------------------------------------
+-- DAILY QUESTS
+----------------------------------------------------------------------
+local questPanel = makeCardPanel("DAILY QUESTS", { Color3.fromRGB(60, 200, 255), Color3.fromRGB(40, 90, 220) })
+
+local function refreshQuests()
+	local info = getInfo()
+	questPanel.Clear()
+	if not info then
+		return
+	end
+	for i, q in ipairs(info.Quests) do
+		local done = q.Progress >= q.Goal
+		questPanel.Card({
+			Title = "QUEST " .. i, Tag = q.Claimed and "Claimed!" or (done and "DONE!" or "New quests every day"),
+			Colors = q.Claimed and TIER_COLORS.Common or (done and TIER_COLORS.Legendary or TIER_COLORS.Rare),
+			Lines = { q.Text, "", "Progress: " .. fmt(q.Progress) .. " / " .. fmt(q.Goal) },
+			Badge = "💎 " .. q.Gems .. "  +" .. q.XP .. " XP", BadgeColor = Color3.fromRGB(40, 160, 220),
+			Button = q.Claimed and "CLAIMED" or (done and "CLAIM!" or (math.floor(q.Progress / q.Goal * 100) .. "%")),
+			ButtonColor = (done and not q.Claimed) and BUY_GREEN or DONE_GRAY,
+			OnClick = function()
+				local _, msg = requestRemote:InvokeServer("ClaimQuest", i)
+				showMessage(msg, Color3.fromRGB(110, 230, 255))
+				refreshQuests()
+			end,
+		})
+	end
+	questPanel.Card({
+		Title = "LEVEL " .. info.Level, Tag = fmt(info.XP) .. " / " .. fmt(info.XPNeed) .. " XP", Colors = TIER_COLORS.Epic, Icon = "⭐",
+		Badge = "Damage " .. fmt(info.Damage), Info = "Bosses beaten: " .. info.BossKills, Button = "OK", ButtonColor = DONE_GRAY,
+	})
+end
+
 panelRemote.OnClientEvent:Connect(function(name)
 	if name == "Fusion" then
 		openPanel(fusionPanel, refreshFusion)
@@ -1425,19 +1820,20 @@ end)
 ----------------------------------------------------------------------
 local menu = Instance.new("Frame")
 menu.BackgroundTransparency = 1
-menu.Size = UDim2.new(0, 140, 0, 384)
-menu.Position = UDim2.new(1, -150, 0.5, -180)
+menu.Size = UDim2.new(0, 140, 0, 438)
+menu.Position = UDim2.new(1, -150, 0.5, -210)
 menu.Parent = gui
 local menuItems = {
 	{ "SHOP", Color3.fromRGB(40, 170, 80), shopPanel, refreshShop },
 	{ "UPGRADES", Color3.fromRGB(70, 120, 220), upgradePanel, refreshUpgrades },
 	{ "AURAS", Color3.fromRGB(220, 90, 220), auraPanel, refreshAuras },
+	{ "QUESTS", Color3.fromRGB(40, 150, 230), questPanel, refreshQuests },
 	{ "DAILY", Color3.fromRGB(230, 160, 30), dailyPanel, refreshDaily },
 	{ "INDEX", Color3.fromRGB(150, 70, 220), indexPanel, refreshIndex },
 	{ "REBIRTH", Color3.fromRGB(255, 150, 30), rebirthPanel, refreshRebirth },
 }
 for i, item in ipairs(menuItems) do
-	local b = button(menu, item[1], item[2], UDim2.new(1, 0, 0, 54), UDim2.new(0, 0, 0, (i - 1) * 64))
+	local b = button(menu, item[1], item[2], UDim2.new(1, 0, 0, 54), UDim2.new(0, 0, 0, (i - 1) * 62))
 	b.Activated:Connect(function()
 		if item[3].Frame.Visible then
 			item[3].Frame.Visible = false
@@ -1670,4 +2066,4 @@ task.delay(2, function()
 	showMessage("Welcome to MOG MONSTERS! Train at your MOG STONE, then win MOG BATTLES and lead monsters home!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v7 started OK!")
+print("MOG MONSTERS client v8 started OK!")
