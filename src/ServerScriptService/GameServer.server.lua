@@ -203,6 +203,18 @@ addLightingEffect("Atmosphere", { Density = 0.2, Haze = 0.3, Color = Color3.from
 addLightingEffect("BloomEffect", { Intensity = 0.4, Size = 20, Threshold = 1.8 })
 addLightingEffect("ColorCorrectionEffect", { Saturation = 0.3, Contrast = 0.08, Brightness = 0.03 })
 addLightingEffect("SunRaysEffect", { Intensity = 0.04, Spread = 0.6 })
+addLightingEffect("DepthOfFieldEffect", { FarIntensity = 0.12, FocusDistance = 80, InFocusRadius = 120, NearIntensity = 0 })
+Lighting.GlobalShadows = true
+Lighting.ShadowSoftness = 0.25
+Lighting.EnvironmentDiffuseScale = 1
+Lighting.EnvironmentSpecularScale = 1
+pcall(function()
+	if not Lighting:FindFirstChildOfClass("Sky") then
+		local sky = Instance.new("Sky")
+		sky.SunAngularSize = 14
+		sky.Parent = Lighting
+	end
+end)
 
 for key, value in pairs({
 	DoubleMoneyPassId = CONFIG.DOUBLE_MONEY_PASS_ID,
@@ -400,7 +412,18 @@ local WALL_COLOR = Color3.fromRGB(245, 235, 215)
 local GRASS = Color3.fromRGB(120, 215, 95)
 
 -- Ground, hub and walls around the whole map
-block(Vector3.new(MAP_X2 - MAP_X1, 2, MAP_Z * 2), CFrame.new((MAP_X1 + MAP_X2) / 2, -1, 0), GRASS, Enum.Material.Grass)
+block(Vector3.new(MAP_X2 - MAP_X1, 2, MAP_Z * 2), CFrame.new((MAP_X1 + MAP_X2) / 2, -1.5, 0), GRASS, Enum.Material.Grass) -- backup floor
+-- real terrain grass (looks much better) + soft clouds
+pcall(function()
+	local terrain = workspace.Terrain
+	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(115, 205, 85))
+	terrain:FillBlock(CFrame.new((MAP_X1 + MAP_X2) / 2, -2, 0), Vector3.new(MAP_X2 - MAP_X1, 4, MAP_Z * 2), Enum.Material.Grass)
+	local clouds = terrain:FindFirstChildOfClass("Clouds") or Instance.new("Clouds")
+	clouds.Cover = 0.55
+	clouds.Density = 0.6
+	clouds.Color = Color3.fromRGB(255, 255, 255)
+	clouds.Parent = terrain
+end)
 block(Vector3.new(500, 0.2, 100), CFrame.new(-250, 0.1, 0), Color3.fromRGB(250, 238, 215), Enum.Material.Pavement)
 block(Vector3.new(ROAD_X0 + 2, 0.3, ROAD_W), CFrame.new(ROAD_X0 / 2, 0.15, 0), Color3.fromRGB(250, 238, 215), Enum.Material.Pavement)
 local function wall(x1, z1, x2, z2, h)
@@ -906,6 +929,25 @@ local function buildBody(def, variant)
 	local function at(x, y, z)
 		return CFrame.new(x, y, z)
 	end
+	-- makes a body part move: the client swings it around "pivot" (walking legs,
+	-- swinging arms, flapping wings, wagging tails)
+	local function limb(p, kind, phase, pivot, amp)
+		local wc = p:FindFirstChildOfClass("WeldConstraint")
+		if wc then
+			wc:Destroy()
+		end
+		local w = Instance.new("Weld")
+		w.Name = "LimbWeld"
+		w.Part0 = root
+		w.Part1 = p
+		w.C0 = p.CFrame -- the root sits at (0,0,0) while we build, so this is the offset
+		w.Parent = p
+		p:SetAttribute("Limb", kind)
+		p:SetAttribute("Phase", phase)
+		p:SetAttribute("Pivot", pivot)
+		p:SetAttribute("Amp", amp)
+		return p
+	end
 	local function eyes(x, y, z, size, glow, pupil)
 		for _, sx in ipairs({ -1, 1 }) do
 			if glow then
@@ -939,27 +981,29 @@ local function buildBody(def, variant)
 		add(V(1.05 * u, 0.6 * u, 0.72 * u), at(0, -0.8 * u, 0), "pants", "egg") -- hips
 		-- legs
 		for _, sx in ipairs({ -1, 1 }) do
-			add(V(0.44 * u, 1.0 * u, 0.44 * u), at(sx * 0.28 * u, -1.35 * u, 0), "pants", "cyl")
-			add(V(0.48 * u, 0.4 * u, 0.48 * u), at(sx * 0.28 * u, -1.8 * u, 0), "pants", "egg") -- knee
-			add(V(0.38 * u, 0.9 * u, 0.38 * u), at(sx * 0.28 * u, -2.2 * u, 0), barefoot and "skin" or "pants", "cyl")
-			add(V(0.44 * u, 0.28 * u, 0.8 * u), at(sx * 0.28 * u, -2.7 * u, -0.17 * u), barefoot and "skin" or "shoes", "egg")
+			local ph, hip = sx < 0 and 0 or 1, V(sx * 0.28 * u, -0.85 * u, 0)
+			limb(add(V(0.44 * u, 1.0 * u, 0.44 * u), at(sx * 0.28 * u, -1.35 * u, 0), "pants", "cyl"), "walk", ph, hip, 0.55)
+			limb(add(V(0.48 * u, 0.4 * u, 0.48 * u), at(sx * 0.28 * u, -1.8 * u, 0), "pants", "egg"), "walk", ph, hip, 0.55) -- knee
+			limb(add(V(0.38 * u, 0.9 * u, 0.38 * u), at(sx * 0.28 * u, -2.2 * u, 0), barefoot and "skin" or "pants", "cyl"), "walk", ph, hip, 0.55)
+			limb(add(V(0.44 * u, 0.28 * u, 0.8 * u), at(sx * 0.28 * u, -2.7 * u, -0.17 * u), barefoot and "skin" or "shoes", "egg"), "walk", ph, hip, 0.55)
 		end
 		foot = 2.82 * u
 		-- arms
 		local armLen = (st == "bigfoot" or st == "troll") and 1.15 or 1
 		for _, sx in ipairs({ -1, 1 }) do
 			add(V(0.46 * u, 0.46 * u, 0.46 * u), at(sx * 0.68 * u, 0.55 * u, 0), "shirt", "ball")
+			local ph, shoulder = sx < 0 and 1 or 0, V(sx * 0.7 * u, 0.5 * u, 0)
 			if st == "zombie" then
-				add(V(0.34 * u, 0.85 * u, 0.34 * u), at(sx * 0.66 * u, 0.5 * u, -0.45 * u) * CFrame.Angles(DEG(-90), 0, 0), "shirt", "cyl")
-				add(V(0.3 * u, 0.8 * u, 0.3 * u), at(sx * 0.66 * u, 0.5 * u, -1.22 * u) * CFrame.Angles(DEG(-90), 0, 0), "skin", "cyl")
-				add(V(0.32 * u, 0.3 * u, 0.42 * u), at(sx * 0.66 * u, 0.48 * u, -1.72 * u), "skin", "egg")
+				limb(add(V(0.34 * u, 0.85 * u, 0.34 * u), at(sx * 0.66 * u, 0.5 * u, -0.45 * u) * CFrame.Angles(DEG(-90), 0, 0), "shirt", "cyl"), "walk", ph, shoulder, 0.15)
+				limb(add(V(0.3 * u, 0.8 * u, 0.3 * u), at(sx * 0.66 * u, 0.5 * u, -1.22 * u) * CFrame.Angles(DEG(-90), 0, 0), "skin", "cyl"), "walk", ph, shoulder, 0.15)
+				limb(add(V(0.32 * u, 0.3 * u, 0.42 * u), at(sx * 0.66 * u, 0.48 * u, -1.72 * u), "skin", "egg"), "walk", ph, shoulder, 0.15)
 			else
-				add(V(0.34 * u, 0.85 * u * armLen, 0.34 * u), at(sx * 0.76 * u, 0.05 * u, 0) * CFrame.Angles(0, 0, sx * DEG(8)), "shirt", "cyl")
-				add(V(0.3 * u, 0.8 * u * armLen, 0.3 * u), at(sx * 0.82 * u, -0.75 * u * armLen, 0), (st == "vampire") and "shirt" or "skin", "cyl")
-				local hand = add(V(0.32 * u, 0.4 * u, 0.3 * u), at(sx * 0.84 * u, -1.2 * u * armLen, 0), "skin", "egg")
+				limb(add(V(0.34 * u, 0.85 * u * armLen, 0.34 * u), at(sx * 0.76 * u, 0.05 * u, 0) * CFrame.Angles(0, 0, sx * DEG(8)), "shirt", "cyl"), "walk", ph, shoulder, 0.45)
+				limb(add(V(0.3 * u, 0.8 * u * armLen, 0.3 * u), at(sx * 0.82 * u, -0.75 * u * armLen, 0), (st == "vampire") and "shirt" or "skin", "cyl"), "walk", ph, shoulder, 0.45)
+				local hand = limb(add(V(0.32 * u, 0.4 * u, 0.3 * u), at(sx * 0.84 * u, -1.2 * u * armLen, 0), "skin", "egg"), "walk", ph, shoulder, 0.45)
 				if st == "werewolf" or st == "troll" or st == "bigfoot" then
 					for i = -1, 1 do
-						add(V(0.06 * u, 0.22 * u, 0.06 * u), at(sx * 0.84 * u + i * 0.08 * u, -1.45 * u * armLen, -0.08 * u) * CFrame.Angles(DEG(-20), 0, 0), st == "werewolf" and white or "accent", "cyl")
+						limb(add(V(0.06 * u, 0.22 * u, 0.06 * u), at(sx * 0.84 * u + i * 0.08 * u, -1.45 * u * armLen, -0.08 * u) * CFrame.Angles(DEG(-20), 0, 0), st == "werewolf" and white or "accent", "cyl"), "walk", ph, shoulder, 0.45)
 					end
 				end
 				hand.Name = "Hand"
@@ -985,7 +1029,8 @@ local function buildBody(def, variant)
 				add(V(0.04 * u, 0.6 * u, 0.04 * u), at(sx * 0.15 * u, hy + 0.6 * u, hz - 0.1 * u) * CFrame.Angles(DEG(-20), 0, -sx * DEG(25)), "hair", "cyl") -- antennae
 				local wing = add(V(0.08 * u, 2.4 * u, 1.7 * u), at(sx * 1.05 * u, 0.5 * u, 0.5 * u) * CFrame.Angles(0, sx * DEG(-20), -sx * DEG(30)), "hair", "egg")
 				wing.Name = "Wing"
-				add(V(0.1 * u, 0.5 * u, 0.5 * u), at(sx * 1.35 * u, 0.9 * u, 0.62 * u), "accent", "egg", Enum.Material.Neon)
+				limb(wing, "flap", sx < 0 and 0 or 1, V(sx * 0.4 * u, 0.5 * u, 0.4 * u), 0.35)
+				limb(add(V(0.1 * u, 0.5 * u, 0.5 * u), at(sx * 1.35 * u, 0.9 * u, 0.62 * u), "accent", "egg", Enum.Material.Neon), "flap", sx < 0 and 0 or 1, V(sx * 0.4 * u, 0.5 * u, 0.4 * u), 0.35)
 			end
 		else
 			local pupil = (st == "vampire") and def.Accent or (st == "zombie" and rgb(200, 200, 120) or nil)
@@ -1049,10 +1094,11 @@ local function buildBody(def, variant)
 		local legZ = bodyLen * 0.34 * u
 		for _, sx in ipairs({ -1, 1 }) do
 			for _, sz in ipairs({ -1, 1 }) do
+				local ph, hip = (sx * sz > 0) and 0 or 1, V(sx * legX, -0.2 * u, sz * legZ)
 				add(V(0.48 * u, 0.7 * u, 0.55 * u), at(sx * legX, -0.3 * u, sz * legZ), "body", "egg") -- thigh
-				add(V(0.24 * u, legLen * u, 0.24 * u), at(sx * legX, -0.4 * u - legLen * 0.5 * u, sz * legZ), "body", "cyl")
-				add(V(0.2 * u, legLen * u, 0.2 * u), at(sx * legX, -0.4 * u - legLen * 1.4 * u, sz * legZ), "body", "cyl")
-				add(V(0.3 * u, 0.2 * u, horse and 0.32 * u or 0.4 * u), at(sx * legX, -0.4 * u - legLen * 1.9 * u, sz * legZ - 0.05 * u), horse and black or "body", "egg")
+				limb(add(V(0.24 * u, legLen * u, 0.24 * u), at(sx * legX, -0.4 * u - legLen * 0.5 * u, sz * legZ), "body", "cyl"), "walk", ph, hip, 0.45)
+				limb(add(V(0.2 * u, legLen * u, 0.2 * u), at(sx * legX, -0.4 * u - legLen * 1.4 * u, sz * legZ), "body", "cyl"), "walk", ph, hip, 0.45)
+				limb(add(V(0.3 * u, 0.2 * u, horse and 0.32 * u or 0.4 * u), at(sx * legX, -0.4 * u - legLen * 1.9 * u, sz * legZ - 0.05 * u), horse and black or "body", "egg"), "walk", ph, hip, 0.45)
 			end
 		end
 		foot = 0.4 * u + legLen * 1.9 * u + 0.1 * u
@@ -1069,7 +1115,7 @@ local function buildBody(def, variant)
 			end
 			eyes(0.24 * u, hy + 0.12 * u, hz - 0.2 * u, 0.14 * u, nil, black)
 			add(V(0.18 * u, 1.6 * u, 0.5 * u), at(0, 1.15 * u, -1.0 * u) * CFrame.Angles(DEG(-30), 0, 0), "accent", "egg") -- mane
-			add(V(0.32 * u, 1.4 * u, 0.32 * u), at(0, -0.35 * u, bodyLen * 0.55 * u) * CFrame.Angles(DEG(25), 0, 0), "accent", "egg") -- tail
+			limb(add(V(0.32 * u, 1.4 * u, 0.32 * u), at(0, -0.35 * u, bodyLen * 0.55 * u) * CFrame.Angles(DEG(25), 0, 0), "accent", "egg"), "tail", 0, V(0, 0.2 * u, bodyLen * 0.48 * u), 0.3) -- tail
 		else
 			add(V(0.5 * u, 0.7 * u, 0.55 * u), at(0, 0.35 * u, -0.75 * u * bodyLen / 1.7) * CFrame.Angles(DEG(-30), 0, 0), "body", "egg")
 			hy, hz = 0.72 * u, -1.05 * u * bodyLen / 1.7
@@ -1085,10 +1131,12 @@ local function buildBody(def, variant)
 					local a = DEG(-60 + (i - 1) * 15)
 					local tail = add(V(0.32 * u, 1.5 * u, 0.32 * u), at(0, 0, bodyLen * 0.5 * u) * CFrame.Angles(0, 0, a) * CFrame.Angles(DEG(45), 0, 0) * at(0, 0.75 * u, 0), "body", "egg")
 					tail.Name = "Tail"
-					add(V(0.26 * u, 0.4 * u, 0.26 * u), tail.CFrame * at(0, 0.6 * u, 0), "accent", "egg", Enum.Material.Neon)
+					local tip = add(V(0.26 * u, 0.4 * u, 0.26 * u), tail.CFrame * at(0, 0.6 * u, 0), "accent", "egg", Enum.Material.Neon)
+					limb(tail, "tail", i / 9, V(0, 0, bodyLen * 0.5 * u), 0.25)
+					limb(tip, "tail", i / 9, V(0, 0, bodyLen * 0.5 * u), 0.25)
 				end
 			else
-				add(V(0.16 * u, 0.9 * u, 0.16 * u), at(0, 0.25 * u, bodyLen * 0.55 * u) * CFrame.Angles(DEG(45), 0, 0), "body", "egg") -- tail
+				limb(add(V(0.16 * u, 0.9 * u, 0.16 * u), at(0, 0.25 * u, bodyLen * 0.55 * u) * CFrame.Angles(DEG(45), 0, 0), "body", "egg"), "tail", 0, V(0, 0, bodyLen * 0.48 * u), 0.5) -- tail
 			end
 		end
 
@@ -1142,17 +1190,20 @@ local function buildBody(def, variant)
 		add(V(0.9 * u, 0.6 * u, 1.6 * u), at(0, -0.25 * u, 0), "accent", "egg") -- belly
 		for _, sx in ipairs({ -1, 1 }) do
 			for _, sz in ipairs({ -1, 1 }) do
+				local ph, hip = (sx * sz > 0) and 0 or 1, V(sx * 0.48 * u, -0.45 * u, sz * 0.6 * u)
 				add(V(0.5 * u, 0.75 * u, 0.6 * u), at(sx * 0.45 * u, -0.35 * u, sz * 0.6 * u), "body", "egg")
-				add(V(0.3 * u, 0.7 * u, 0.3 * u), at(sx * 0.5 * u, -0.9 * u, sz * 0.6 * u), "body", "cyl")
-				add(V(0.4 * u, 0.2 * u, 0.5 * u), at(sx * 0.5 * u, -1.25 * u, sz * 0.6 * u - 0.1 * u), "body", "egg")
+				limb(add(V(0.3 * u, 0.7 * u, 0.3 * u), at(sx * 0.5 * u, -0.9 * u, sz * 0.6 * u), "body", "cyl"), "walk", ph, hip, 0.4)
+				limb(add(V(0.4 * u, 0.2 * u, 0.5 * u), at(sx * 0.5 * u, -1.25 * u, sz * 0.6 * u - 0.1 * u), "body", "egg"), "walk", ph, hip, 0.4)
 				for i = -1, 1 do
-					add(V(0.05 * u, 0.05 * u, 0.2 * u), at(sx * 0.5 * u + i * 0.12 * u, -1.3 * u, sz * 0.6 * u - 0.35 * u), white, "egg") -- claws
+					limb(add(V(0.05 * u, 0.05 * u, 0.2 * u), at(sx * 0.5 * u + i * 0.12 * u, -1.3 * u, sz * 0.6 * u - 0.35 * u), white, "egg"), "walk", ph, hip, 0.4) -- claws
 				end
 			end
 			-- wings: arm bone + big membrane
-			add(V(0.12 * u, 1.8 * u, 0.12 * u), at(sx * 1.0 * u, 0.9 * u, 0.1 * u) * CFrame.Angles(DEG(-15), 0, -sx * DEG(55)), "body", "cyl")
+			local wingRoot = V(sx * 0.45 * u, 0.4 * u, 0.1 * u)
+			limb(add(V(0.12 * u, 1.8 * u, 0.12 * u), at(sx * 1.0 * u, 0.9 * u, 0.1 * u) * CFrame.Angles(DEG(-15), 0, -sx * DEG(55)), "body", "cyl"), "flap", sx < 0 and 0 or 1, wingRoot, 0.3)
 			local wing = add(V(0.06 * u, 2.4 * u, 2.2 * u), at(sx * 1.35 * u, 0.85 * u, 0.55 * u) * CFrame.Angles(DEG(-10), 0, -sx * DEG(55)), "accent", "egg", nil, 0.1)
 			wing.Name = "Wing"
+			limb(wing, "flap", sx < 0 and 0 or 1, wingRoot, 0.3)
 		end
 		-- neck and head
 		for i = 1, 3 do
@@ -1193,9 +1244,10 @@ local function buildBody(def, variant)
 		eyes(s * 0.14, s * 0.5, -s * 0.56, s * 0.13)
 		add(V(s * 0.08, s * 0.4, s * 0.3), at(0, s * 0.75, -s * 0.3), "accent", "egg", Enum.Material.Neon)
 		for _, sx in ipairs({ -1, 1 }) do
-			add(V(s * 0.12, s * 0.8, s * 1.1), at(sx * s * 0.55, s * 0.2, s * 0.05) * CFrame.Angles(0, 0, sx * 0.6), "accent", "egg")
-			add(V(s * 0.07, s * 0.42, s * 0.07), at(sx * s * 0.15, -s * 0.58, 0), rgb(255, 175, 40), "cyl")
-			add(V(s * 0.18, s * 0.05, s * 0.22), at(sx * s * 0.15, -s * 0.78, -s * 0.06), rgb(255, 175, 40), "egg")
+			limb(add(V(s * 0.12, s * 0.8, s * 1.1), at(sx * s * 0.55, s * 0.2, s * 0.05) * CFrame.Angles(0, 0, sx * 0.6), "accent", "egg"), "flap", sx < 0 and 0 or 1, V(sx * s * 0.35, s * 0.25, 0), 0.4)
+			local ph, hip = sx < 0 and 0 or 1, V(sx * s * 0.15, -s * 0.38, 0)
+			limb(add(V(s * 0.07, s * 0.42, s * 0.07), at(sx * s * 0.15, -s * 0.58, 0), rgb(255, 175, 40), "cyl"), "walk", ph, hip, 0.6)
+			limb(add(V(s * 0.18, s * 0.05, s * 0.22), at(sx * s * 0.15, -s * 0.78, -s * 0.06), rgb(255, 175, 40), "egg"), "walk", ph, hip, 0.6)
 		end
 		for i = -1, 1 do
 			add(V(s * 0.18, s * 0.08, s * 0.9), at(i * s * 0.15, s * 0.1, s * 0.75) * CFrame.Angles(0.35, i * 0.3, 0), "accent", "egg", Enum.Material.Neon)
@@ -1712,8 +1764,13 @@ local function startBattle(m, player)
 	setState(m, "Battle")
 	updateLabel(m)
 	applyMovement(player)
+	local data = sessions[player]
+	local clickMult = 1 + ((data and data.Hammer or 1) - 1) * 0.08
 	battleRemote:FireClient(player, m.Part, {
 		Name = displayName(m.Id, m.Variant),
+		Color = RARITIES[r].Color,
+		ClickPower = 0.07 * clickMult,
+		ClickMult = math.floor(clickMult * 10 + 0.5) / 10,
 		Rarity = r,
 		Type = math.random() < 0.5 and "Clash" or "Timing",
 		Pull = 0.05 + 0.15 * ratio + r * 0.015,
@@ -2606,14 +2663,25 @@ RunService.Heartbeat:Connect(function(dt)
 				local flat = Vector3.new(m.Target.X - pos.X, 0, m.Target.Z - pos.Z)
 				if flat.Magnitude < 1 then
 					m.Target = regionPoint(m.Region, m)
-					m.Pause = 0.5 + math.random() * 3
+					m.Pause = 1 + math.random() * 4
+					m.CurSpeed = 0
 				else
-					local step = flat.Unit * math.min(flat.Magnitude, m.Region.Speed * dt)
+					-- speed up slowly, turn smoothly, take small steps
+					m.CurSpeed = math.min(m.Region.Speed, (m.CurSpeed or 0) + m.Region.Speed * dt * 1.5)
+					local want = flat.Unit
+					local facing = m.Facing or want
+					facing = facing:Lerp(want, math.min(1, dt * 3))
+					if facing.Magnitude < 0.01 then
+						facing = want
+					end
+					facing = facing.Unit
+					m.Facing = facing
+					local step = facing * math.min(flat.Magnitude, m.CurSpeed * dt)
 					m.Walked = m.Walked + step.Magnitude
-					local bob = math.abs(math.sin(m.Walked * 1.6)) * 0.5 + (m.Hover > 0 and math.sin(now * 2) * 0.5 or 0)
+					local bob = m.Hover > 0 and math.sin(now * 2) * 0.6 or math.abs(math.sin(m.Walked * 2.2)) * 0.12
 					local baseY = m.Region.GroundY + m.Foot + m.Hover
 					local newPos = Vector3.new(pos.X + step.X, baseY + bob, pos.Z + step.Z)
-					m.Part.CFrame = CFrame.lookAt(newPos, newPos + Vector3.new(step.X, 0, step.Z))
+					m.Part.CFrame = CFrame.lookAt(newPos, newPos + facing)
 				end
 			end
 		end
@@ -2722,4 +2790,4 @@ task.spawn(function()
 	end
 end)
 
-print("MOG MONSTERS server v5 started OK!")
+print("MOG MONSTERS server v6 started OK!")

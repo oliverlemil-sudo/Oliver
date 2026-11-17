@@ -10,12 +10,15 @@ vind **MOG BATTLES** mod monstre, og bær dem hjem til din indhegning, før noge
    Hvert slag giver MOG. Tryk E igen, eller gå væk, for at stoppe.
 2. **MOG ROAD:** En lang vej med høje mure og 8 zoner. Hver port kræver mere MOG
    (zone 2: 40, zone 3: 200 … zone 8: 100M). Har du for lidt, bliver du skubbet tilbage.
-3. **MOG BATTLE:** Tryk **E** på et monster. Så starter et minispil, som er et af to:
-   - **CLICK!** Klik hurtigt (eller tryk mellemrum), og skub baren helt til højre.
-   - **STOP!** Stop nålen i det grønne felt 3 gange.
+3. **MOG BATTLE:** Tryk **E** på et monster. Nederst på skærmen kommer **dig (dit avatar-billede) mod monsteret**:
+   - **MOG CLASH:** Klik **hvor som helst** på skærmen (eller tryk på skærmen eller mellemrum) og skub baren helt over til monsteret.
+     Din **Power** (fra din hammer) gør hvert klik stærkere.
+   - **MOG STARE:** Klik, når nålen er i det **grønne felt**, 3 gange.
+   - **AUTO MOG**-knappen klikker for dig (4 klik i sekundet). Det er svagere end at klikke selv.
 4. **Bær monsteret hjem.** Andre kan slå dig med deres **hammer**, så du taber det, og så kan de samle det op!
    Man kan **kun** tage monstre ude på vejen. **Ingen kan stjæle fra din indhegning.**
 5. Monstrene **går frit rundt** i din indhegning og tjener penge hvert sekund.
+   De **går rigtigt**: benene går skiftevis, armene svinger, vingerne basker, og halerne svajer.
 
 ## 🔨 Bliv stærkere (UPGRADES og AURAS)
 | Opgradering | Hvad den gør |
@@ -78,8 +81,8 @@ De sjældneste monstre kan **ikke** købes.
 
 Output (fanen **Script** → **Output**) skal sige:
 ```
-MOG MONSTERS server v5 started OK!
-MOG MONSTERS client v5 started OK!
+MOG MONSTERS server v6 started OK!
+MOG MONSTERS client v6 started OK!
 ```
 
 **Tip:** Sæt `START_CASH = 1000000` i CONFIG for at teste hurtigt. Sæt den tilbage til `0`, før du udgiver.

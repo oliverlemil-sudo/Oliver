@@ -284,43 +284,132 @@ player:GetAttributeChangedSignal("Carrying"):Connect(function()
 end)
 
 ----------------------------------------------------------------------
--- MOG BATTLE (mini game)
+-- MOG CLASH (mini game): you vs the monster, click anywhere to push!
 ----------------------------------------------------------------------
-local battleFrame = box(gui, UDim2.new(0, 460, 0, 270), UDim2.new(0.5, -230, 0.5, -40), Color3.fromRGB(35, 25, 55))
+local battleFrame = Instance.new("Frame")
+battleFrame.AnchorPoint = Vector2.new(0.5, 1)
+battleFrame.Position = UDim2.new(0.5, 0, 1, -120)
+battleFrame.Size = UDim2.new(0, 720, 0, 230)
+battleFrame.BackgroundTransparency = 1
 battleFrame.Visible = false
 battleFrame.ZIndex = 10
-local bTitle = label(battleFrame, "", UDim2.new(1, -70, 0, 40), UDim2.new(0, 12, 0, 8))
-bTitle.TextColor3 = Color3.fromRGB(255, 120, 200)
-local bHelp = label(battleFrame, "", UDim2.new(1, -24, 0, 26), UDim2.new(0, 12, 0, 52))
+battleFrame.Parent = gui
+local battleScale = Instance.new("UIScale")
+battleScale.Parent = battleFrame
+local fitBattle = Instance.new("UISizeConstraint")
+fitBattle.MaxSize = Vector2.new(720, 230)
+fitBattle.Parent = battleFrame
+
+local bTitle = label(battleFrame, "MOG CLASH!", UDim2.new(0.6, 0, 0, 48), UDim2.new(0.2, 0, 0, 0))
+bTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+bTitle.TextStrokeTransparency = 0
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Thickness = 3
+titleStroke.Color = Color3.fromRGB(120, 30, 90)
+titleStroke.Parent = bTitle
+
+local function circle(parent, pos, color)
+	local f = Instance.new("Frame")
+	f.Size = UDim2.new(0, 84, 0, 84)
+	f.Position = pos
+	f.BackgroundColor3 = color
+	f.Parent = parent
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(1, 0)
+	c.Parent = f
+	local st = Instance.new("UIStroke")
+	st.Thickness = 4
+	st.Color = Color3.new(1, 1, 1)
+	st.Parent = f
+	return f
+end
+-- you (left)
+local youCircle = circle(battleFrame, UDim2.new(0, 0, 0, 62), Color3.fromRGB(90, 200, 110))
+local youImage = Instance.new("ImageLabel")
+youImage.Size = UDim2.fromScale(1, 1)
+youImage.BackgroundTransparency = 1
+youImage.Parent = youCircle
+local youCorner = Instance.new("UICorner")
+youCorner.CornerRadius = UDim.new(1, 0)
+youCorner.Parent = youImage
+task.spawn(function()
+	local ok, img = pcall(function()
+		return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+	end)
+	if ok and type(img) == "string" then
+		youImage.Image = img
+	end
+end)
+local youName = label(battleFrame, "YOU", UDim2.new(0, 120, 0, 30), UDim2.new(0, -18, 0, 150))
+youName.TextColor3 = Color3.fromRGB(140, 255, 140)
+-- monster (right)
+local monCircle = circle(battleFrame, UDim2.new(1, -84, 0, 62), Color3.fromRGB(200, 60, 70))
+local monIcon = label(monCircle, "👹", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1))
+monIcon.TextStrokeTransparency = 1
+local monName = label(battleFrame, "", UDim2.new(0, 200, 0, 30), UDim2.new(1, -142, 0, 150))
+
+-- the bar
 local bar = Instance.new("Frame")
-bar.Size = UDim2.new(1, -40, 0, 42)
-bar.Position = UDim2.new(0, 20, 0, 90)
-bar.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+bar.Size = UDim2.new(1, -220, 0, 52)
+bar.Position = UDim2.new(0, 110, 0, 78)
+bar.BackgroundColor3 = Color3.fromRGB(235, 70, 70)
 bar.ClipsDescendants = true
 bar.Parent = battleFrame
-corner(bar, 10)
-stroke(bar)
+corner(bar, 14)
+local barStroke = Instance.new("UIStroke")
+barStroke.Thickness = 4
+barStroke.Color = Color3.fromRGB(20, 20, 30)
+barStroke.Parent = bar
+local redGrad = Instance.new("UIGradient")
+redGrad.Color = ColorSequence.new(Color3.fromRGB(255, 120, 90), Color3.fromRGB(200, 30, 50))
+redGrad.Rotation = 90
+redGrad.Parent = bar
 local fill = Instance.new("Frame")
 fill.Size = UDim2.new(0.5, 0, 1, 0)
-fill.BackgroundColor3 = Color3.fromRGB(60, 200, 90)
+fill.BackgroundColor3 = Color3.new(1, 1, 1)
 fill.BorderSizePixel = 0
 fill.Parent = bar
+local greenGrad = Instance.new("UIGradient")
+greenGrad.Color = ColorSequence.new(Color3.fromRGB(170, 255, 120), Color3.fromRGB(50, 190, 80))
+greenGrad.Rotation = 90
+greenGrad.Parent = fill
+local knob = Instance.new("Frame")
+knob.Size = UDim2.new(0, 14, 1, 10)
+knob.AnchorPoint = Vector2.new(0.5, 0.5)
+knob.Position = UDim2.new(0.5, 0, 0.5, 0)
+knob.BackgroundColor3 = Color3.new(1, 1, 1)
+knob.Parent = bar
+corner(knob, 6)
 local greenZone = Instance.new("Frame")
 greenZone.Size = UDim2.new(0.2, 0, 1, 0)
-greenZone.BackgroundColor3 = Color3.fromRGB(60, 220, 90)
+greenZone.BackgroundColor3 = Color3.fromRGB(80, 230, 100)
 greenZone.BorderSizePixel = 0
 greenZone.Parent = bar
 local needle = Instance.new("Frame")
-needle.Size = UDim2.new(0, 6, 1, 0)
+needle.Size = UDim2.new(0, 8, 1, 0)
 needle.BackgroundColor3 = Color3.new(1, 1, 1)
 needle.BorderSizePixel = 0
 needle.Parent = bar
-local bTimer = label(battleFrame, "", UDim2.new(0.5, -20, 0, 26), UDim2.new(0, 20, 0, 142))
-bTimer.TextXAlignment = Enum.TextXAlignment.Left
-local bScore = label(battleFrame, "", UDim2.new(0.5, -20, 0, 26), UDim2.new(0.5, 0, 0, 142))
-bScore.TextXAlignment = Enum.TextXAlignment.Right
-local actBtn = button(battleFrame, "CLICK!", Color3.fromRGB(255, 120, 30), UDim2.new(0.6, 0, 0, 64), UDim2.new(0.2, 0, 1, -80))
-local quitBtn = button(battleFrame, "X", Color3.fromRGB(120, 60, 60), UDim2.new(0, 40, 0, 40), UDim2.new(1, -50, 0, 8))
+
+local bHelp = label(battleFrame, "", UDim2.new(1, -220, 0, 34), UDim2.new(0, 110, 0, 138))
+bHelp.TextStrokeTransparency = 0
+local bPower = label(battleFrame, "", UDim2.new(0, 110, 0, 30), UDim2.new(0, 110, 0, 178))
+bPower.TextColor3 = Color3.fromRGB(140, 255, 140)
+bPower.TextXAlignment = Enum.TextXAlignment.Left
+local bTimer = label(battleFrame, "", UDim2.new(0, 110, 0, 30), UDim2.new(1, -220, 0, 178))
+bTimer.TextXAlignment = Enum.TextXAlignment.Right
+local bScore = label(battleFrame, "", UDim2.new(0, 220, 0, 30), UDim2.new(0.5, -110, 0, 178))
+local quitBtn = button(battleFrame, "X", Color3.fromRGB(150, 60, 60), UDim2.new(0, 36, 0, 36), UDim2.new(1, -36, 0, 4))
+
+-- AUTO MOG toggle (always on screen)
+local autoMog = false
+local autoBtn = button(gui, "AUTO MOG: OFF", Color3.fromRGB(110, 110, 130), UDim2.new(0, 200, 0, 46), UDim2.new(0.5, -100, 1, -64))
+autoBtn.Activated:Connect(function()
+	autoMog = not autoMog
+	autoBtn.Text = autoMog and "AUTO MOG: ON" or "AUTO MOG: OFF"
+	autoBtn.BackgroundColor3 = autoMog and Color3.fromRGB(230, 60, 80) or Color3.fromRGB(110, 110, 130)
+	showMessage(autoMog and "Auto Mog ON: it clicks for you in battles (clicking yourself is stronger!)" or "Auto Mog OFF")
+end)
 
 local battle = nil
 
@@ -330,13 +419,14 @@ local function finishBattle(won)
 		return
 	end
 	b.Done = true
-	actBtn.Text = won and "YOU WIN!" or "LOST..."
+	bTitle.Text = won and "YOU MOGGED IT!" or "IT MOGGED YOU..."
+	bTitle.TextColor3 = won and Color3.fromRGB(140, 255, 140) or Color3.fromRGB(255, 110, 110)
 	if won and b.Elapsed < 2.2 then
 		task.wait(2.2 - b.Elapsed)
 	end
 	local _, msg = requestRemote:InvokeServer("BattleResult", b.Part, won)
 	showMessage(msg or "", won and Color3.fromRGB(110, 255, 110) or Color3.fromRGB(255, 120, 120))
-	task.wait(0.6)
+	task.wait(0.8)
 	if battle == b then
 		battle = nil
 		battleFrame.Visible = false
@@ -349,20 +439,27 @@ local function newGreenZone(b)
 	greenZone.Size = UDim2.new(b.Info.ZoneWidth, 0, 1, 0)
 end
 
-local function battleAction()
+local function pop()
+	battleScale.Scale = 1.04
+	TweenService:Create(battleScale, TweenInfo.new(0.12), { Scale = 1 }):Play()
+end
+
+local function battleAction(strength)
 	local b = battle
 	if not b or b.Done then
 		return
 	end
 	if b.Info.Type == "Clash" then
-		b.Progress = b.Progress + 0.07
+		b.Progress = b.Progress + (b.Info.ClickPower or 0.07) * (strength or 1)
+		pop()
 	else
 		if b.Needle >= b.ZoneStart and b.Needle <= b.ZoneStart + b.Info.ZoneWidth then
 			b.Hits = b.Hits + 1
 			greenZone.BackgroundColor3 = Color3.new(1, 1, 1)
 			task.delay(0.1, function()
-				greenZone.BackgroundColor3 = Color3.fromRGB(60, 220, 90)
+				greenZone.BackgroundColor3 = Color3.fromRGB(80, 230, 100)
 			end)
+			pop()
 			if b.Hits >= 3 then
 				task.spawn(finishBattle, true)
 				return
@@ -381,31 +478,40 @@ battleRemote.OnClientEvent:Connect(function(part, info)
 	if type(info) ~= "table" then
 		return
 	end
-	battle = { Part = part, Info = info, Time = info.Time or 12, Elapsed = 0, Progress = 0.5, Needle = 0, Dir = 1, Hits = 0, Misses = 0 }
-	bTitle.Text = "MOG BATTLE vs " .. tostring(info.Name)
+	battle = { Part = part, Info = info, Time = info.Time or 12, Elapsed = 0, Progress = 0.5, Needle = 0, Dir = 1, Hits = 0, Misses = 0, AutoTimer = 0 }
+	bTitle.Text = info.Type == "Clash" and "MOG CLASH!" or "MOG STARE!"
+	bTitle.TextColor3 = Color3.fromRGB(255, 225, 70)
+	monName.Text = tostring(info.Name)
+	monName.TextColor3 = typeof(info.Color) == "Color3" and info.Color or Color3.new(1, 1, 1)
+	monCircle.BackgroundColor3 = typeof(info.Color) == "Color3" and info.Color:Lerp(Color3.new(0, 0, 0), 0.25) or Color3.fromRGB(200, 60, 70)
+	bPower.Text = "Power x" .. tostring(info.ClickMult or 1)
 	local clash = info.Type == "Clash"
 	fill.Visible = clash
+	knob.Visible = clash
 	greenZone.Visible = not clash
 	needle.Visible = not clash
-	bar.BackgroundColor3 = clash and Color3.fromRGB(200, 50, 60) or Color3.fromRGB(60, 60, 80)
+	bar.BackgroundColor3 = clash and Color3.fromRGB(235, 70, 70) or Color3.fromRGB(60, 60, 80)
+	redGrad.Enabled = clash
 	if clash then
-		bHelp.Text = "CLICK FAST! Push the bar all the way to the right!"
-		actBtn.Text = "CLICK!"
+		bHelp.Text = "CLICK / TAP / SPACE as fast as you can!"
 	else
-		bHelp.Text = "Hit STOP when the needle is in the GREEN zone (3 times)!"
-		actBtn.Text = "STOP!"
+		bHelp.Text = "CLICK when the needle is in the GREEN zone! (3 times)"
 		newGreenZone(battle)
 	end
 	battleFrame.Visible = true
 end)
 
-actBtn.Activated:Connect(battleAction)
 quitBtn.Activated:Connect(function()
 	task.spawn(finishBattle, false)
 end)
+-- click / tap ANYWHERE on the screen, or press space
 UserInputService.InputBegan:Connect(function(input, processed)
-	if not processed and input.KeyCode == Enum.KeyCode.Space and battle then
-		battleAction()
+	if not battle then
+		return
+	end
+	local t = input.UserInputType
+	if t == Enum.UserInputType.MouseButton1 or t == Enum.UserInputType.Touch or (not processed and input.KeyCode == Enum.KeyCode.Space) then
+		battleAction(1)
 	end
 end)
 
@@ -416,11 +522,20 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 	b.Elapsed = b.Elapsed + dt
 	local left = b.Time - b.Elapsed
-	bTimer.Text = string.format("Time: %.1f", math.max(0, left))
+	bTimer.Text = string.format("%.1fs", math.max(0, left))
 	if b.Info.Type == "Clash" then
+		if autoMog then
+			b.AutoTimer = b.AutoTimer + dt
+			if b.AutoTimer >= 0.25 then -- auto mog clicks 4 times per second
+				b.AutoTimer = 0
+				battleAction(1)
+			end
+		end
 		b.Progress = b.Progress - (b.Info.Pull or 0.3) * dt
-		fill.Size = UDim2.new(math.clamp(b.Progress, 0, 1), 0, 1, 0)
-		bScore.Text = math.floor(math.clamp(b.Progress, 0, 1) * 100) .. "%"
+		local p = math.clamp(b.Progress, 0, 1)
+		fill.Size = UDim2.new(p, 0, 1, 0)
+		knob.Position = UDim2.new(p, 0, 0.5, 0)
+		bScore.Text = math.floor(p * 100) .. "%"
 		if b.Progress >= 1 then
 			task.spawn(finishBattle, true)
 		elseif b.Progress <= 0 then
@@ -433,7 +548,17 @@ RunService.RenderStepped:Connect(function(dt)
 		elseif b.Needle <= 0 then
 			b.Needle, b.Dir = 0, 1
 		end
-		needle.Position = UDim2.new(b.Needle, -3, 0, 0)
+		needle.Position = UDim2.new(b.Needle, -4, 0, 0)
+		if autoMog then
+			local mid = b.ZoneStart + b.Info.ZoneWidth / 2
+			if math.abs(b.Needle - mid) < b.Info.ZoneWidth * 0.2 then
+				b.AutoTimer = b.AutoTimer + dt
+				if b.AutoTimer > 0.05 then
+					b.AutoTimer = -0.5
+					battleAction(1)
+				end
+			end
+		end
 		bScore.Text = "Hits " .. b.Hits .. "/3   Misses " .. b.Misses .. "/3"
 	end
 	if left <= 0 then
@@ -1179,14 +1304,47 @@ local function updateMonster(part)
 end
 
 local rainbowParts = {}
+local animated = {}
+
+-- find the moving body parts (legs, arms, wings, tails)
+local function collectLimbs(part)
+	local limbs = {}
+	for _, d in ipairs(part:GetDescendants()) do
+		if d:IsA("Weld") and d.Name == "LimbWeld" and d.Part1 then
+			local p = d.Part1
+			table.insert(limbs, {
+				Weld = d, Base = d.C0, Kind = p:GetAttribute("Limb") or "walk",
+				Phase = p:GetAttribute("Phase") or 0, Pivot = p:GetAttribute("Pivot") or Vector3.new(),
+				Amp = p:GetAttribute("Amp") or 0.4,
+			})
+		end
+	end
+	if #limbs > 0 then
+		animated[part] = {
+			Limbs = limbs, Last = part.Position, Phase = 0, Intensity = 0,
+			Stride = 4 / math.max(part.Size.Magnitude, 1),
+		}
+	end
+end
 
 local function trackMonster(part)
 	updateMonster(part)
+	collectLimbs(part)
 	part.AttributeChanged:Connect(function()
 		updateMonster(part)
 	end)
+	local pending = false
 	part.DescendantAdded:Connect(function()
 		updateMonster(part)
+		if not pending then
+			pending = true
+			task.delay(0.2, function()
+				pending = false
+				if part.Parent then
+					collectLimbs(part)
+				end
+			end)
+		end
 	end)
 	local v = part:GetAttribute("Variant")
 	if v == "Rainbow" or v == "Rainbow Cosmic" then
@@ -1208,6 +1366,46 @@ end
 CollectionService:GetInstanceAddedSignal("Monster"):Connect(trackMonster)
 CollectionService:GetInstanceRemovedSignal("Monster"):Connect(function(part)
 	rainbowParts[part] = nil
+	animated[part] = nil
+end)
+
+-- walking animation: legs and arms swing while the monster moves,
+-- wings flap and tails wag (only for monsters close to you)
+RunService.RenderStepped:Connect(function(dt)
+	local camPos = camera.CFrame.Position
+	local t = os.clock()
+	for part, a in pairs(animated) do
+		if not part.Parent then
+			animated[part] = nil
+		else
+			local pos = part.Position
+			if (pos - camPos).Magnitude < 200 then
+				local moved = Vector3.new(pos.X - a.Last.X, 0, pos.Z - a.Last.Z).Magnitude
+				a.Last = pos
+				local speed = dt > 0 and moved / dt or 0
+				if speed > 40 then
+					speed, moved = 0, 0 -- teleported / flying home
+				end
+				local target = math.clamp(speed / 3, 0, 1)
+				a.Intensity = a.Intensity + (target - a.Intensity) * math.min(1, dt * 6)
+				a.Phase = a.Phase + moved * a.Stride * 2.5
+				for _, l in ipairs(a.Limbs) do
+					local rot
+					if l.Kind == "walk" then
+						rot = CFrame.Angles(math.sin(a.Phase + l.Phase * math.pi) * l.Amp * a.Intensity, 0, 0)
+					elseif l.Kind == "flap" then
+						local side = l.Phase == 0 and 1 or -1
+						rot = CFrame.Angles(0, 0, math.sin(t * (2.5 + a.Intensity * 5)) * l.Amp * side)
+					else
+						rot = CFrame.Angles(0, math.sin(t * (2 + a.Intensity * 4) + l.Phase * 6) * l.Amp, 0)
+					end
+					l.Weld.C0 = CFrame.new(l.Pivot) * rot * CFrame.new(-l.Pivot) * l.Base
+				end
+			else
+				a.Last = pos
+			end
+		end
+	end
 end)
 local function refreshAllMonsters()
 	for _, part in ipairs(CollectionService:GetTagged("Monster")) do
@@ -1232,4 +1430,4 @@ task.delay(2, function()
 	showMessage("Welcome to MOG MONSTERS! Train at your MOG STONE, then win MOG BATTLES on the MOG ROAD!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v5 started OK!")
+print("MOG MONSTERS client v6 started OK!")

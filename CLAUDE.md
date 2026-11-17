@@ -4,14 +4,18 @@ Ejeren hedder Oliver, taler **dansk** og er nybegynder i Roblox Studio (Mac → 
 Forklar alt enkelt og trin for trin, på dansk. Teksten **inde i spillet** er på engelsk.
 Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og sender en færdig `.rbxlx`-fil.
 
-## Spillet (Olivers egen idé, v5)
+## Spillet (Olivers egen idé, v6)
 "👹 MOG MONSTERS". Tidligere versioner (Floor is Lava, Egg Heist, Power Empire) ligger i git-historikken.
 - **MOG** er en stat man **træner**: MOG STONE ved hver base (prompt "Train") → hammeren slår automatisk.
   MOG pr. slag = HAMMERS[level].Power × aura × (1+rebirths) × 2x-pass. Slag-interval = SWINGS[level].Time.
 - **AURAS** (købes for cash) ganger MOG-træning; vises som partikler på figuren.
 - **MOG ROAD** (x 30 → 1150): 8 zoner à 140×110 med glatte lyse mure (ingen fakler/pynt – Oliver ville have rene mure).
   Port kræver RARITIES[k].Mog; for lidt MOG → skubbes tilbage.
-- **MOG BATTLE** minispil (Clash = klik, Timing = stop nål) → vinder bærer monsteret hjem.
+- **MOG BATTLE** minispil nederst på skærmen: avatar mod monster. Clash = klik hvor som helst (ClickPower fra hammer-level),
+  Timing = stop nål. AUTO MOG-knap (4 klik/sek.). Oliver sendte en optagelse af et andet spil som reference – vi laver
+  vores eget design, ikke en kopi. Vinder bærer monsteret hjem.
+- Monstre animeres på klienten: lemmer har Weld "LimbWeld" + attributter Limb (walk/flap/tail), Phase, Pivot, Amp.
+  Serveren drejer dem blødt (Facing-lerp) og accelererer. Grafik: terræn-græs, Clouds, skygger, DepthOfField.
   Andre kan slå bæreren med **Hammer**-tool (Activated) → monster bliver "Loose" → kan samles op ("Grab").
 - **INGEN tyveri fra baser** (Oliver: kun ude ved den lange gang). Ingen vault/lås længere.
 - 8 indhegninger (96×80, hvidt hegn) i to rækker ved en hub; monstre går frit rundt. "Bigger enclosure" = flere pladser.
@@ -35,7 +39,7 @@ Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og send
 - `README.md` → dansk guide til Oliver.
 
 ## Status
-- Output: `MOG MONSTERS server v5 started OK!` / `MOG MONSTERS client v5 started OK!`
+- Output: `MOG MONSTERS server v6 started OK!` / `MOG MONSTERS client v6 started OK!`
 - Testet i hjemmelavet Roblox-mock (API-dump-valideret; 2 spillere; træning, kamp, bære, hammerslag, auras,
   leaderboard, fusion, alle knapper; med/uden DataStore) → 0 fejl. **Endnu ikke testet i rigtig Roblox Studio.**
 - Kendte Studio-faldgruber vi har løst: GetDataStore i pcall, ZIndexBehavior Sibling, karakterer via auto-load.
