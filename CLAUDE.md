@@ -4,16 +4,23 @@ Ejeren hedder Oliver, taler **dansk** og er nybegynder i Roblox Studio (Mac → 
 Forklar alt enkelt og trin for trin, på dansk. Teksten **inde i spillet** er på engelsk.
 Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og sender en færdig `.rbxlx`-fil.
 
-## Spillet (Olivers egen idé, v6)
+## Spillet (Olivers egen idé, v7)
 "👹 MOG MONSTERS". Tidligere versioner (Floor is Lava, Egg Heist, Power Empire) ligger i git-historikken.
 - **MOG** er en stat man **træner**: MOG STONE ved hver base (prompt "Train") → hammeren slår automatisk.
   MOG pr. slag = HAMMERS[level].Power × aura × (1+rebirths) × 2x-pass. Slag-interval = SWINGS[level].Time.
 - **AURAS** (købes for cash) ganger MOG-træning; vises som partikler på figuren.
 - **MOG ROAD** (x 30 → 1150): 8 zoner à 140×110 med glatte lyse mure (ingen fakler/pynt – Oliver ville have rene mure).
   Port kræver RARITIES[k].Mog; for lidt MOG → skubbes tilbage.
-- **MOG BATTLE** minispil nederst på skærmen: avatar mod monster. Clash = klik hvor som helst (ClickPower fra hammer-level),
-  Timing = stop nål. AUTO MOG-knap (4 klik/sek.). Oliver sendte en optagelse af et andet spil som reference – vi laver
-  vores eget design, ikke en kopi. Vinder bærer monsteret hjem.
+- **MOG BATTLE** minispil nederst på skærmen: avatar mod monster, kamera-zoom, sigte (reticle), COMBO-tæller
+  (klik inden 0,45 s → combo+1, op til +100 % kraft), flyvende hype-ord. Clash = klik hvor som helst, Timing = stop nål.
+  AUTO MOG-knap (4 klik/sek.).
+- Oliver har sendt optagelser af andre spil. Første gang bad han om en 1:1-kopi, og det sagde vi nej til. Bagefter bad han om
+  "inspiration", og det har vi brugt (mekanikker, ikke udseende/navne). Fortsæt med det: egne navne og eget design.
+- Vinder man, FØLGER monsteret efter én (carriers-loop i Heartbeat, ingen weld), med en taleboble og røde guide-pile
+  på klienten mod player-attributten BaseDoor. Hammerslag eller en Trap (tool) gør monsteret "Loose".
+  Der er intet kast længere.
+- Størrelse: rollSize() 0.8–1.3, 1/60 HUGE (1.8). KG vises på monsteret; indtjening × size^1.5. Gemmes som Z.
+- Klienten viser EASY/MEDIUM/HARD/TOO STRONG (MogReq/MOG), "+$"-popups og et daily-gave-banner (attributten DailyReady).
 - Monstre animeres på klienten: lemmer har Weld "LimbWeld" + attributter Limb (walk/flap/tail), Phase, Pivot, Amp.
   Serveren drejer dem blødt (Facing-lerp) og accelererer. Grafik: terræn-græs, Clouds, skygger, DepthOfField.
   Andre kan slå bæreren med **Hammer**-tool (Activated) → monster bliver "Loose" → kan samles op ("Grab").
@@ -39,7 +46,7 @@ Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og send
 - `README.md` → dansk guide til Oliver.
 
 ## Status
-- Output: `MOG MONSTERS server v6 started OK!` / `MOG MONSTERS client v6 started OK!`
+- Output: `MOG MONSTERS server v7 started OK!` / `MOG MONSTERS client v7 started OK!`
 - Testet i hjemmelavet Roblox-mock (API-dump-valideret; 2 spillere; træning, kamp, bære, hammerslag, auras,
   leaderboard, fusion, alle knapper; med/uden DataStore) → 0 fejl. **Endnu ikke testet i rigtig Roblox Studio.**
 - Kendte Studio-faldgruber vi har løst: GetDataStore i pcall, ZIndexBehavior Sibling, karakterer via auto-load.

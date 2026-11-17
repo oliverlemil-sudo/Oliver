@@ -4,7 +4,7 @@
 	Put this as a *LocalScript* in StarterPlayer > StarterPlayerScripts.
 
 	Makes all the screens: money, MOG, menus (Shop, Upgrades, Daily,
-	Auras, Index, Rebirth), Fusion, MOG battles, THROW button and effects.
+	Auras, Index, Rebirth), Fusion, MOG battles, guide arrows and effects.
 	You don't need to change anything in here.
 ]]
 
@@ -23,7 +23,6 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local notifyRemote = remotes:WaitForChild("Notify")
 local announceRemote = remotes:WaitForChild("Announce")
 local panelRemote = remotes:WaitForChild("OpenPanel")
-local throwRemote = remotes:WaitForChild("Throw")
 local effectRemote = remotes:WaitForChild("Effect")
 local requestRemote = remotes:WaitForChild("Request")
 local battleRemote = remotes:WaitForChild("Battle")
@@ -263,24 +262,58 @@ RunService.Heartbeat:Connect(function()
 end)
 
 ----------------------------------------------------------------------
--- THROW
+-- GUIDE ARROWS: glowing arrows on the ground show the way home
+-- while a monster follows you
 ----------------------------------------------------------------------
-local throwBtn = button(gui, "THROW! (F)", Color3.fromRGB(255, 120, 30), UDim2.new(0, 210, 0, 70), UDim2.new(0.5, -105, 1, -180))
-throwBtn.Visible = false
-
-local function throw()
-	if player:GetAttribute("Carrying") then
-		throwRemote:FireServer(camera.CFrame.LookVector)
-	end
+local arrowFolder = Instance.new("Folder")
+arrowFolder.Name = "GuideArrows"
+arrowFolder.Parent = workspace
+local arrows = {}
+local function arrowPart()
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Size = Vector3.new(0.7, 0.25, 3.2)
+	p.Color = Color3.fromRGB(255, 60, 70)
+	p.Material = Enum.Material.Neon
+	p.Transparency = 1
+	p.Parent = arrowFolder
+	return p
 end
-throwBtn.Activated:Connect(throw)
-UserInputService.InputBegan:Connect(function(input, processed)
-	if not processed and input.KeyCode == Enum.KeyCode.F then
-		throw()
+for i = 1, 12 do
+	arrows[i] = { arrowPart(), arrowPart() }
+end
+task.spawn(function()
+	while true do
+		task.wait(0.05)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local door = player:GetAttribute("BaseDoor")
+		local show = player:GetAttribute("Carrying") == true and root ~= nil and typeof(door) == "Vector3"
+		local flat, dist
+		if show then
+			flat = Vector3.new(door.X - root.Position.X, 0, door.Z - root.Position.Z)
+			dist = flat.Magnitude
+			show = dist > 6
+		end
+		for i, pair in ipairs(arrows) do
+			local d = 5 + i * 7
+			if show and d < dist then
+				local dir = flat.Unit
+				local p = Vector3.new(root.Position.X, root.Position.Y - 2.85, root.Position.Z) + dir * d
+				local cf = CFrame.lookAt(p, p + dir)
+				local pulse = 0.15 + 0.35 * (0.5 + 0.5 * math.sin(os.clock() * 6 - i * 0.7))
+				pair[1].CFrame = cf * CFrame.new(-0.9, 0, 0.6) * CFrame.Angles(0, math.rad(-35), 0)
+				pair[2].CFrame = cf * CFrame.new(0.9, 0, 0.6) * CFrame.Angles(0, math.rad(35), 0)
+				pair[1].Transparency = pulse
+				pair[2].Transparency = pulse
+			else
+				pair[1].Transparency = 1
+				pair[2].Transparency = 1
+			end
+		end
 	end
-end)
-player:GetAttributeChangedSignal("Carrying"):Connect(function()
-	throwBtn.Visible = player:GetAttribute("Carrying") == true
 end)
 
 ----------------------------------------------------------------------
@@ -413,6 +446,107 @@ end)
 
 local battle = nil
 
+-- hype words that fly out when you click
+local HYPE_WORDS = { "MOG!", "+AURA", "W", "LOCKED IN", "NO CAP", "BEAST MODE", "GOATED", "TOO EASY", "CHAD!", "ALPHA", "+100 AURA", "EZ", "UNSTOPPABLE", "HUGE W", "MAIN CHARACTER" }
+local HYPE_COLORS = {
+	Color3.fromRGB(255, 80, 90), Color3.fromRGB(255, 200, 50), Color3.fromRGB(90, 220, 255),
+	Color3.fromRGB(150, 255, 110), Color3.fromRGB(230, 120, 255), Color3.fromRGB(255, 150, 60),
+}
+local hypeLayer = Instance.new("Frame")
+hypeLayer.Size = UDim2.fromScale(1, 1)
+hypeLayer.BackgroundTransparency = 1
+hypeLayer.ZIndex = 9
+hypeLayer.Parent = gui
+local function hypeWord(big)
+	local l = Instance.new("TextLabel")
+	l.AnchorPoint = Vector2.new(0.5, 0.5)
+	local px, py = 0.28 + math.random() * 0.44, 0.18 + math.random() * 0.32
+	l.Position = UDim2.fromScale(px, py)
+	l.Size = UDim2.new(0, big and 360 or 240, 0, big and 80 or 54)
+	l.BackgroundTransparency = 1
+	l.Font = Enum.Font.FredokaOne
+	l.TextScaled = true
+	l.Text = big and "+1000 AURA" or HYPE_WORDS[math.random(1, #HYPE_WORDS)]
+	l.TextColor3 = HYPE_COLORS[math.random(1, #HYPE_COLORS)]
+	l.Rotation = math.random(-18, 18)
+	l.TextStrokeTransparency = 0
+	l.Parent = hypeLayer
+	local st = Instance.new("UIStroke")
+	st.Thickness = 3
+	st.Color = Color3.fromRGB(30, 20, 40)
+	st.Parent = l
+	local sc = Instance.new("UIScale")
+	sc.Scale = 0.4
+	sc.Parent = l
+	TweenService:Create(sc, TweenInfo.new(0.15, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	TweenService:Create(l, TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+		Position = UDim2.fromScale(px, py - 0.08), TextTransparency = 1, TextStrokeTransparency = 1,
+	}):Play()
+	TweenService:Create(st, TweenInfo.new(0.9), { Transparency = 1 }):Play()
+	Debris:AddItem(l, 1)
+end
+
+-- camera zooms in on the monster during the battle
+local savedCameraType = nil
+local function battleCamera(part)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root or typeof(part) ~= "Instance" or not part:IsA("BasePart") then
+		return
+	end
+	savedCameraType = camera.CameraType
+	camera.CameraType = Enum.CameraType.Scriptable
+	local toMonster = Vector3.new(part.Position.X - root.Position.X, 0, part.Position.Z - root.Position.Z)
+	if toMonster.Magnitude < 0.1 then
+		toMonster = Vector3.new(0, 0, -1)
+	end
+	local dir = toMonster.Unit
+	local side = dir:Cross(Vector3.new(0, 1, 0))
+	local camPos = root.Position - dir * 7 + side * 4 + Vector3.new(0, 4, 0)
+	TweenService:Create(camera, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		CFrame = CFrame.lookAt(camPos, part.Position + Vector3.new(0, 1, 0)),
+	}):Play()
+end
+local function restoreCamera()
+	if savedCameraType then
+		camera.CameraType = savedCameraType
+		savedCameraType = nil
+	end
+end
+
+-- a spinning target circle on the monster
+local reticle = nil
+local function addReticle(part)
+	if typeof(part) ~= "Instance" or not part:IsA("BasePart") then
+		return
+	end
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "Reticle"
+	bb.Size = UDim2.new(0, 80, 0, 80)
+	bb.AlwaysOnTop = true
+	bb.Parent = part
+	local ring = Instance.new("Frame")
+	ring.Size = UDim2.fromScale(1, 1)
+	ring.BackgroundTransparency = 1
+	ring.Parent = bb
+	local rc = Instance.new("UICorner")
+	rc.CornerRadius = UDim.new(1, 0)
+	rc.Parent = ring
+	local rs = Instance.new("UIStroke")
+	rs.Thickness = 4
+	rs.Color = Color3.fromRGB(255, 255, 255)
+	rs.Transparency = 0.2
+	rs.Parent = ring
+	local dot = Instance.new("Frame")
+	dot.Size = UDim2.new(0, 14, 0, 14)
+	dot.Position = UDim2.new(0.5, -7, 0.5, -7)
+	dot.BackgroundColor3 = Color3.fromRGB(255, 70, 70)
+	dot.Parent = bb
+	local dc = Instance.new("UICorner")
+	dc.CornerRadius = UDim.new(1, 0)
+	dc.Parent = dot
+	reticle = bb
+end
+
 local function finishBattle(won)
 	local b = battle
 	if not b or b.Done then
@@ -424,12 +558,20 @@ local function finishBattle(won)
 	if won and b.Elapsed < 2.2 then
 		task.wait(2.2 - b.Elapsed)
 	end
+	if won then
+		hypeWord(true)
+	end
 	local _, msg = requestRemote:InvokeServer("BattleResult", b.Part, won)
 	showMessage(msg or "", won and Color3.fromRGB(110, 255, 110) or Color3.fromRGB(255, 120, 120))
 	task.wait(0.8)
 	if battle == b then
 		battle = nil
 		battleFrame.Visible = false
+		restoreCamera()
+		if reticle then
+			reticle:Destroy()
+			reticle = nil
+		end
 	end
 end
 
@@ -450,8 +592,16 @@ local function battleAction(strength)
 		return
 	end
 	if b.Info.Type == "Clash" then
-		b.Progress = b.Progress + (b.Info.ClickPower or 0.07) * (strength or 1)
+		local now = os.clock()
+		if now - (b.LastClick or 0) < 0.45 then
+			b.Combo = (b.Combo or 0) + 1
+		else
+			b.Combo = 1
+		end
+		b.LastClick = now
+		b.Progress = b.Progress + (b.Info.ClickPower or 0.07) * (strength or 1) * (1 + math.min(b.Combo, 50) * 0.02)
 		pop()
+		hypeWord(false)
 	else
 		if b.Needle >= b.ZoneStart and b.Needle <= b.ZoneStart + b.Info.ZoneWidth then
 			b.Hits = b.Hits + 1
@@ -460,6 +610,7 @@ local function battleAction(strength)
 				greenZone.BackgroundColor3 = Color3.fromRGB(80, 230, 100)
 			end)
 			pop()
+			hypeWord(false)
 			if b.Hits >= 3 then
 				task.spawn(finishBattle, true)
 				return
@@ -493,12 +644,17 @@ battleRemote.OnClientEvent:Connect(function(part, info)
 	bar.BackgroundColor3 = clash and Color3.fromRGB(235, 70, 70) or Color3.fromRGB(60, 60, 80)
 	redGrad.Enabled = clash
 	if clash then
-		bHelp.Text = "CLICK / TAP / SPACE as fast as you can!"
+		bHelp.Text = "CLICK / TAP / SPACE fast - keep the COMBO going!"
 	else
 		bHelp.Text = "CLICK when the needle is in the GREEN zone! (3 times)"
 		newGreenZone(battle)
 	end
 	battleFrame.Visible = true
+	battleCamera(part)
+	if reticle then
+		reticle:Destroy()
+	end
+	addReticle(part)
 end)
 
 quitBtn.Activated:Connect(function()
@@ -516,6 +672,12 @@ UserInputService.InputBegan:Connect(function(input, processed)
 end)
 
 RunService.RenderStepped:Connect(function(dt)
+	if reticle then
+		local ring = reticle:FindFirstChildOfClass("Frame")
+		if ring then
+			ring.Rotation = ((ring.Rotation or 0) + dt * 120) % 360
+		end
+	end
 	local b = battle
 	if not b or b.Done then
 		return
@@ -535,7 +697,13 @@ RunService.RenderStepped:Connect(function(dt)
 		local p = math.clamp(b.Progress, 0, 1)
 		fill.Size = UDim2.new(p, 0, 1, 0)
 		knob.Position = UDim2.new(p, 0, 0.5, 0)
-		bScore.Text = math.floor(p * 100) .. "%"
+		if b.Combo and b.Combo > 1 and os.clock() - (b.LastClick or 0) < 0.45 then
+			bScore.Text = "COMBO x" .. b.Combo
+			bScore.TextColor3 = Color3.fromRGB(255, 220, 60)
+		else
+			bScore.Text = math.floor(p * 100) .. "%"
+			bScore.TextColor3 = Color3.new(1, 1, 1)
+		end
 		if b.Progress >= 1 then
 			task.spawn(finishBattle, true)
 		elseif b.Progress <= 0 then
@@ -1280,6 +1448,44 @@ for i, item in ipairs(menuItems) do
 end
 
 ----------------------------------------------------------------------
+-- "+$" POPUPS next to your cash, and the DAILY GIFT banner
+----------------------------------------------------------------------
+task.spawn(function()
+	while true do
+		task.wait(1)
+		local income = player:GetAttribute("Income") or 0
+		if income > 0 then
+			local l = label(gui, "+$" .. fmt(income), UDim2.new(0, 140, 0, 30), UDim2.new(0.5, 150, 0, 30))
+			l.TextColor3 = Color3.fromRGB(120, 255, 120)
+			l.TextStrokeTransparency = 0
+			l.TextXAlignment = Enum.TextXAlignment.Left
+			TweenService:Create(l, TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				Position = UDim2.new(0.5, 150, 0, 0), TextTransparency = 1, TextStrokeTransparency = 1,
+			}):Play()
+			Debris:AddItem(l, 1.1)
+		end
+	end
+end)
+
+local giftBtn = button(gui, "🎁 Claim your Daily Gift!", Color3.fromRGB(60, 200, 90), UDim2.new(0, 280, 0, 44), UDim2.new(0, 10, 0, 64))
+giftBtn.Visible = false
+local giftScale = Instance.new("UIScale")
+giftScale.Parent = giftBtn
+giftBtn.Activated:Connect(function()
+	openPanel(dailyPanel, refreshDaily)
+end)
+local function updateGift()
+	giftBtn.Visible = player:GetAttribute("DailyReady") == true
+end
+player:GetAttributeChangedSignal("DailyReady"):Connect(updateGift)
+updateGift()
+RunService.RenderStepped:Connect(function()
+	if giftBtn.Visible then
+		giftScale.Scale = 1 + math.sin(os.clock() * 4) * 0.04
+	end
+end)
+
+----------------------------------------------------------------------
 -- MONSTER PROMPTS + MOG colors
 ----------------------------------------------------------------------
 local function updateMonster(part)
@@ -1292,6 +1498,40 @@ local function updateMonster(part)
 				or (n == "Sell" and state == "Placed" and mine)
 				or (n == "Grab" and state == "Loose")
 		end
+	end
+	-- difficulty tag (EASY / MEDIUM / HARD / TOO STRONG) based on your MOG
+	local tag = part:FindFirstChild("DiffTag")
+	if state == "Lane" then
+		if not tag then
+			tag = Instance.new("BillboardGui")
+			tag.Name = "DiffTag"
+			tag.Size = UDim2.new(0, 170, 0, 28)
+			tag.SizeOffset = Vector2.new(0, 2.4)
+			tag.MaxDistance = 120
+			local server = part:FindFirstChildOfClass("BillboardGui")
+			tag.StudsOffset = server and server.StudsOffset or Vector3.new(0, 6, 0)
+			local tl = Instance.new("TextLabel")
+			tl.Size = UDim2.fromScale(1, 1)
+			tl.BackgroundTransparency = 1
+			tl.Font = Enum.Font.FredokaOne
+			tl.TextScaled = true
+			tl.TextStrokeTransparency = 0
+			tl.Parent = tag
+			tag.Parent = part
+		end
+		local ratio = (part:GetAttribute("MogReq") or 0) / math.max(player:GetAttribute("Mog") or 1, 1)
+		local tl = tag:FindFirstChildOfClass("TextLabel")
+		if ratio > 1 then
+			tl.Text, tl.TextColor3 = "TOO STRONG", Color3.fromRGB(255, 70, 70)
+		elseif ratio > 0.6 then
+			tl.Text, tl.TextColor3 = "HARD", Color3.fromRGB(255, 150, 50)
+		elseif ratio > 0.25 then
+			tl.Text, tl.TextColor3 = "MEDIUM", Color3.fromRGB(255, 225, 60)
+		else
+			tl.Text, tl.TextColor3 = "EASY", Color3.fromRGB(120, 255, 120)
+		end
+	elseif tag then
+		tag:Destroy()
 	end
 	-- green MOG text = you can mog it, red = train more MOG
 	local mogLabelInst = part:FindFirstChild("MogLabel", true)
@@ -1427,7 +1667,7 @@ end)
 -- WELCOME
 ----------------------------------------------------------------------
 task.delay(2, function()
-	showMessage("Welcome to MOG MONSTERS! Train at your MOG STONE, then win MOG BATTLES on the MOG ROAD!", Color3.fromRGB(255, 210, 60))
+	showMessage("Welcome to MOG MONSTERS! Train at your MOG STONE, then win MOG BATTLES and lead monsters home!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v6 started OK!")
+print("MOG MONSTERS client v7 started OK!")

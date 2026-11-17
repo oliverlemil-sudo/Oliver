@@ -8,9 +8,11 @@
 	    press E - your HAMMER hits the stone by itself. Upgrade hammer
 	    power and swing speed, buy AURAS to multiply your MOG.
 	  * The MOG ROAD has 8 huge walled ZONES. Every gate needs more MOG.
-	  * Press E on a wild monster for a MOG BATTLE (mini game). Win and
-	    carry it home - other players can hit you with their hammer and
-	    take it! (You can NOT steal from bases, only on the road.)
+	  * Press E on a wild monster for a MOG BATTLE (click combo mini game).
+	    Win and it FOLLOWS you home (glowing arrows show the way). Other
+	    players can hit you with a hammer or a TRAP to make it run away!
+	    (You can NOT steal from bases, only on the road.)
+	  * Every monster has its own SIZE (KG). Bigger = more money. HUGE ones are rare!
 	  * Monsters walk around in your enclosure and make money.
 	    Upgrade the enclosure to keep more monsters.
 	  * Levels: Normal, Silver, Golden, Diamond, Rainbow, Cosmic, RAINBOW COSMIC.
@@ -238,7 +240,6 @@ end
 local notifyRemote = remote("RemoteEvent", "Notify")
 local announceRemote = remote("RemoteEvent", "Announce")
 local panelRemote = remote("RemoteEvent", "OpenPanel")
-local throwRemote = remote("RemoteEvent", "Throw")
 local effectRemote = remote("RemoteEvent", "Effect")
 local battleRemote = remote("RemoteEvent", "Battle")
 local requestRemote = remote("RemoteFunction", "Request")
@@ -718,7 +719,7 @@ local function saveData(player)
 	if plot then
 		for slot, m in pairs(plot.Slots) do
 			if m.Owner == player then
-				table.insert(monsters, { Id = m.Id, V = m.Variant, S = slot })
+				table.insert(monsters, { Id = m.Id, V = m.Variant, S = slot, Z = m.SizeMult })
 			end
 		end
 	end
@@ -851,10 +852,10 @@ if not modelFolder then
 	modelFolder.Parent = ServerStorage
 end
 
-local function buildBody(def, variant)
+local function buildBody(def, variant, sizeMult)
 	local rarity = RARITIES[def.Rarity]
 	local v = VARIANTS[variant]
-	local s = (2.8 + def.Rarity * 0.55) * (def.Scale or 1)
+	local s = (2.8 + def.Rarity * 0.55) * (def.Scale or 1) * (sizeMult or 1)
 	local plan = def.Plan
 	local white, black = Color3.new(1, 1, 1), Color3.fromRGB(25, 25, 30)
 	local DEG = math.rad
@@ -1356,25 +1357,35 @@ local function updateLabel(m)
 	elseif m.State == "Loose" then
 		info.Text = "DROPPED! Grab it!"
 	else
-		info.Text = "HIT THEM TO TAKE IT!"
+		info.Text = "HIT THEM TO SET IT FREE!"
 	end
 end
 
-local function createMonster(id, variant)
+local HUGE_SIZE = 1.8
+local function rollSize()
+	if math.random() < 1 / 60 then
+		return HUGE_SIZE
+	end
+	return math.floor((0.8 + math.random() * 0.5) * 100 + 0.5) / 100
+end
+
+local function createMonster(id, variant, sizeMult)
 	local def = MONSTER_BY_ID[id]
 	local rarity = RARITIES[def.Rarity]
 	local v = VARIANTS[variant]
-	local body, s, foot, hover = buildBody(def, variant)
+	sizeMult = sizeMult or 1
+	local body, s, foot, hover = buildBody(def, variant, sizeMult)
+	local kg = math.floor((s ^ 3) * 1.6 * 10 + 0.5) / 10
 	local customFoot = useCustomModel(def, body, s)
 	if customFoot then
 		foot, hover = customFoot, 0
 	end
 
 	local _, labels = billboard(body, 250, 84, Vector3.new(0, s * 0.6 + 2.8, 0), 3)
-	labels[1].Text = displayName(id, variant)
+	labels[1].Text = (sizeMult >= HUGE_SIZE and "HUGE " or "") .. displayName(id, variant)
 	labels[1].TextColor3 = variant > 1 and (v.Color or Color3.fromRGB(255, 120, 255)) or rarity.Color
 	local odds = oddsOf(id, variant)
-	labels[2].Text = rarity.Name .. ((odds > 1) and ("  |  1 in " .. fmt(odds)) or "")
+	labels[2].Text = rarity.Name .. "  |  " .. kg .. " KG" .. ((odds > 1) and ("  |  1 in " .. fmt(odds)) or "")
 	labels[2].TextColor3 = rarity.Color
 	if def.Rarity >= 7 then
 		labels[2].TextStrokeColor3 = Color3.new(1, 1, 1)
@@ -1383,16 +1394,17 @@ local function createMonster(id, variant)
 	labels[1].Parent.MaxDistance = 120
 
 	local m = {
-		Part = body, Id = id, Def = def, Variant = variant, State = "New", Size = s,
+		Part = body, Id = id, Def = def, Variant = variant, State = "New", Size = s, SizeMult = sizeMult, Kg = kg,
 		Foot = foot, Hover = hover, Walked = 0, Pause = 0,
-		Income = monsterIncome(id, variant), MogReq = monsterMog(id, variant), Value = monsterValue(id, variant),
+		Income = math.floor(monsterIncome(id, variant) * sizeMult ^ 1.5 * 10 + 0.5) / 10,
+		MogReq = monsterMog(id, variant), Value = math.floor(monsterValue(id, variant) * sizeMult ^ 1.5),
 		InfoLabel = labels[3],
 	}
 
 	local prompts = {
 		{ Name = "Mog", Action = "MOG BATTLE!", Hold = 0.2 },
 		{ Name = "Sell", Action = "Sell $" .. fmt(m.Value * CONFIG.SELL_PERCENT), Hold = 1, Key = Enum.KeyCode.R },
-		{ Name = "Grab", Action = "Pick up", Hold = 0.3 },
+		{ Name = "Grab", Action = "Take it", Hold = 0.3 },
 	}
 	for _, info in ipairs(prompts) do
 		local prompt = Instance.new("ProximityPrompt")
@@ -1515,15 +1527,27 @@ local function attachToCarrier(m, player)
 		return false
 	end
 	local part = m.Part
+	part.Anchored = true
 	part.CanCollide = false
-	part.Massless = true
-	part.CFrame = root.CFrame * CFrame.new(0, 3 + m.Foot, 0)
-	local weld = Instance.new("WeldConstraint")
-	weld.Name = "CarryWeld"
-	weld.Part0 = root
-	weld.Part1 = part
-	weld.Parent = part
-	part.Anchored = false
+	-- a speech bubble while it follows you
+	local lines = { "Who's the boss? YOU!", "Lead the way, chief!", "Mogged... respect.", "I follow the strongest!", "OK OK, you win!" }
+	local bubble = Instance.new("BillboardGui")
+	bubble.Name = "Bubble"
+	bubble.Size = UDim2.new(0, 210, 0, 50)
+	bubble.StudsOffset = Vector3.new(0, m.Size * 0.6 + 6, 0)
+	bubble.MaxDistance = 90
+	local bg = Instance.new("TextLabel")
+	bg.Size = UDim2.fromScale(1, 1)
+	bg.BackgroundColor3 = Color3.new(1, 1, 1)
+	bg.Font = Enum.Font.FredokaOne
+	bg.TextScaled = true
+	bg.TextColor3 = Color3.fromRGB(30, 30, 40)
+	bg.Text = lines[math.random(1, #lines)]
+	bg.Parent = bubble
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, 18)
+	c.Parent = bg
+	bubble.Parent = part
 	m.Carrier = player
 	carriers[player] = m
 	player:SetAttribute("Carrying", true)
@@ -1536,12 +1560,11 @@ end
 
 local function detach(m)
 	local part = m.Part
-	local weld = part:FindFirstChild("CarryWeld")
-	if weld then
-		weld:Destroy()
+	local bubble = part:FindFirstChild("Bubble")
+	if bubble then
+		bubble:Destroy()
 	end
 	part.Anchored = true
-	part.Massless = false
 	local carrier = m.Carrier
 	m.Carrier = nil
 	if carrier then
@@ -1722,7 +1745,8 @@ end
 local function spawnZoneMonster(k, id)
 	id = id or randomSpecies(k)
 	local variant = rollVariant()
-	local m = createMonster(id, variant)
+	local size = rollSize()
+	local m = createMonster(id, variant, size)
 	m.Zone = k
 	m.Region = zoneRegions[k]
 	local start = regionPoint(m.Region, m)
@@ -1733,8 +1757,8 @@ local function spawnZoneMonster(k, id)
 	wild[m] = true
 	zoneCount[k] = zoneCount[k] + 1
 	effect(start, RARITIES[k].Color, nil)
-	if k >= 6 or variant >= 5 or (k >= 5 and variant >= 3) then
-		announce("A " .. RARITIES[k].Name:upper() .. " " .. displayName(id, variant) .. " appeared in ZONE " .. k .. "!")
+	if k >= 6 or variant >= 5 or (k >= 5 and variant >= 3) or size >= HUGE_SIZE then
+		announce("A " .. (size >= HUGE_SIZE and "HUGE " or "") .. RARITIES[k].Name:upper() .. " " .. displayName(id, variant) .. " appeared in ZONE " .. k .. "!")
 	end
 end
 
@@ -1804,7 +1828,7 @@ local function battleResult(player, part, won)
 	if m.Def.Rarity >= 5 or m.Variant >= 4 then
 		announce(player.Name .. " beat a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "! Hit them to take it!")
 	end
-	return true, "You won! CARRY " .. name .. " HOME before someone hits you!"
+	return true, "You won! " .. name .. " follows you - lead it HOME before someone hits you!"
 end
 
 ----------------------------------------------------------------------
@@ -1854,77 +1878,9 @@ onMonsterPrompt = function(m, action, player)
 			return
 		end
 		attachToCarrier(m, player)
-		notify(player, "You picked up " .. name .. "! Get it home!")
+		notify(player, name .. " follows you now! Get it home!")
 	end
 end
-
-----------------------------------------------------------------------
--- THROWING
-----------------------------------------------------------------------
-local lastThrow = {}
-
-local function landed(m, thrower)
-	if not monsterAlive(m) or m.State ~= "Thrown" then
-		return
-	end
-	local pos = m.Part.Position
-	local plot = plotAt(pos)
-	if plot and plot.Owner == thrower and thrower.Parent then
-		local slot = freeSlot(plot, thrower)
-		if slot then
-			deliver(m, thrower, plot, slot)
-			return
-		end
-	end
-	makeLoose(m, pos)
-end
-
-throwRemote.OnServerEvent:Connect(function(player, direction)
-	local m = carriers[player]
-	if not m or typeof(direction) ~= "Vector3" then
-		return
-	end
-	if lastThrow[player] and os.clock() - lastThrow[player] < 1 then
-		return
-	end
-	lastThrow[player] = os.clock()
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not root then
-		return
-	end
-	local flat = Vector3.new(direction.X, 0, direction.Z)
-	if flat.Magnitude < 0.1 or flat.Magnitude ~= flat.Magnitude then
-		flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
-	end
-	flat = flat.Unit
-
-	detach(m)
-	setState(m, "Thrown")
-	updateLabel(m)
-	local part = m.Part
-	part.CFrame = CFrame.new(root.Position + Vector3.new(0, 4, 0) + flat * 3)
-	part.CanCollide = true
-	part.Anchored = false
-	part:SetNetworkOwner(nil)
-	local speed = CONFIG.THROW_POWER
-	part.AssemblyLinearVelocity = flat * speed + Vector3.new(0, speed * 0.9, 0)
-
-	task.spawn(function()
-		local start = os.clock()
-		while monsterAlive(m) and m.State == "Thrown" do
-			task.wait(0.1)
-			local t = os.clock() - start
-			if part.Position.Y < -30 then
-				returnToWild(m)
-				return
-			end
-			if (t > 0.5 and part.AssemblyLinearVelocity.Magnitude < 4) or t > 5 then
-				landed(m, player)
-				return
-			end
-		end
-	end)
-end)
 
 ----------------------------------------------------------------------
 -- HAMMER (train MOG + hit players who carry a monster)
@@ -1982,6 +1938,75 @@ local function hammerHit(player)
 			end
 		end
 	end
+end
+
+-- TRAP: lay it on the road. Anyone who walks into it while a monster follows them loses it.
+local traps = {} -- [player] = part
+local lastTrap = {}
+local function placeTrap(player)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root or not isAlive(player) then
+		return
+	end
+	if lastTrap[player] and os.clock() - lastTrap[player] < 8 then
+		notify(player, "Trap ready in " .. math.ceil(8 - (os.clock() - lastTrap[player])) .. "s")
+		return
+	end
+	lastTrap[player] = os.clock()
+	if traps[player] then
+		traps[player]:Destroy()
+	end
+	local pos = groundBelow(root.Position)
+	local trap = Instance.new("Part")
+	trap.Name = "Trap"
+	trap.Shape = Enum.PartType.Cylinder
+	trap.Size = Vector3.new(0.4, 6, 6)
+	trap.CFrame = CFrame.new(pos + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	trap.Color = Color3.fromRGB(255, 70, 90)
+	trap.Material = Enum.Material.Neon
+	trap.Transparency = 0.25
+	trap.Anchored = true
+	trap.CanCollide = false
+	trap.Parent = map
+	local _, tl = billboard(trap, 120, 24, Vector3.new(0, 2, 0), 1)
+	tl[1].Text = player.Name .. "'s TRAP"
+	tl[1].TextColor3 = Color3.fromRGB(255, 120, 130)
+	tl[1].Parent.MaxDistance = 60
+	traps[player] = trap
+	notify(player, "Trap placed! If someone with a monster steps on it, they lose it.")
+	trap.Touched:Connect(function(hit)
+		local model = hit:FindFirstAncestorOfClass("Model")
+		local victim = model and Players:GetPlayerFromCharacter(model)
+		local m = victim and carriers[victim]
+		if victim and victim ~= player and m and trap.Parent then
+			local vroot = victim.Character:FindFirstChild("HumanoidRootPart")
+			makeLoose(m, vroot and vroot.Position or trap.Position)
+			effect(trap.Position, Color3.fromRGB(255, 70, 90), "TRAPPED!")
+			notify(victim, "You stepped in " .. player.Name .. "'s TRAP and your monster ran off!")
+			notify(player, victim.Name .. " stepped in your trap!")
+			traps[player] = nil
+			trap:Destroy()
+		end
+	end)
+	Debris:AddItem(trap, 90)
+end
+
+local function giveTrap(player)
+	local tool = Instance.new("Tool")
+	tool.Name = "Trap"
+	tool.CanBeDropped = false
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Shape = Enum.PartType.Cylinder
+	handle.Size = Vector3.new(0.3, 1.6, 1.6)
+	handle.Color = Color3.fromRGB(255, 70, 90)
+	handle.Material = Enum.Material.Neon
+	handle.CanCollide = false
+	handle.Parent = tool
+	tool.Activated:Connect(function()
+		placeTrap(player)
+	end)
+	tool.Parent = player:WaitForChild("Backpack")
 end
 
 local function giveHammer(player)
@@ -2080,7 +2105,7 @@ local function myMonstersList(player)
 		for slot, m in pairs(plot.Slots) do
 			if m.Owner == player and m.State == "Placed" then
 				table.insert(list, {
-					Slot = slot, Id = m.Id, Variant = m.Variant, Name = displayName(m.Id, m.Variant),
+					Slot = slot, Id = m.Id, Variant = m.Variant, Name = displayName(m.Id, m.Variant), Kg = m.Kg,
 					Rarity = m.Def.Rarity, Income = m.Income, Value = m.Value,
 				})
 			end
@@ -2158,9 +2183,10 @@ local function doFuse(player, slotA, slotB)
 	end
 	data.Cash = data.Cash - cost
 	local id, variant = a.Id, a.Variant + 1
+	local size = math.floor((a.SizeMult + b.SizeMult) / 2 * 100 + 0.5) / 100
 	destroyMonster(a)
 	destroyMonster(b)
-	local result = createMonster(id, variant)
+	local result = createMonster(id, variant, size)
 	result.Part.CFrame = fusionCore.CFrame
 	flyToSlot(result, plot, slotA, player)
 	updateStats(player)
@@ -2485,6 +2511,7 @@ local function onCharacter(player, char)
 	char:PivotTo(spawnCFrame(player))
 	applyMovement(player)
 	giveHammer(player)
+	giveTrap(player)
 	applyAura(player)
 	hum.Died:Connect(function()
 		local m = carriers[player]
@@ -2532,6 +2559,7 @@ local function onPlayerAdded(player)
 	if plot then
 		plot.Owner = player
 		playerPlot[player] = plot
+		player:SetAttribute("BaseDoor", (plot.CF * CFrame.new(0, 0, -PLOT_D / 2)).Position)
 		updateNameSign(player)
 	end
 
@@ -2542,7 +2570,7 @@ local function onPlayerAdded(player)
 			local slot = tonumber(saved.S)
 			local variant = tonumber(saved.V) or 1
 			if MONSTER_BY_ID[saved.Id] and VARIANTS[variant] and slot and not plot.Slots[slot] then
-				local m = createMonster(saved.Id, variant)
+				local m = createMonster(saved.Id, variant, tonumber(saved.Z) or 1)
 				place(m, plot, slot, player)
 			end
 		end
@@ -2598,7 +2626,11 @@ Players.PlayerRemoving:Connect(function(player)
 	sessions[player] = nil
 	trainers[player] = nil
 	hammers[player] = nil
-	lastThrow[player] = nil
+	if traps[player] then
+		traps[player]:Destroy()
+		traps[player] = nil
+	end
+	lastTrap[player] = nil
 	lastHit[player] = nil
 end)
 
@@ -2687,6 +2719,24 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 	end
 
+	-- monsters you won walk behind you
+	for player, m in pairs(carriers) do
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root and monsterAlive(m) then
+			local behind = (root.CFrame * CFrame.new(0, 0, 5 + m.Size * 0.6)).Position
+			local groundY = root.Position.Y - 3
+			local target = Vector3.new(behind.X, groundY + m.Foot + m.Hover, behind.Z)
+			local pos = m.Part.Position
+			local newPos = pos:Lerp(target, math.min(1, dt * 5))
+			local look = Vector3.new(root.Position.X, newPos.Y, root.Position.Z)
+			if (look - newPos).Magnitude > 0.5 then
+				m.Part.CFrame = CFrame.lookAt(newPos, look)
+			else
+				m.Part.CFrame = CFrame.new(newPos) * (m.Part.CFrame - m.Part.Position)
+			end
+		end
+	end
+
 	for player, t in pairs(trainers) do
 		local data = sessions[player]
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -2725,6 +2775,7 @@ task.spawn(function()
 				income = income * moneyMultiplier(owner)
 				data.Cash = data.Cash + income
 				owner:SetAttribute("Income", income)
+				owner:SetAttribute("DailyReady", (dailyStatus(data)))
 				updateStats(owner)
 				plot.IncomeLabel.Text = "$" .. fmt(income) .. "/s  |  " .. countMonsters(plot) .. "/" .. slotLimit(owner) .. " monsters"
 				plot.StatusLabel.Text = fmt(data.Mog) .. " MOG" .. (data.Rebirths > 0 and ("  |  Rebirth " .. data.Rebirths) or "")
@@ -2790,4 +2841,4 @@ task.spawn(function()
 	end
 end)
 
-print("MOG MONSTERS server v6 started OK!")
+print("MOG MONSTERS server v7 started OK!")

@@ -10,15 +10,29 @@ vind **MOG BATTLES** mod monstre, og bær dem hjem til din indhegning, før noge
    Hvert slag giver MOG. Tryk E igen, eller gå væk, for at stoppe.
 2. **MOG ROAD:** En lang vej med høje mure og 8 zoner. Hver port kræver mere MOG
    (zone 2: 40, zone 3: 200 … zone 8: 100M). Har du for lidt, bliver du skubbet tilbage.
-3. **MOG BATTLE:** Tryk **E** på et monster. Nederst på skærmen kommer **dig (dit avatar-billede) mod monsteret**:
-   - **MOG CLASH:** Klik **hvor som helst** på skærmen (eller tryk på skærmen eller mellemrum) og skub baren helt over til monsteret.
-     Din **Power** (fra din hammer) gør hvert klik stærkere.
+3. **MOG BATTLE:** Tryk **E** på et monster. Kameraet zoomer ind, og der kommer et **sigte** på monsteret.
+   Nederst er det **dig (dit avatar-billede) mod monsteret**:
+   - **MOG CLASH:** Klik **hvor som helst** (eller tryk på skærmen eller mellemrum). Klikker du hurtigt,
+     stiger din **COMBO** (x2, x3 … x50), og hvert klik bliver stærkere. Ved hvert klik flyver **hype-ord** ud
+     ("LOCKED IN", "+AURA", "GOATED" …).
    - **MOG STARE:** Klik, når nålen er i det **grønne felt**, 3 gange.
-   - **AUTO MOG**-knappen klikker for dig (4 klik i sekundet). Det er svagere end at klikke selv.
-4. **Bær monsteret hjem.** Andre kan slå dig med deres **hammer**, så du taber det, og så kan de samle det op!
-   Man kan **kun** tage monstre ude på vejen. **Ingen kan stjæle fra din indhegning.**
+   - **AUTO MOG**-knappen klikker for dig (4 klik i sekundet, svagere end selv at klikke).
+4. **Vinder du, følger monsteret efter dig** med en taleboble, og **lysende røde pile** på jorden viser vejen hjem.
+   Andre kan slå dig med **hammeren** eller lægge en **fælde** (Trap). Så stikker monsteret af, og de kan tage det.
+   **Ingen kan stjæle fra din indhegning.**
 5. Monstrene **går frit rundt** i din indhegning og tjener penge hvert sekund.
    De **går rigtigt**: benene går skiftevis, armene svinger, vingerne basker, og halerne svajer.
+
+## 📏 Størrelse og vægt
+Hvert monster har sin egen **størrelse i KG**. **Større monstre tjener flere penge.**
+Cirka 1 ud af 60 er **HUGE** (næsten dobbelt så stort), og det får hele serveren besked om.
+
+## 🎯 Sværhedsgrad
+Over hvert vildt monster står **EASY**, **MEDIUM**, **HARD** eller **TOO STRONG**, beregnet ud fra din MOG.
+
+## 🧰 Værktøjer
+- **Hammer:** træner MOG ved din MOG STONE og slår folk, der fører et monster.
+- **Trap:** læg en fælde på vejen. Går en anden spiller med et monster ind i den, stikker monsteret af.
 
 ## 🔨 Bliv stærkere (UPGRADES og AURAS)
 | Opgradering | Hvad den gør |
@@ -35,6 +49,10 @@ vind **MOG BATTLES** mod monstre, og bær dem hjem til din indhegning, før noge
 - farvet baggrund efter sjældenhed (Common, Rare, Epic, Legendary, Mythic, Secret og regnbuefarvet Divine)
 - en lille figur, der drejer rundt med auraen omkring sig
 - et mærke som "x5 MOG" og en stor knap med pris, EQUIP eller UNEQUIP
+
+## 🎁 Daglig gave og penge
+- Når din daglige gave er klar, blinker en grøn knap **"🎁 Claim your Daily Gift!"** øverst til venstre.
+- Ved dine penge popper **+$** op hvert sekund, så du kan se, hvad dine monstre tjener.
 
 ## 🏆 Leaderboard
 For enden af pladsen mellem baserne står en stor tavle med **TOP MOG**.
@@ -81,8 +99,8 @@ De sjældneste monstre kan **ikke** købes.
 
 Output (fanen **Script** → **Output**) skal sige:
 ```
-MOG MONSTERS server v6 started OK!
-MOG MONSTERS client v6 started OK!
+MOG MONSTERS server v7 started OK!
+MOG MONSTERS client v7 started OK!
 ```
 
 **Tip:** Sæt `START_CASH = 1000000` i CONFIG for at teste hurtigt. Sæt den tilbage til `0`, før du udgiver.
