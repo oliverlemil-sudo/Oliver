@@ -22,26 +22,34 @@ vind **MOG BATTLES** mod monstre, og bær dem hjem til din indhegning, før noge
 |---|---|
 | **Hammer** (15 levels) | Mere MOG pr. slag: 1 → 2 → 4 … → 40.000 |
 | **Swing speed** (8 levels) | Hurtigere slag: 1 sek → 0,15 sek |
-| **Auras** (7 slags) | Ganger din MOG: Spark x1,25 … **Rainbow Aura x12**. Du kan se dem lyse omkring din figur |
+| **Auras** (9 slags) | Ganger din MOG: Spark x1,25 … **Rainbow Aura x12**. Du kan se dem lyse omkring din figur |
 | **Bigger enclosure** | Plads til flere monstre (6 → 20) |
 | **Money Boost** | Monstrene tjener mere |
 | **Rebirth** | +1x MOG og +1x penge for altid |
+
+## 🛍️ Menuerne
+**SHOP**, **UPGRADES**, **AURAS** og **REBIRTH** viser alt som **kort ved siden af hinanden**:
+- farvet baggrund efter sjældenhed (Common, Rare, Epic, Legendary, Mythic, Secret og regnbuefarvet Divine)
+- en lille figur, der drejer rundt med auraen omkring sig
+- et mærke som "x5 MOG" og en stor knap med pris, EQUIP eller UNEQUIP
 
 ## 🏆 Leaderboard
 For enden af pladsen mellem baserne står en stor tavle med **TOP MOG**.
 Når spillet er udgivet, viser den de bedste spillere i **hele spillet**. Ellers viser den spillerne på serveren.
 
 ## 👹 Monstre og niveauer
+Monstrene er inspireret af gamle myter og sagn fra hele verden:
+
 | Zone | Sjældenhed | Monstre |
 |---|---|---|
-| 1 | Common | Blobby (slim), Pebblo (stengolem) |
-| 2 | Uncommon | Zappit (fugl), Mudmaw (dyr) |
-| 3 | Rare | Frostfang (ulv), Emberclaw (edderkop) |
-| 4 | Epic | Shadowgloom (spøgelse), Crystalix (krystalgolem) |
-| 5 | Legendary | Thunderhorn (horndyr), Magmaroth (lavagolem) |
-| 6 | Mythic | Voidwyrm (slange), Solaris (solfugl) |
-| 7 | Secret | Celestion (drage), Glitchling (neon-edderkop) |
-| 8 | **GODLY** | **GIGAMOG**, chance **1 ud af 1.000.000.000** |
+| 1 | Common | Zombie, Redcap (nisse med rød hue) |
+| 2 | Uncommon | Leprechaun, El Cadejo (sort hund med røde øjne) |
+| 3 | Rare | Werewolf, Kelpie (vandhest) |
+| 4 | Epic | Vampire, Ghost |
+| 5 | Legendary | Troll, Kitsune (ræv med 9 haler) |
+| 6 | Mythic | Bigfoot, Mothman |
+| 7 | Secret | Grootslang (slange med elefanthoved), Ancient Dragon |
+| 8 | **GODLY** | **GIGAMOG** (gylden dragekonge med krone), chance **1 ud af 1.000.000.000** |
 
 **Niveauer:** Normal → **Silver** (1/10) → **Golden** (1/40) → **Diamond** (1/250) → **Rainbow** (1/1.500)
 → **Cosmic** (1/15.000) → **Rainbow Cosmic** (1/1.000.000, x100)
@@ -49,7 +57,7 @@ Når spillet er udgivet, viser den de bedste spillere i **hele spillet**. Ellers
 **Fusion Machine** (midt på pladsen): 2 ens monstre på samme niveau bliver til det næste niveau.
 
 ### 🎨 Rigtige 3D-monstre
-Monstrene er bygget af runde former. Vil du have helt realistiske monstre, så gør sådan her:
+Monstrene er bygget af runde former med arme, ben, hoveder, tøj, hatte, vinger og haler. Vil du have helt realistiske monstre, så gør sådan her:
 1. Find en 3D-model i **Toolbox**.
 2. Træk den ind i **ServerStorage → MonsterModels**.
 3. Omdøb den til monsterets navn, f.eks. `Frostfang`.
@@ -70,8 +78,8 @@ De sjældneste monstre kan **ikke** købes.
 
 Output (fanen **Script** → **Output**) skal sige:
 ```
-MOG MONSTERS server v4 started OK!
-MOG MONSTERS client v4 started OK!
+MOG MONSTERS server v5 started OK!
+MOG MONSTERS client v5 started OK!
 ```
 
 **Tip:** Sæt `START_CASH = 1000000` i CONFIG for at teste hurtigt. Sæt den tilbage til `0`, før du udgiver.

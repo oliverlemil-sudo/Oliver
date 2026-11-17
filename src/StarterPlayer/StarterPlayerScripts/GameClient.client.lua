@@ -447,11 +447,19 @@ end)
 local panels = {}
 
 local function makePanel(title, color, bottomSpace)
-	local frame = box(gui, UDim2.new(0, 480, 0, 440), UDim2.new(0.5, -240, 0.5, -220), Color3.fromRGB(35, 35, 50))
+	local frame = box(gui, UDim2.new(0, 480, 0, 440), UDim2.new(0.5, -240, 0.5, -220), Color3.fromRGB(28, 28, 42))
 	frame.Visible = false
 	frame.ZIndex = 5
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, 0, 0, 58)
+	bar.BackgroundColor3 = Color3.new(1, 1, 1)
+	bar.Parent = frame
+	corner(bar, 12)
+	local g = Instance.new("UIGradient")
+	g.Color = ColorSequence.new(color or Color3.fromRGB(120, 120, 255), (color or Color3.fromRGB(120, 120, 255)):Lerp(Color3.new(0, 0, 0), 0.4))
+	g.Parent = bar
 	local t = label(frame, title, UDim2.new(1, -80, 0, 44), UDim2.new(0, 16, 0, 8))
-	t.TextColor3 = color or Color3.new(1, 1, 1)
+	t.TextColor3 = Color3.new(1, 1, 1)
 	t.TextXAlignment = Enum.TextXAlignment.Left
 	local close = button(frame, "X", Color3.fromRGB(220, 60, 60), UDim2.new(0, 44, 0, 44), UDim2.new(1, -56, 0, 8))
 	close.Activated:Connect(function()
@@ -533,9 +541,243 @@ end
 local GREEN, GRAY = Color3.fromRGB(40, 170, 80), Color3.fromRGB(90, 90, 90)
 
 ----------------------------------------------------------------------
+-- CARD SHOPS (pretty cards side by side)
+----------------------------------------------------------------------
+local TIER_COLORS = {
+	Common = { Color3.fromRGB(190, 195, 205), Color3.fromRGB(120, 125, 140) },
+	Rare = { Color3.fromRGB(100, 185, 255), Color3.fromRGB(40, 90, 210) },
+	Epic = { Color3.fromRGB(210, 120, 255), Color3.fromRGB(120, 40, 210) },
+	Legendary = { Color3.fromRGB(255, 215, 80), Color3.fromRGB(240, 120, 20) },
+	Mythic = { Color3.fromRGB(255, 100, 160), Color3.fromRGB(200, 30, 90) },
+	Secret = { Color3.fromRGB(70, 70, 85), Color3.fromRGB(15, 15, 20) },
+	Divine = "rainbow",
+}
+local RAINBOW_SEQ = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)),
+	ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 220, 60)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 230, 120)),
+	ColorSequenceKeypoint.new(0.75, Color3.fromRGB(70, 160, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 80, 255)),
+})
+
+local function gradient(parent, colors, rotation)
+	local g = Instance.new("UIGradient")
+	if colors == "rainbow" then
+		g.Color = RAINBOW_SEQ
+	else
+		g.Color = ColorSequence.new(colors[1], colors[2])
+	end
+	g.Rotation = rotation or 90
+	g.Parent = parent
+	return g
+end
+
+-- spinning 3D previews inside cards
+local spinners = {}
+RunService.RenderStepped:Connect(function()
+	local t = os.clock()
+	for model, info in pairs(spinners) do
+		if not model.Parent then
+			spinners[model] = nil
+		else
+			model:PivotTo(CFrame.new(0, math.sin(t * 2) * 0.15, 0) * CFrame.Angles(0, t * 1.2, 0))
+			if info.Rainbow then
+				local c = Color3.fromHSV((t * 0.3) % 1, 0.8, 1)
+				for _, p in ipairs(info.Rainbow) do
+					p.Color = c
+				end
+			end
+		end
+	end
+end)
+
+local function viewport(parent)
+	local vf = Instance.new("ViewportFrame")
+	vf.Size = UDim2.fromScale(1, 1)
+	vf.BackgroundTransparency = 1
+	vf.Ambient = Color3.fromRGB(200, 200, 200)
+	vf.LightColor = Color3.new(1, 1, 1)
+	vf.LightDirection = Vector3.new(-1, -1, -1)
+	vf.Parent = parent
+	local cam = Instance.new("Camera")
+	cam.CFrame = CFrame.lookAt(Vector3.new(0, 0.6, -9), Vector3.new(0, 0, 0))
+	cam.FieldOfView = 45
+	cam.Parent = vf
+	vf.CurrentCamera = cam
+	local model = Instance.new("Model")
+	model.Parent = vf
+	return vf, model
+end
+
+local function vpPart(model, size, cf, color, material, shape, transparency)
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	if shape then
+		p.Shape = shape
+	end
+	p.Transparency = transparency or 0
+	p.Parent = model
+	if not model.PrimaryPart then
+		model.PrimaryPart = p
+	end
+	return p
+end
+
+-- a little player figure with an aura around it
+local function auraPreview(parent, color, rainbow)
+	local _, model = viewport(parent)
+	local body = Color3.fromRGB(235, 235, 240)
+	vpPart(model, Vector3.new(2, 2, 1), CFrame.new(0, 0, 0), body)
+	vpPart(model, Vector3.new(1.25, 1.25, 1.25), CFrame.new(0, 1.65, 0), Color3.fromRGB(255, 220, 180), nil, Enum.PartType.Ball)
+	for _, sx in ipairs({ -1, 1 }) do
+		vpPart(model, Vector3.new(1, 2, 1), CFrame.new(sx * 1.5, 0, 0), body)
+		vpPart(model, Vector3.new(1, 2, 1), CFrame.new(sx * 0.5, -2, 0), Color3.fromRGB(80, 90, 120))
+	end
+	local glow = {}
+	table.insert(glow, vpPart(model, Vector3.new(6.2, 6.2, 6.2), CFrame.new(0, 0, 0), color, Enum.Material.Neon, Enum.PartType.Ball, 0.78))
+	for i = 1, 8 do
+		local a = i / 8 * math.pi * 2
+		table.insert(glow, vpPart(model, Vector3.new(0.5, 0.5, 0.5), CFrame.new(math.cos(a) * 2.6, math.sin(a * 2) * 1.8, math.sin(a) * 2.6), color, Enum.Material.Neon, Enum.PartType.Ball))
+	end
+	spinners[model] = { Rainbow = rainbow and glow or nil }
+end
+
+local function makeCardPanel(title, headerColors)
+	local frame = Instance.new("Frame")
+	frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	frame.Position = UDim2.fromScale(0.5, 0.5)
+	frame.Size = UDim2.fromScale(0.82, 0.66)
+	frame.BackgroundColor3 = Color3.fromRGB(28, 28, 42)
+	frame.Visible = false
+	frame.ZIndex = 5
+	frame.Parent = gui
+	corner(frame, 18)
+	local st = Instance.new("UIStroke")
+	st.Thickness = 4
+	st.Color = Color3.fromRGB(15, 15, 22)
+	st.Parent = frame
+	local limit = Instance.new("UISizeConstraint")
+	limit.MaxSize = Vector2.new(860, 480)
+	limit.MinSize = Vector2.new(400, 320)
+	limit.Parent = frame
+
+	local header = Instance.new("Frame")
+	header.Size = UDim2.new(1, 0, 0, 58)
+	header.BackgroundColor3 = Color3.new(1, 1, 1)
+	header.Parent = frame
+	corner(header, 18)
+	gradient(header, headerColors, 0)
+	local t = label(header, title, UDim2.new(1, -90, 0.8, 0), UDim2.new(0, 18, 0.1, 0))
+	t.TextXAlignment = Enum.TextXAlignment.Left
+	t.TextStrokeTransparency = 0
+	local close = button(header, "X", Color3.fromRGB(230, 60, 60), UDim2.new(0, 46, 0, 46), UDim2.new(1, -56, 0, 6))
+	close.Activated:Connect(function()
+		frame.Visible = false
+	end)
+
+	local list = Instance.new("ScrollingFrame")
+	list.Size = UDim2.new(1, -24, 1, -74)
+	list.Position = UDim2.new(0, 12, 0, 66)
+	list.BackgroundTransparency = 1
+	list.BorderSizePixel = 0
+	list.ScrollBarThickness = 8
+	list.ScrollingDirection = Enum.ScrollingDirection.X
+	list.AutomaticCanvasSize = Enum.AutomaticSize.X
+	list.CanvasSize = UDim2.new()
+	list.Parent = frame
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.Padding = UDim.new(0, 12)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Parent = list
+
+	local panel = { Frame = frame, List = list, Order = 0 }
+	function panel.Clear()
+		for _, c in ipairs(list:GetChildren()) do
+			if c:IsA("GuiObject") then
+				c:Destroy()
+			end
+		end
+		panel.Order = 0
+	end
+	-- opts: Title, Tag, Colors, Icon, Preview(function(area)), Badge, Info, Button, ButtonColor, OnClick, Wide
+	function panel.Card(opts)
+		panel.Order = panel.Order + 1
+		local card = Instance.new("Frame")
+		card.Size = UDim2.new(0, opts.Wide and 300 or 172, 1, -14)
+		card.BackgroundColor3 = Color3.new(1, 1, 1)
+		card.LayoutOrder = panel.Order
+		card.Parent = list
+		corner(card, 16)
+		gradient(card, opts.Colors or TIER_COLORS.Common, 90)
+		local cs = Instance.new("UIStroke")
+		cs.Thickness = 3
+		cs.Color = Color3.fromRGB(255, 255, 255)
+		cs.Transparency = 0.2
+		cs.Parent = card
+
+		local ttl = label(card, opts.Title or "", UDim2.new(1, -12, 0.11, 0), UDim2.new(0, 6, 0.02, 0))
+		ttl.TextStrokeTransparency = 0
+		if opts.Tag then
+			local tag = label(card, opts.Tag, UDim2.new(1, -12, 0.07, 0), UDim2.new(0, 6, 0.13, 0))
+			tag.TextColor3 = opts.TagColor or Color3.new(1, 1, 1)
+			tag.TextStrokeTransparency = 0.2
+		end
+		local area = Instance.new("Frame")
+		area.Size = UDim2.new(1, -16, 0.42, 0)
+		area.Position = UDim2.new(0, 8, 0.21, 0)
+		area.BackgroundColor3 = Color3.new(0, 0, 0)
+		area.BackgroundTransparency = 0.75
+		area.Parent = card
+		corner(area, 12)
+		if opts.Preview then
+			opts.Preview(area)
+		elseif opts.Icon then
+			local ic = label(area, opts.Icon, UDim2.fromScale(0.9, 0.9), UDim2.fromScale(0.05, 0.05))
+			ic.TextStrokeTransparency = 1
+		end
+		if opts.Lines then
+			local txt = label(area, table.concat(opts.Lines, "\n"), UDim2.new(1, -12, 1, -8), UDim2.new(0, 6, 0, 4))
+			txt.TextXAlignment = Enum.TextXAlignment.Left
+			txt.TextYAlignment = Enum.TextYAlignment.Top
+		end
+		if opts.Badge then
+			local pill = Instance.new("Frame")
+			pill.Size = UDim2.new(0.86, 0, 0.1, 0)
+			pill.Position = UDim2.new(0.07, 0, 0.65, 0)
+			pill.BackgroundColor3 = opts.BadgeColor or Color3.fromRGB(70, 210, 100)
+			pill.Parent = card
+			corner(pill, 10)
+			stroke(pill)
+			label(pill, opts.Badge, UDim2.new(1, -8, 0.86, 0), UDim2.new(0, 4, 0.07, 0))
+		end
+		if opts.Info then
+			local inf = label(card, opts.Info, UDim2.new(1, -12, 0.07, 0), UDim2.new(0, 6, 0.76, 0))
+			inf.TextStrokeTransparency = 0.2
+		end
+		local b = button(card, opts.Button or "", opts.ButtonColor or Color3.fromRGB(60, 200, 90), UDim2.new(0.86, 0, 0.13, 0), UDim2.new(0.07, 0, 0.84, 0))
+		if opts.OnClick then
+			b.Activated:Connect(opts.OnClick)
+		end
+		return card, b
+	end
+	table.insert(panels, panel)
+	return panel
+end
+
+local BUY_GREEN = Color3.fromRGB(60, 200, 90)
+local EQUIP_BLUE = Color3.fromRGB(60, 140, 240)
+local DONE_GRAY = Color3.fromRGB(110, 110, 120)
+
+----------------------------------------------------------------------
 -- SHOP (Robux)
 ----------------------------------------------------------------------
-local shopPanel = makePanel("ROBUX SHOP", Color3.fromRGB(110, 255, 110))
+local shopPanel = makeCardPanel("ROBUX SHOP", { Color3.fromRGB(60, 210, 110), Color3.fromRGB(20, 140, 200) })
 
 local function promptBuy(attr, isPass)
 	local id = ReplicatedStorage:GetAttribute(attr) or 0
@@ -551,33 +793,32 @@ local function promptBuy(attr, isPass)
 end
 
 local SHOP_ITEMS = {
-	{ Header = "GAME PASSES (forever)" },
-	{ Text = "2x Money", Attr = "DoubleMoneyPassId", Pass = true, Owned = "DoubleMoney" },
-	{ Text = "2x MOG from training", Attr = "DoubleMogPassId", Pass = true, Owned = "DoubleMog" },
-	{ Text = "VIP: tag, +20% money, 2x daily", Attr = "VipPassId", Pass = true, Owned = "VIP" },
-	{ Text = "+5 monsters in your enclosure", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
-	{ Header = "BOOSTS" },
-	{ Text = "2x SERVER LUCK (15 min, everyone!)", Attr = "ServerLuckProductId" },
-	{ Text = "Cash Pack (10 min of income)", Attr = "CashPackProductId" },
+	{ Title = "2x MONEY", Icon = "💰", Info = "Forever!", Badge = "x2 Money", Attr = "DoubleMoneyPassId", Pass = true, Owned = "DoubleMoney", Tier = "Legendary" },
+	{ Title = "2x MOG", Icon = "💪", Info = "Forever!", Badge = "x2 MOG", Attr = "DoubleMogPassId", Pass = true, Owned = "DoubleMog", Tier = "Mythic" },
+	{ Title = "VIP", Icon = "👑", Info = "Tag + 2x daily", Badge = "+20% Money", Attr = "VipPassId", Pass = true, Owned = "VIP", Tier = "Divine" },
+	{ Title = "BIG ENCLOSURE", Icon = "🏠", Info = "Forever!", Badge = "+5 Monsters", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots", Tier = "Rare" },
+	{ Title = "SERVER LUCK", Icon = "🍀", Info = "15 min, everyone!", Badge = "x2 Luck", Attr = "ServerLuckProductId", Tier = "Epic" },
+	{ Title = "CASH PACK", Icon = "💵", Info = "10 min of income", Badge = "Instant cash", Attr = "CashPackProductId", Tier = "Common" },
 }
 
 local function refreshShop()
 	shopPanel.Clear()
 	for _, item in ipairs(SHOP_ITEMS) do
-		if item.Header then
-			shopPanel.Text(item.Header, Color3.fromRGB(255, 210, 80))
-		else
-			local owned = item.Owned and player:GetAttribute(item.Owned)
-			shopPanel.ButtonRow(item.Text, owned and "OWNED" or "BUY R$", owned and GRAY or GREEN, function()
+		local owned = item.Owned and player:GetAttribute(item.Owned)
+		shopPanel.Card({
+			Title = item.Title, Tag = item.Pass and "Game Pass" or "Boost", Colors = TIER_COLORS[item.Tier],
+			Icon = item.Icon, Badge = item.Badge, Info = item.Info,
+			Button = owned and "OWNED" or "R$ BUY", ButtonColor = owned and DONE_GRAY or BUY_GREEN,
+			OnClick = function()
 				if not owned then
 					promptBuy(item.Attr, item.Pass)
 				end
-			end)
-		end
+			end,
+		})
 	end
 end
 player.AttributeChanged:Connect(function(name)
-	if shopPanel.Frame.Visible and name ~= "Income" and name ~= "Mog" then
+	if shopPanel.Frame.Visible and (name == "DoubleMoney" or name == "DoubleMog" or name == "VIP" or name == "ExtraSlots") then
 		refreshShop()
 	end
 end)
@@ -585,13 +826,13 @@ end)
 ----------------------------------------------------------------------
 -- UPGRADES
 ----------------------------------------------------------------------
-local upgradePanel = makePanel("UPGRADES", Color3.fromRGB(120, 180, 255))
+local upgradePanel = makeCardPanel("UPGRADES", { Color3.fromRGB(80, 160, 255), Color3.fromRGB(120, 80, 255) })
 
 local refreshUpgrades
-local function buy(action)
+local function buy(action, refresh)
 	local _, msg = requestRemote:InvokeServer(action)
 	showMessage(msg)
-	refreshUpgrades()
+	refresh()
 end
 
 refreshUpgrades = function()
@@ -600,44 +841,58 @@ refreshUpgrades = function()
 	if not info then
 		return
 	end
-	upgradePanel.Text("MOG " .. fmt(info.Mog) .. "  (+" .. fmt(info.MogPerHit) .. " per hit)", Color3.fromRGB(255, 120, 200))
-	upgradePanel.Text("Train at the MOG STONE next to your enclosure!", nil, 24)
-	if info.NextHammerCost then
-		upgradePanel.ButtonRow("Hammer Lv." .. info.Hammer .. " -> Lv." .. (info.Hammer + 1) .. "  (" .. fmt(info.HammerPower) .. " -> " .. fmt(info.NextHammerPower) .. " per hit)", "$" .. fmt(info.NextHammerCost), GREEN, function()
-			buy("BuyHammer")
-		end)
-	else
-		upgradePanel.ButtonRow("Hammer Lv." .. info.Hammer .. " (MAX)", "MAX", GRAY)
-	end
-	if info.NextSwingCost then
-		upgradePanel.ButtonRow("Swing speed: " .. info.SwingTime .. "s -> " .. info.NextSwingTime .. "s per hit", "$" .. fmt(info.NextSwingCost), GREEN, function()
-			buy("BuySwing")
-		end)
-	else
-		upgradePanel.ButtonRow("Swing speed: " .. info.SwingTime .. "s (MAX)", "MAX", GRAY)
-	end
-	upgradePanel.Text("ENCLOSURE: " .. info.Slots .. " monsters", Color3.fromRGB(255, 210, 80))
-	if info.BaseSlots < info.MaxSlots then
-		upgradePanel.ButtonRow("Bigger enclosure (+1 monster)", "$" .. fmt(info.SlotCost), GREEN, function()
-			buy("BuySlot")
-		end)
-	else
-		upgradePanel.ButtonRow("Enclosure", "MAX", GRAY)
-	end
-	upgradePanel.Text("Money Boost: x" .. info.Boost .. (info.NextBoost and ("  ->  x" .. info.NextBoost) or ""), Color3.fromRGB(110, 255, 110))
-	if info.BoostCost then
-		upgradePanel.ButtonRow("Monsters make more money", "$" .. fmt(info.BoostCost), GREEN, function()
-			buy("BuyBoost")
-		end)
-	else
-		upgradePanel.ButtonRow("Money Boost", "MAX", GRAY)
-	end
+	upgradePanel.Card({
+		Title = "HAMMER", Tag = "Level " .. info.Hammer .. "/" .. info.MaxHammer, Colors = TIER_COLORS.Legendary, Icon = "🔨",
+		Badge = info.NextHammerPower and ("+" .. fmt(info.HammerPower) .. " -> +" .. fmt(info.NextHammerPower)) or ("+" .. fmt(info.HammerPower) .. " MOG"),
+		Info = "MOG per hit",
+		Button = info.NextHammerCost and ("$" .. fmt(info.NextHammerCost)) or "MAX", ButtonColor = info.NextHammerCost and BUY_GREEN or DONE_GRAY,
+		OnClick = function()
+			buy("BuyHammer", refreshUpgrades)
+		end,
+	})
+	upgradePanel.Card({
+		Title = "SWING SPEED", Tag = "Level " .. info.Swing .. "/" .. info.MaxSwing, Colors = TIER_COLORS.Rare, Icon = "⚡",
+		Badge = info.NextSwingTime and (info.SwingTime .. "s -> " .. info.NextSwingTime .. "s") or (info.SwingTime .. "s"),
+		Info = "time between hits",
+		Button = info.NextSwingCost and ("$" .. fmt(info.NextSwingCost)) or "MAX", ButtonColor = info.NextSwingCost and BUY_GREEN or DONE_GRAY,
+		OnClick = function()
+			buy("BuySwing", refreshUpgrades)
+		end,
+	})
+	local slotsMaxed = info.BaseSlots >= info.MaxSlots
+	upgradePanel.Card({
+		Title = "ENCLOSURE", Tag = info.Slots .. " monsters", Colors = TIER_COLORS.Epic, Icon = "🏠",
+		Badge = slotsMaxed and "MAX SIZE" or (info.Slots .. " -> " .. (info.Slots + 1)),
+		Info = "room for monsters",
+		Button = slotsMaxed and "MAX" or ("$" .. fmt(info.SlotCost)), ButtonColor = slotsMaxed and DONE_GRAY or BUY_GREEN,
+		OnClick = function()
+			buy("BuySlot", refreshUpgrades)
+		end,
+	})
+	upgradePanel.Card({
+		Title = "MONEY BOOST", Tag = "x" .. info.Boost, Colors = TIER_COLORS.Mythic, Icon = "💸",
+		Badge = info.NextBoost and ("x" .. info.Boost .. " -> x" .. info.NextBoost) or ("x" .. info.Boost),
+		Info = "monsters earn more",
+		Button = info.BoostCost and ("$" .. fmt(info.BoostCost)) or "MAX", ButtonColor = info.BoostCost and BUY_GREEN or DONE_GRAY,
+		OnClick = function()
+			buy("BuyBoost", refreshUpgrades)
+		end,
+	})
+	upgradePanel.Card({
+		Title = "YOUR MOG", Tag = "+" .. fmt(info.MogPerHit) .. " per hit", Colors = TIER_COLORS.Secret, Icon = "💪",
+		Badge = fmt(info.Mog) .. " MOG", BadgeColor = Color3.fromRGB(255, 110, 200),
+		Info = "train at your MOG STONE",
+		Button = "TRAIN!", ButtonColor = EQUIP_BLUE,
+		OnClick = function()
+			showMessage("Go to the MOG STONE next to your enclosure and press E!")
+		end,
+	})
 end
 
 ----------------------------------------------------------------------
 -- AURAS
 ----------------------------------------------------------------------
-local auraPanel = makePanel("AURAS", Color3.fromRGB(255, 160, 255))
+local auraPanel = makeCardPanel("AURAS", { Color3.fromRGB(255, 120, 220), Color3.fromRGB(140, 80, 255) })
 
 local refreshAuras
 refreshAuras = function()
@@ -646,22 +901,29 @@ refreshAuras = function()
 	if not info then
 		return
 	end
-	auraPanel.Text("Auras multiply the MOG you get from training!", nil, 26)
 	for _, a in ipairs(info.Auras) do
 		local text, color
 		if info.Aura == a.Name then
-			text, color = "EQUIPPED", GRAY
+			text, color = "UNEQUIP", DONE_GRAY
 		elseif a.Owned then
-			text, color = "EQUIP", Color3.fromRGB(70, 110, 200)
+			text, color = "EQUIP", EQUIP_BLUE
 		else
-			text, color = "$" .. fmt(a.Cost), GREEN
+			text, color = "$" .. fmt(a.Cost), BUY_GREEN
 		end
-		local b, l = auraPanel.ButtonRow(a.Name .. "  x" .. a.Mult .. " MOG", text, color, function()
-			local _, msg = requestRemote:InvokeServer(a.Owned and "EquipAura" or "BuyAura", a.Name)
-			showMessage(msg)
-			refreshAuras()
-		end)
-		l.TextColor3 = a.Color
+		auraPanel.Card({
+			Title = a.Name, Tag = a.Tier, TagColor = Color3.new(1, 1, 1), Colors = TIER_COLORS[a.Tier] or TIER_COLORS.Common,
+			Preview = function(area)
+				auraPreview(area, a.Color, a.Tier == "Divine")
+			end,
+			Badge = "x" .. a.Mult .. " MOG",
+			Button = text, ButtonColor = color,
+			OnClick = function()
+				local action = info.Aura == a.Name and "UnequipAura" or (a.Owned and "EquipAura" or "BuyAura")
+				local _, msg = requestRemote:InvokeServer(action, a.Name)
+				showMessage(msg)
+				refreshAuras()
+			end,
+		})
 	end
 end
 
@@ -816,8 +1078,7 @@ end)
 ----------------------------------------------------------------------
 -- REBIRTH
 ----------------------------------------------------------------------
-local rebirthPanel = makePanel("REBIRTH", Color3.fromRGB(255, 255, 255), 80)
-local rebirthBtn = button(rebirthPanel.Frame, "REBIRTH!", Color3.fromRGB(255, 170, 40), UDim2.new(0.6, 0, 0, 56), UDim2.new(0.2, 0, 1, -72))
+local rebirthPanel = makeCardPanel("REBIRTH", { Color3.fromRGB(255, 200, 60), Color3.fromRGB(255, 90, 60) })
 
 local function refreshRebirth()
 	local info = getInfo()
@@ -825,21 +1086,40 @@ local function refreshRebirth()
 	if not info then
 		return
 	end
-	rebirthPanel.Text("Rebirths: " .. info.Rebirths, Color3.fromRGB(255, 210, 80))
-	rebirthPanel.Text("Cost: $" .. fmt(info.RebirthCost) .. "  (you have $" .. fmt(info.Cash) .. ")", nil, 28)
-	rebirthPanel.Text("You LOSE: cash, MOG, monsters, upgrades", Color3.fromRGB(255, 120, 120), 26)
-	rebirthPanel.Text("You KEEP: auras, index", Color3.fromRGB(110, 255, 110), 26)
-	rebirthPanel.Text("REWARDS", Color3.fromRGB(255, 210, 80))
-	rebirthPanel.Text("Every rebirth: +1x money AND +1x MOG per hit", nil, 26)
-	rebirthPanel.Text("Rebirth 3+: run faster", nil, 26)
-	rebirthPanel.Text("Rebirth 10: exclusive GOLDEN PHOENIXMOG!", Color3.fromRGB(255, 160, 60), 26)
+	local now, nextR = 1 + info.Rebirths, 2 + info.Rebirths
+	local enough = info.Cash >= info.RebirthCost
+	rebirthPanel.Card({
+		Title = "REBIRTH " .. (info.Rebirths + 1), Tag = "You have " .. info.Rebirths, Colors = TIER_COLORS.Legendary, Icon = "🔄",
+		Badge = "x" .. now .. " -> x" .. nextR, Info = "MOG + money forever",
+		Button = enough and "REBIRTH!" or ("$" .. fmt(info.RebirthCost)), ButtonColor = enough and BUY_GREEN or DONE_GRAY,
+		OnClick = function()
+			local _, msg = requestRemote:InvokeServer("Rebirth")
+			showMessage(msg, Color3.fromRGB(255, 210, 60))
+			refreshRebirth()
+		end,
+	})
+	rebirthPanel.Card({
+		Title = "PROGRESS", Tag = "$" .. fmt(info.Cash) .. " / $" .. fmt(info.RebirthCost), Colors = TIER_COLORS.Rare,
+		Icon = math.floor(math.clamp(info.Cash / info.RebirthCost, 0, 1) * 100) .. "%",
+		Badge = enough and "READY!" or "Keep going!", BadgeColor = enough and Color3.fromRGB(70, 210, 100) or Color3.fromRGB(240, 150, 40),
+		Button = "OK", ButtonColor = DONE_GRAY,
+	})
+	rebirthPanel.Card({
+		Title = "YOU KEEP", Tag = "after rebirth", Colors = TIER_COLORS.Epic,
+		Lines = { "Your auras", "Your index", "Your rebirth bonus" },
+		Badge = "SAFE", Button = "OK", ButtonColor = DONE_GRAY,
+	})
+	rebirthPanel.Card({
+		Title = "YOU LOSE", Tag = "after rebirth", Colors = TIER_COLORS.Mythic,
+		Lines = { "Cash and MOG", "Your monsters", "Hammer, speed,", "enclosure, boost" },
+		Badge = "RESET", BadgeColor = Color3.fromRGB(230, 70, 70), Button = "OK", ButtonColor = DONE_GRAY,
+	})
+	rebirthPanel.Card({
+		Title = "REBIRTH 10", Tag = "special reward", Colors = TIER_COLORS.Divine, Icon = "🔥",
+		Badge = "Golden Phoenixmog", Info = "+ faster from Rebirth 3",
+		Button = info.Rebirths >= 10 and "UNLOCKED" or "LOCKED", ButtonColor = DONE_GRAY,
+	})
 end
-
-rebirthBtn.Activated:Connect(function()
-	local _, msg = requestRemote:InvokeServer("Rebirth")
-	showMessage(msg, Color3.fromRGB(255, 210, 60))
-	refreshRebirth()
-end)
 
 panelRemote.OnClientEvent:Connect(function(name)
 	if name == "Fusion" then
@@ -952,4 +1232,4 @@ task.delay(2, function()
 	showMessage("Welcome to MOG MONSTERS! Train at your MOG STONE, then win MOG BATTLES on the MOG ROAD!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v4 started OK!")
+print("MOG MONSTERS client v5 started OK!")

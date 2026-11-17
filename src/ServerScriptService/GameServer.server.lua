@@ -85,25 +85,30 @@ local ZONES = {
 }
 local GIGAMOG_CHANCE = 1 / 1000000000
 
--- Plan = body shape: blob, beast, bird, spider, golem, serpent, ghost, dragon
+-- The monsters (inspired by old myths and legends from all over the world).
+-- Plan = body type: humanoid, quadruped, ghost, serpent, dragon, bird
+-- Style = extra details for that body type.
+local function rgb(r, g, b)
+	return Color3.fromRGB(r, g, b)
+end
 local MONSTERS = {
-	{ Id = "Blobby",      Name = "Blobby",      Rarity = 1, Plan = "blob",    Color = Color3.fromRGB(120, 235, 120) },
-	{ Id = "Pebblo",      Name = "Pebblo",      Rarity = 1, Plan = "golem",   Color = Color3.fromRGB(175, 165, 155), Material = Enum.Material.Rock, Scale = 0.8 },
-	{ Id = "Zappit",      Name = "Zappit",      Rarity = 2, Plan = "bird",    Color = Color3.fromRGB(255, 240, 90), Accent = Color3.fromRGB(255, 160, 30) },
-	{ Id = "Mudmaw",      Name = "Mudmaw",      Rarity = 2, Plan = "beast",   Color = Color3.fromRGB(170, 120, 75), Accent = Color3.fromRGB(110, 75, 45) },
-	{ Id = "Frostfang",   Name = "Frostfang",   Rarity = 3, Plan = "beast",   Color = Color3.fromRGB(225, 240, 255), Accent = Color3.fromRGB(110, 180, 255), Ears = true },
-	{ Id = "Emberclaw",   Name = "Emberclaw",   Rarity = 3, Plan = "spider",  Color = Color3.fromRGB(255, 130, 40), Accent = Color3.fromRGB(120, 40, 10) },
-	{ Id = "Shadowgloom", Name = "Shadowgloom", Rarity = 4, Plan = "ghost",   Color = Color3.fromRGB(150, 100, 230) },
-	{ Id = "Crystalix",   Name = "Crystalix",   Rarity = 4, Plan = "golem",   Color = Color3.fromRGB(140, 235, 245), Accent = Color3.fromRGB(200, 255, 255), Crystals = true },
-	{ Id = "Thunderhorn", Name = "Thunderhorn", Rarity = 5, Plan = "beast",   Color = Color3.fromRGB(120, 105, 90), Accent = Color3.fromRGB(255, 230, 40), Horns = true },
-	{ Id = "Magmaroth",   Name = "Magmaroth",   Rarity = 5, Plan = "golem",   Color = Color3.fromRGB(90, 50, 40), Accent = Color3.fromRGB(255, 110, 20), Material = Enum.Material.Basalt, Crystals = true },
-	{ Id = "Voidwyrm",    Name = "Voidwyrm",    Rarity = 6, Plan = "serpent", Color = Color3.fromRGB(90, 40, 150), Accent = Color3.fromRGB(230, 120, 255) },
-	{ Id = "Solaris",     Name = "Solaris",     Rarity = 6, Plan = "bird",    Color = Color3.fromRGB(255, 185, 60), Accent = Color3.fromRGB(255, 245, 170) },
-	{ Id = "Celestion",   Name = "Celestion",   Rarity = 7, Plan = "dragon",  Color = Color3.fromRGB(250, 248, 240), Accent = Color3.fromRGB(255, 215, 90) },
-	{ Id = "Glitchling",  Name = "Glitchling",  Rarity = 7, Plan = "spider",  Color = Color3.fromRGB(40, 40, 50), Accent = Color3.fromRGB(0, 255, 180) },
-	{ Id = "Gigamog",     Name = "GIGAMOG",     Rarity = 8, Plan = "dragon",  Color = Color3.fromRGB(255, 255, 255), Accent = Color3.fromRGB(255, 130, 255), Scale = 1.3 },
+	{ Id = "Zombie",     Name = "Zombie",         Rarity = 1, Plan = "humanoid",  Style = "zombie",     Skin = rgb(150, 185, 120), Shirt = rgb(120, 100, 80), Pants = rgb(70, 80, 110), Hair = rgb(60, 50, 40), Shoes = rgb(60, 50, 45) },
+	{ Id = "Redcap",     Name = "Redcap",         Rarity = 1, Plan = "humanoid",  Style = "redcap",     Height = 0.75, Skin = rgb(215, 175, 145), Shirt = rgb(95, 125, 65), Pants = rgb(100, 75, 55), Hair = rgb(200, 200, 200), Shoes = rgb(70, 50, 35), Accent = rgb(220, 30, 30) },
+	{ Id = "Leprechaun", Name = "Leprechaun",     Rarity = 2, Plan = "humanoid",  Style = "leprechaun", Height = 0.7, Skin = rgb(245, 205, 175), Shirt = rgb(40, 160, 70), Pants = rgb(35, 125, 55), Hair = rgb(235, 120, 40), Shoes = rgb(40, 30, 25), Accent = rgb(255, 210, 60) },
+	{ Id = "Cadejo",     Name = "El Cadejo",      Rarity = 2, Plan = "quadruped", Style = "dog",        Color = rgb(40, 40, 48), Accent = rgb(255, 40, 40), Material = Enum.Material.Fabric },
+	{ Id = "Werewolf",   Name = "Werewolf",       Rarity = 3, Plan = "humanoid",  Style = "werewolf",   Height = 1.15, Skin = rgb(85, 90, 115), Shirt = rgb(85, 90, 115), Pants = rgb(70, 65, 90), Hair = rgb(70, 75, 100), Accent = rgb(255, 220, 80), Material = Enum.Material.Fabric },
+	{ Id = "Kelpie",     Name = "Kelpie",         Rarity = 3, Plan = "quadruped", Style = "horse",      Color = rgb(30, 55, 50), Accent = rgb(60, 150, 120) },
+	{ Id = "Vampire",    Name = "Vampire",        Rarity = 4, Plan = "humanoid",  Style = "vampire",    Skin = rgb(240, 235, 240), Shirt = rgb(130, 20, 70), Pants = rgb(30, 25, 40), Hair = rgb(25, 20, 30), Shoes = rgb(20, 20, 25), Accent = rgb(255, 30, 60) },
+	{ Id = "Ghost",      Name = "Ghost",          Rarity = 4, Plan = "ghost",                               Color = rgb(225, 235, 250), Accent = rgb(120, 200, 255) },
+	{ Id = "Troll",      Name = "Troll",          Rarity = 5, Plan = "humanoid",  Style = "troll",      Height = 1.35, Skin = rgb(110, 135, 80), Shirt = rgb(110, 135, 80), Pants = rgb(120, 85, 55), Hair = rgb(80, 65, 45) },
+	{ Id = "Kitsune",    Name = "Kitsune",        Rarity = 5, Plan = "quadruped", Style = "fox",        Color = rgb(235, 50, 100), Accent = rgb(255, 245, 250) },
+	{ Id = "Bigfoot",    Name = "Bigfoot",        Rarity = 6, Plan = "humanoid",  Style = "bigfoot",    Height = 1.45, Skin = rgb(105, 70, 45), Shirt = rgb(105, 70, 45), Pants = rgb(105, 70, 45), Hair = rgb(95, 62, 40), Accent = rgb(150, 110, 85), Material = Enum.Material.Fabric },
+	{ Id = "Mothman",    Name = "Mothman",        Rarity = 6, Plan = "humanoid",  Style = "mothman",    Height = 1.25, Skin = rgb(70, 55, 50), Shirt = rgb(70, 55, 50), Pants = rgb(55, 45, 40), Hair = rgb(70, 55, 50), Accent = rgb(255, 30, 30) },
+	{ Id = "Grootslang", Name = "Grootslang",     Rarity = 7, Plan = "serpent",                             Color = rgb(120, 115, 105), Accent = rgb(240, 235, 215) },
+	{ Id = "Dragon",     Name = "Ancient Dragon", Rarity = 7, Plan = "dragon",                              Color = rgb(70, 72, 80), Accent = rgb(220, 140, 50) },
+	{ Id = "Gigamog",    Name = "GIGAMOG",        Rarity = 8, Plan = "dragon",                              Color = rgb(255, 205, 60), Accent = rgb(255, 255, 255), Scale = 1.2, Crown = true },
 	-- Only from Rebirth 10:
-	{ Id = "Phoenixmog",  Name = "Phoenixmog",  Rarity = 6, Plan = "bird",    Color = Color3.fromRGB(255, 130, 50), Accent = Color3.fromRGB(255, 225, 70), Exclusive = true },
+	{ Id = "Phoenixmog", Name = "Phoenixmog",     Rarity = 6, Plan = "bird",                                Color = rgb(255, 130, 50), Accent = rgb(255, 225, 70), Exclusive = true },
 }
 
 -- Levels. Chance is per monster. Mult boosts money AND the MOG you need.
@@ -148,13 +153,15 @@ local SWINGS = {
 }
 -- AURAS multiply the MOG you get from training
 local AURAS = {
-	{ Name = "Spark Aura",   Mult = 1.25, Cost = 1000,      Color = Color3.fromRGB(255, 255, 150) },
-	{ Name = "Flame Aura",   Mult = 1.5,  Cost = 10000,     Color = Color3.fromRGB(255, 120, 40) },
-	{ Name = "Frost Aura",   Mult = 2,    Cost = 75000,     Color = Color3.fromRGB(130, 220, 255) },
-	{ Name = "Thunder Aura", Mult = 3,    Cost = 500000,    Color = Color3.fromRGB(255, 240, 60) },
-	{ Name = "Shadow Aura",  Mult = 5,    Cost = 4000000,   Color = Color3.fromRGB(140, 60, 220) },
-	{ Name = "Cosmic Aura",  Mult = 8,    Cost = 30000000,  Color = Color3.fromRGB(90, 40, 255) },
-	{ Name = "Rainbow Aura", Mult = 12,   Cost = 250000000, Color = Color3.fromRGB(255, 120, 220), Rainbow = true },
+	{ Name = "Spark Aura",   Tier = "Common",    Mult = 1.25, Cost = 1000,       Color = Color3.fromRGB(255, 255, 160) },
+	{ Name = "Flame Aura",   Tier = "Rare",      Mult = 1.5,  Cost = 10000,      Color = Color3.fromRGB(255, 120, 40) },
+	{ Name = "Frost Aura",   Tier = "Rare",      Mult = 2,    Cost = 75000,      Color = Color3.fromRGB(130, 220, 255) },
+	{ Name = "Thunder Aura", Tier = "Epic",      Mult = 3,    Cost = 500000,     Color = Color3.fromRGB(255, 240, 60) },
+	{ Name = "Toxic Aura",   Tier = "Epic",      Mult = 4,    Cost = 1500000,    Color = Color3.fromRGB(120, 255, 80) },
+	{ Name = "Shadow Aura",  Tier = "Legendary", Mult = 5,    Cost = 4000000,    Color = Color3.fromRGB(140, 60, 220) },
+	{ Name = "Blood Aura",   Tier = "Mythic",     Mult = 6.5,  Cost = 12000000,   Color = Color3.fromRGB(230, 30, 60) },
+	{ Name = "Cosmic Aura",  Tier = "Secret",    Mult = 8,    Cost = 30000000,   Color = Color3.fromRGB(90, 40, 255) },
+	{ Name = "Rainbow Aura", Tier = "Divine",    Mult = 12,   Cost = 250000000,  Color = Color3.fromRGB(255, 120, 220), Rainbow = true },
 }
 
 -- Money Boost upgrade levels
@@ -812,7 +819,7 @@ local function randomSpecies(rarity)
 end
 
 ----------------------------------------------------------------------
--- MONSTER LOOKS (round, smooth bodies made of ellipsoids)
+-- MONSTER LOOKS (bodies made of smooth ovals, sticks and balls)
 ----------------------------------------------------------------------
 local modelFolder = ServerStorage:FindFirstChild("MonsterModels")
 if not modelFolder then
@@ -825,11 +832,23 @@ local function buildBody(def, variant)
 	local rarity = RARITIES[def.Rarity]
 	local v = VARIANTS[variant]
 	local s = (2.8 + def.Rarity * 0.55) * (def.Scale or 1)
-	local skin = v.Color or def.Color
-	local accent = def.Accent or skin:Lerp(Color3.new(0, 0, 0), 0.3)
-	local skinMat = v.Material or def.Material or Enum.Material.SmoothPlastic
 	local plan = def.Plan
 	local white, black = Color3.new(1, 1, 1), Color3.fromRGB(25, 25, 30)
+	local DEG = math.rad
+
+	-- the colors of this monster. A Silver/Golden/... level paints the whole body.
+	local base = def.Color or def.Skin or rgb(200, 200, 200)
+	local palette = {
+		skin = def.Skin or base, shirt = def.Shirt or base, pants = def.Pants or base,
+		hair = def.Hair or base, shoes = def.Shoes or (def.Skin or base), body = base,
+		accent = def.Accent or base:Lerp(black, 0.3),
+	}
+	local mat = v.Material or def.Material or Enum.Material.SmoothPlastic
+	if v.Color then
+		for k, c in pairs(palette) do
+			palette[k] = k == "accent" and v.Color:Lerp(Color3.new(1, 1, 1), 0.35) or v.Color:Lerp(c, 0.12)
+		end
+	end
 
 	local root = Instance.new("Part")
 	root.Name = "Monster"
@@ -837,41 +856,23 @@ local function buildBody(def, variant)
 	root.CanCollide = false
 	root.CustomPhysicalProperties = PhysicalProperties.new(1, 1, 0, 1, 1)
 	root.CFrame = CFrame.new()
-	root.Color = skin
-	root.Material = skinMat
-	root:SetAttribute("Skin", true)
 	local rootMesh = Instance.new("SpecialMesh")
 	rootMesh.MeshType = Enum.MeshType.Sphere
 	rootMesh.Parent = root
-	if plan == "beast" or plan == "dragon" then
-		root.Size = Vector3.new(s * 0.85, s * 0.8, s * 1.4)
-	elseif plan == "golem" then
-		root.Size = Vector3.new(s * 1.0, s * 1.0, s * 0.75)
-	elseif plan == "bird" then
-		root.Size = Vector3.new(s * 0.8, s * 0.85, s * 1.0)
-	elseif plan == "spider" then
-		root.Size = Vector3.new(s * 0.85, s * 0.7, s * 1.0)
-	elseif plan == "serpent" then
-		root.Size = Vector3.new(s * 0.75, s * 0.7, s * 0.95)
-	else
-		root.Size = Vector3.new(s, s * 0.9, s)
-	end
 
-	-- kind: "egg" (smooth ellipsoid), "ball", "cyl" (round stick along Y), "block"
-	local function add(size, offset, color, kind, material)
+	-- kind: "egg" (smooth oval), "ball", "cyl" (round stick along Y), "block"
+	local function add(size, offset, color, kind, material, transparency)
 		local p = Instance.new("Part")
 		p.Name = "Deco"
-		if color == "skin" then
-			p.Color = skin
-			p.Material = skinMat
+		if palette[color] then
+			p.Color = palette[color]
+			p.Material = (color == "accent" and not v.Color) and (material or Enum.Material.SmoothPlastic) or mat
 			p:SetAttribute("Skin", true)
-		elseif color == "accent" then
-			p.Color = accent
-			p.Material = material or Enum.Material.SmoothPlastic
 		else
 			p.Color = color
 			p.Material = material or Enum.Material.SmoothPlastic
 		end
+		p.Transparency = transparency or 0
 		p.CanCollide = false
 		p.CanQuery = false
 		p.CanTouch = false
@@ -880,7 +881,7 @@ local function buildBody(def, variant)
 		if kind == "cyl" then
 			p.Shape = Enum.PartType.Cylinder
 			p.Size = Vector3.new(size.Y, size.X, size.Z)
-			p.CFrame = offset * CFrame.Angles(0, 0, math.rad(90))
+			p.CFrame = offset * CFrame.Angles(0, 0, DEG(90))
 		else
 			p.Size = size
 			p.CFrame = offset
@@ -899,126 +900,307 @@ local function buildBody(def, variant)
 		p.Parent = root
 		return p
 	end
-	local function eyes(x, y, z, size, glow)
+	local function V(x, y, z)
+		return Vector3.new(x, y, z)
+	end
+	local function at(x, y, z)
+		return CFrame.new(x, y, z)
+	end
+	local function eyes(x, y, z, size, glow, pupil)
 		for _, sx in ipairs({ -1, 1 }) do
 			if glow then
-				add(Vector3.new(size, size, size), CFrame.new(sx * x, y, z), glow, "ball", Enum.Material.Neon)
+				add(V(size, size, size), at(sx * x, y, z), glow, "ball", Enum.Material.Neon)
 			else
-				add(Vector3.new(size, size, size), CFrame.new(sx * x, y, z), white, "ball")
-				add(Vector3.new(size * 0.5, size * 0.5, size * 0.5), CFrame.new(sx * x, y + size * 0.05, z - size * 0.38), black, "ball")
-				add(Vector3.new(size * 0.15, size * 0.15, size * 0.15), CFrame.new(sx * x + size * 0.1, y + size * 0.2, z - size * 0.5), white, "ball")
+				add(V(size, size * 0.85, size * 0.6), at(sx * x, y, z), white, "egg")
+				add(V(size * 0.5, size * 0.5, size * 0.3), at(sx * x, y, z - size * 0.25), pupil or rgb(60, 40, 30), "egg")
+				add(V(size * 0.22, size * 0.22, size * 0.1), at(sx * x, y, z - size * 0.33), black, "egg")
 			end
 		end
 	end
 
 	local foot, hover = s * 0.5, 0
-	if plan == "blob" then
-		eyes(s * 0.2, s * 0.15, -s * 0.36, s * 0.3)
-		add(Vector3.new(s * 0.3, s * 0.12, s * 0.12), CFrame.new(0, -s * 0.1, -s * 0.46), Color3.fromRGB(200, 60, 80), "egg")
-		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.2, s * 0.12, s * 0.06), CFrame.new(sx * s * 0.32, -s * 0.02, -s * 0.4), Color3.fromRGB(255, 150, 160), "egg") -- cheeks
-			add(Vector3.new(s * 0.32, s * 0.2, s * 0.4), CFrame.new(sx * s * 0.25, -s * 0.44, -s * 0.05), "accent", "egg")
-		end
-		foot = s * 0.54
 
-	elseif plan == "beast" or plan == "dragon" then
-		add(Vector3.new(s * 0.62, s * 0.6, s * 0.66), CFrame.new(0, s * 0.35, -s * 0.85), "skin", "egg") -- head
-		add(Vector3.new(s * 0.38, s * 0.28, s * 0.42), CFrame.new(0, s * 0.22, -s * 1.12), "accent", "egg") -- snout
-		add(Vector3.new(s * 0.14, s * 0.1, s * 0.08), CFrame.new(0, s * 0.3, -s * 1.32), black, "egg") -- nose
-		eyes(s * 0.16, s * 0.47, -s * 1.06, s * 0.17, plan == "dragon" and Color3.fromRGB(255, 220, 60) or nil)
-		add(Vector3.new(s * 0.55, s * 0.45, s * 0.5), CFrame.new(0, s * 0.12, -s * 0.5), "skin", "egg") -- neck
+	if plan == "humanoid" then
+		local st = def.Style
+		local u = s * 0.42 * (def.Height or 1)
+		local furry = st == "bigfoot" or st == "werewolf"
+		local barefoot = furry or st == "troll" or st == "mothman"
+		-- torso (root)
+		root.Size = V(1.15 * u, 1.45 * u, 0.75 * u)
+		root.Color = palette.shirt
+		root.Material = mat
+		root:SetAttribute("Skin", true)
+		if st == "troll" then
+			add(V(1.4 * u, 1.15 * u, 1.05 * u), at(0, -0.35 * u, -0.2 * u), "skin", "egg") -- big belly
+		end
+		if st == "werewolf" or st == "bigfoot" or st == "troll" then
+			add(V(1.35 * u, 0.7 * u, 0.85 * u), at(0, 0.55 * u, 0.05 * u), "skin", "egg") -- big shoulders
+		end
+		add(V(1.05 * u, 0.6 * u, 0.72 * u), at(0, -0.8 * u, 0), "pants", "egg") -- hips
+		-- legs
+		for _, sx in ipairs({ -1, 1 }) do
+			add(V(0.44 * u, 1.0 * u, 0.44 * u), at(sx * 0.28 * u, -1.35 * u, 0), "pants", "cyl")
+			add(V(0.48 * u, 0.4 * u, 0.48 * u), at(sx * 0.28 * u, -1.8 * u, 0), "pants", "egg") -- knee
+			add(V(0.38 * u, 0.9 * u, 0.38 * u), at(sx * 0.28 * u, -2.2 * u, 0), barefoot and "skin" or "pants", "cyl")
+			add(V(0.44 * u, 0.28 * u, 0.8 * u), at(sx * 0.28 * u, -2.7 * u, -0.17 * u), barefoot and "skin" or "shoes", "egg")
+		end
+		foot = 2.82 * u
+		-- arms
+		local armLen = (st == "bigfoot" or st == "troll") and 1.15 or 1
+		for _, sx in ipairs({ -1, 1 }) do
+			add(V(0.46 * u, 0.46 * u, 0.46 * u), at(sx * 0.68 * u, 0.55 * u, 0), "shirt", "ball")
+			if st == "zombie" then
+				add(V(0.34 * u, 0.85 * u, 0.34 * u), at(sx * 0.66 * u, 0.5 * u, -0.45 * u) * CFrame.Angles(DEG(-90), 0, 0), "shirt", "cyl")
+				add(V(0.3 * u, 0.8 * u, 0.3 * u), at(sx * 0.66 * u, 0.5 * u, -1.22 * u) * CFrame.Angles(DEG(-90), 0, 0), "skin", "cyl")
+				add(V(0.32 * u, 0.3 * u, 0.42 * u), at(sx * 0.66 * u, 0.48 * u, -1.72 * u), "skin", "egg")
+			else
+				add(V(0.34 * u, 0.85 * u * armLen, 0.34 * u), at(sx * 0.76 * u, 0.05 * u, 0) * CFrame.Angles(0, 0, sx * DEG(8)), "shirt", "cyl")
+				add(V(0.3 * u, 0.8 * u * armLen, 0.3 * u), at(sx * 0.82 * u, -0.75 * u * armLen, 0), (st == "vampire") and "shirt" or "skin", "cyl")
+				local hand = add(V(0.32 * u, 0.4 * u, 0.3 * u), at(sx * 0.84 * u, -1.2 * u * armLen, 0), "skin", "egg")
+				if st == "werewolf" or st == "troll" or st == "bigfoot" then
+					for i = -1, 1 do
+						add(V(0.06 * u, 0.22 * u, 0.06 * u), at(sx * 0.84 * u + i * 0.08 * u, -1.45 * u * armLen, -0.08 * u) * CFrame.Angles(DEG(-20), 0, 0), st == "werewolf" and white or "accent", "cyl")
+					end
+				end
+				hand.Name = "Hand"
+			end
+		end
+		-- neck + head
+		local hz = st == "troll" and -0.3 * u or (st == "zombie" and -0.12 * u or 0)
+		local hy = st == "troll" and 1.25 * u or 1.38 * u
+		add(V(0.38 * u, 0.4 * u, 0.38 * u), at(0, 0.85 * u, hz * 0.5), "skin", "cyl")
+		add(V(0.74 * u, 0.86 * u, 0.8 * u), at(0, hy, hz), "skin", "egg")
+		local fz = hz - 0.38 * u -- front of the face
+		if st == "werewolf" then
+			add(V(0.42 * u, 0.38 * u, 0.62 * u), at(0, hy - 0.12 * u, fz - 0.15 * u), "skin", "egg") -- snout
+			add(V(0.16 * u, 0.12 * u, 0.12 * u), at(0, hy - 0.02 * u, fz - 0.45 * u), black, "egg") -- nose
+			for _, sx in ipairs({ -1, 1 }) do
+				add(V(0.2 * u, 0.42 * u, 0.12 * u), at(sx * 0.24 * u, hy + 0.5 * u, hz) * CFrame.Angles(0, 0, -sx * DEG(15)), "hair", "egg") -- ears
+				add(V(0.05 * u, 0.14 * u, 0.05 * u), at(sx * 0.1 * u, hy - 0.3 * u, fz - 0.3 * u), white, "cyl") -- fangs
+			end
+			eyes(0.17 * u, hy + 0.12 * u, fz + 0.02 * u, 0.13 * u, palette.accent)
+		elseif st == "mothman" then
+			eyes(0.2 * u, hy + 0.08 * u, fz + 0.04 * u, 0.32 * u, def.Accent)
+			for _, sx in ipairs({ -1, 1 }) do
+				add(V(0.04 * u, 0.6 * u, 0.04 * u), at(sx * 0.15 * u, hy + 0.6 * u, hz - 0.1 * u) * CFrame.Angles(DEG(-20), 0, -sx * DEG(25)), "hair", "cyl") -- antennae
+				local wing = add(V(0.08 * u, 2.4 * u, 1.7 * u), at(sx * 1.05 * u, 0.5 * u, 0.5 * u) * CFrame.Angles(0, sx * DEG(-20), -sx * DEG(30)), "hair", "egg")
+				wing.Name = "Wing"
+				add(V(0.1 * u, 0.5 * u, 0.5 * u), at(sx * 1.35 * u, 0.9 * u, 0.62 * u), "accent", "egg", Enum.Material.Neon)
+			end
+		else
+			local pupil = (st == "vampire") and def.Accent or (st == "zombie" and rgb(200, 200, 120) or nil)
+			eyes(0.16 * u, hy + 0.08 * u, fz + 0.03 * u, 0.2 * u, nil, pupil)
+			local noseSize = st == "troll" and 0.34 or (st == "redcap" and 0.2 or 0.14)
+			add(V(noseSize * u, noseSize * 1.2 * u, noseSize * u), at(0, hy - 0.05 * u, fz - 0.03 * u), "skin", "egg") -- nose
+			add(V(0.28 * u, 0.06 * u, 0.06 * u), at(0, hy - 0.26 * u, fz + 0.04 * u), rgb(90, 30, 40), "egg") -- mouth
+			if st == "bigfoot" then
+				add(V(0.5 * u, 0.4 * u, 0.3 * u), at(0, hy - 0.15 * u, fz + 0.04 * u), "accent", "egg") -- ape face
+				add(V(0.6 * u, 0.12 * u, 0.2 * u), at(0, hy + 0.2 * u, fz + 0.02 * u), "hair", "egg") -- brow
+			end
+			if st == "vampire" or st == "troll" then
+				for _, sx in ipairs({ -1, 1 }) do
+					local tooth = add(V(0.05 * u, 0.12 * u, 0.05 * u), at(sx * 0.07 * u, hy - 0.32 * u, fz + 0.02 * u), white, "cyl")
+					if st == "troll" then
+						tooth.Size = Vector3.new(0.2 * u, 0.08 * u, 0.08 * u)
+					end
+				end
+			end
+		end
+		-- hair / hats / clothes
+		if st ~= "mothman" and st ~= "troll" then
+			add(V(0.8 * u, 0.5 * u, 0.84 * u), at(0, hy + 0.27 * u, hz + 0.05 * u), "hair", "egg")
+		end
+		if st == "redcap" then
+			add(V(0.82 * u, 0.25 * u, 0.86 * u), at(0, hy + 0.38 * u, hz + 0.04 * u), "accent", "egg")
+			add(V(0.55 * u, 0.9 * u, 0.55 * u), at(0, hy + 0.75 * u, hz + 0.18 * u) * CFrame.Angles(DEG(25), 0, 0), "accent", "egg")
+			add(V(0.55 * u, 0.55 * u, 0.3 * u), at(0, hy - 0.4 * u, fz + 0.05 * u), "hair", "egg") -- beard
+		elseif st == "leprechaun" then
+			add(V(0.18 * u, 1.15 * u, 1.15 * u), at(0, hy + 0.42 * u, hz) * CFrame.Angles(0, 0, DEG(90)), "shirt", "cyl")
+			add(V(0.7 * u, 0.65 * u, 0.7 * u), at(0, hy + 0.78 * u, hz), "shirt", "cyl")
+			add(V(0.72 * u, 0.14 * u, 0.72 * u), at(0, hy + 0.55 * u, hz), black, "cyl")
+			add(V(0.2 * u, 0.14 * u, 0.06 * u), at(0, hy + 0.55 * u, hz - 0.36 * u), "accent", "block", Enum.Material.Neon)
+			add(V(0.65 * u, 0.6 * u, 0.35 * u), at(0, hy - 0.42 * u, fz + 0.06 * u), "hair", "egg") -- beard
+			add(V(1.2 * u, 0.15 * u, 0.8 * u), at(0, -0.5 * u, 0), black, "egg") -- belt
+			add(V(0.25 * u, 0.2 * u, 0.06 * u), at(0, -0.5 * u, -0.4 * u), "accent", "block", Enum.Material.Neon)
+		elseif st == "vampire" then
+			add(V(1.6 * u, 2.7 * u, 0.14 * u), at(0, -0.6 * u, 0.42 * u), rgb(25, 10, 15), "egg") -- cape
+			add(V(1.5 * u, 2.5 * u, 0.1 * u), at(0, -0.6 * u, 0.36 * u), "accent", "egg") -- red inside
+			for _, sx in ipairs({ -1, 1 }) do
+				add(V(0.5 * u, 0.7 * u, 0.08 * u), at(sx * 0.38 * u, 1.0 * u, 0.15 * u) * CFrame.Angles(0, 0, -sx * DEG(20)), rgb(25, 10, 15), "block") -- collar
+			end
+		elseif st == "zombie" then
+			add(V(0.5 * u, 0.4 * u, 0.1 * u), at(0.2 * u, -0.2 * u, -0.36 * u), "skin", "egg") -- hole in the shirt
+		elseif st == "troll" then
+			add(V(1.3 * u, 0.5 * u, 0.9 * u), at(0, -0.9 * u, 0), "pants", "egg") -- loincloth
+			add(V(0.35 * u, 0.3 * u, 0.35 * u), at(0, hy + 0.4 * u, hz + 0.05 * u), "hair", "egg") -- tuft
+		end
+
+	elseif plan == "quadruped" then
+		local st = def.Style
+		local u = s * 0.5
+		local horse, fox = st == "horse", st == "fox"
+		local bodyLen = horse and 2.4 or (fox and 1.6 or 1.7)
+		local legLen = horse and 1.1 or 0.6
+		root.Size = V((horse and 1.1 or 0.85) * u, (horse and 1.1 or 0.8) * u, bodyLen * u)
+		root.Color = palette.body
+		root.Material = mat
+		root:SetAttribute("Skin", true)
+		local legX = horse and 0.36 * u or 0.3 * u
+		local legZ = bodyLen * 0.34 * u
 		for _, sx in ipairs({ -1, 1 }) do
 			for _, sz in ipairs({ -1, 1 }) do
-				add(Vector3.new(s * 0.36, s * 0.42, s * 0.4), CFrame.new(sx * s * 0.3, -s * 0.28, sz * s * 0.42), "skin", "egg") -- thigh
-				add(Vector3.new(s * 0.18, s * 0.42, s * 0.18), CFrame.new(sx * s * 0.3, -s * 0.6, sz * s * 0.42), "skin", "cyl") -- leg
-				add(Vector3.new(s * 0.26, s * 0.12, s * 0.32), CFrame.new(sx * s * 0.3, -s * 0.82, sz * s * 0.42 - s * 0.04), "accent", "egg") -- paw
-			end
-			if def.Ears then
-				add(Vector3.new(s * 0.14, s * 0.3, s * 0.1), CFrame.new(sx * s * 0.2, s * 0.68, -s * 0.8) * CFrame.Angles(0, 0, -sx * 0.3), "accent", "egg")
-			end
-			if def.Horns or plan == "dragon" then
-				add(Vector3.new(s * 0.1, s * 0.55, s * 0.1), CFrame.new(sx * s * 0.2, s * 0.75, -s * 0.72) * CFrame.Angles(0.5, 0, -sx * 0.45), "accent", "cyl", Enum.Material.Neon)
+				add(V(0.48 * u, 0.7 * u, 0.55 * u), at(sx * legX, -0.3 * u, sz * legZ), "body", "egg") -- thigh
+				add(V(0.24 * u, legLen * u, 0.24 * u), at(sx * legX, -0.4 * u - legLen * 0.5 * u, sz * legZ), "body", "cyl")
+				add(V(0.2 * u, legLen * u, 0.2 * u), at(sx * legX, -0.4 * u - legLen * 1.4 * u, sz * legZ), "body", "cyl")
+				add(V(0.3 * u, 0.2 * u, horse and 0.32 * u or 0.4 * u), at(sx * legX, -0.4 * u - legLen * 1.9 * u, sz * legZ - 0.05 * u), horse and black or "body", "egg")
 			end
 		end
-		local tailLen = plan == "dragon" and 1.3 or 0.8
-		add(Vector3.new(s * 0.16, s * tailLen, s * 0.16), CFrame.new(0, s * 0.18, s * (0.7 + tailLen / 2)) * CFrame.Angles(math.rad(70), 0, 0), "skin", "cyl")
-		if plan == "dragon" then
+		foot = 0.4 * u + legLen * 1.9 * u + 0.1 * u
+		-- neck + head
+		local hy, hz
+		if horse then
+			add(V(0.6 * u, 1.5 * u, 0.75 * u), at(0, 0.85 * u, -1.15 * u) * CFrame.Angles(DEG(-30), 0, 0), "body", "egg")
+			hy, hz = 1.5 * u, -1.65 * u
+			add(V(0.55 * u, 0.6 * u, 1.1 * u), at(0, hy, hz) * CFrame.Angles(DEG(20), 0, 0), "body", "egg")
+			add(V(0.45 * u, 0.42 * u, 0.4 * u), at(0, hy - 0.25 * u, hz - 0.5 * u), "body", "egg") -- muzzle
 			for _, sx in ipairs({ -1, 1 }) do
-				add(Vector3.new(s * 0.08, s * 0.9, s * 1.2), CFrame.new(sx * s * 0.8, s * 0.6, 0) * CFrame.Angles(0, 0, -sx * 0.75), "accent", "egg", Enum.Material.Neon)
+				add(V(0.06 * u, 0.06 * u, 0.04 * u), at(sx * 0.1 * u, hy - 0.22 * u, hz - 0.7 * u), black, "egg") -- nostrils
+				add(V(0.12 * u, 0.3 * u, 0.08 * u), at(sx * 0.15 * u, hy + 0.42 * u, hz + 0.3 * u), "body", "egg") -- ears
 			end
-			for i = -1, 1 do
-				add(Vector3.new(s * 0.1, s * 0.3, s * 0.22), CFrame.new(0, s * 0.45, i * s * 0.38), "accent", "egg", Enum.Material.Neon)
+			eyes(0.24 * u, hy + 0.12 * u, hz - 0.2 * u, 0.14 * u, nil, black)
+			add(V(0.18 * u, 1.6 * u, 0.5 * u), at(0, 1.15 * u, -1.0 * u) * CFrame.Angles(DEG(-30), 0, 0), "accent", "egg") -- mane
+			add(V(0.32 * u, 1.4 * u, 0.32 * u), at(0, -0.35 * u, bodyLen * 0.55 * u) * CFrame.Angles(DEG(25), 0, 0), "accent", "egg") -- tail
+		else
+			add(V(0.5 * u, 0.7 * u, 0.55 * u), at(0, 0.35 * u, -0.75 * u * bodyLen / 1.7) * CFrame.Angles(DEG(-30), 0, 0), "body", "egg")
+			hy, hz = 0.72 * u, -1.05 * u * bodyLen / 1.7
+			add(V(0.62 * u, 0.58 * u, 0.62 * u), at(0, hy, hz), "body", "egg")
+			add(V(0.32 * u, 0.28 * u, (fox and 0.6 or 0.48) * u), at(0, hy - 0.08 * u, hz - 0.42 * u), fox and "accent" or "body", "egg") -- snout
+			add(V(0.12 * u, 0.1 * u, 0.1 * u), at(0, hy - 0.02 * u, hz - (fox and 0.72 or 0.66) * u), black, "egg") -- nose
+			for _, sx in ipairs({ -1, 1 }) do
+				add(V(0.18 * u, (fox and 0.5 or 0.36) * u, 0.1 * u), at(sx * 0.2 * u, hy + 0.38 * u, hz + 0.05 * u) * CFrame.Angles(0, 0, -sx * DEG(12)), "body", "egg") -- ears
 			end
-		end
-		foot = s * 0.88
-
-	elseif plan == "golem" then
-		add(Vector3.new(s * 0.55, s * 0.5, s * 0.5), CFrame.new(0, s * 0.68, -s * 0.06), "skin", "egg") -- head
-		eyes(s * 0.12, s * 0.74, -s * 0.3, s * 0.14, def.Accent or Color3.fromRGB(255, 220, 80))
-		add(Vector3.new(s * 0.42, s * 0.08, s * 0.1), CFrame.new(0, s * 0.86, -s * 0.28), "accent", "egg") -- brow
-		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.4, s * 0.4, s * 0.4), CFrame.new(sx * s * 0.58, s * 0.28, 0), "skin", "egg") -- shoulder
-			add(Vector3.new(s * 0.34, s * 0.7, s * 0.34), CFrame.new(sx * s * 0.66, -s * 0.15, 0), "skin", "egg") -- arm
-			add(Vector3.new(s * 0.42, s * 0.36, s * 0.42), CFrame.new(sx * s * 0.68, -s * 0.52, -s * 0.02), "accent", "egg") -- fist
-			add(Vector3.new(s * 0.36, s * 0.42, s * 0.38), CFrame.new(sx * s * 0.22, -s * 0.62, 0), "skin", "egg") -- leg
-		end
-		if def.Crystals then
-			for i = 1, 4 do
-				add(Vector3.new(s * 0.14, s * 0.45, s * 0.14), CFrame.new((i - 2.5) * s * 0.2, s * 0.5, s * 0.28) * CFrame.Angles(-0.4, 0, (i - 2.5) * 0.3), "accent", "cyl", Enum.Material.Neon)
-			end
-		end
-		foot = s * 0.83
-
-	elseif plan == "bird" then
-		add(Vector3.new(s * 0.5, s * 0.5, s * 0.5), CFrame.new(0, s * 0.42, -s * 0.38), "skin", "ball") -- head
-		add(Vector3.new(s * 0.12, s * 0.12, s * 0.34), CFrame.new(0, s * 0.37, -s * 0.72), Color3.fromRGB(255, 175, 40), "egg") -- beak
-		eyes(s * 0.14, s * 0.5, -s * 0.56, s * 0.13)
-		add(Vector3.new(s * 0.08, s * 0.32, s * 0.2), CFrame.new(0, s * 0.72, -s * 0.33), "accent", "egg", Enum.Material.Neon) -- crest
-		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.12, s * 0.6, s * 0.85), CFrame.new(sx * s * 0.46, s * 0.1, s * 0.05) * CFrame.Angles(0, 0, sx * 0.5), "accent", "egg") -- wing
-			add(Vector3.new(s * 0.07, s * 0.42, s * 0.07), CFrame.new(sx * s * 0.15, -s * 0.58, 0), Color3.fromRGB(255, 175, 40), "cyl")
-			add(Vector3.new(s * 0.18, s * 0.05, s * 0.22), CFrame.new(sx * s * 0.15, -s * 0.78, -s * 0.06), Color3.fromRGB(255, 175, 40), "egg")
-		end
-		add(Vector3.new(s * 0.4, s * 0.08, s * 0.55), CFrame.new(0, s * 0.12, s * 0.58) * CFrame.Angles(0.4, 0, 0), "accent", "egg") -- tail
-		foot = s * 0.8
-
-	elseif plan == "spider" then
-		add(Vector3.new(s * 0.52, s * 0.48, s * 0.5), CFrame.new(0, -s * 0.02, -s * 0.58), "skin", "egg") -- head
-		for i = 1, 3 do
-			eyes(s * 0.07 * i, s * 0.12 - i * s * 0.04, -s * 0.8, s * 0.09, def.Accent or Color3.fromRGB(255, 60, 60))
-		end
-		for _, sx in ipairs({ -1, 1 }) do
-			for i = 1, 4 do
-				local z = (i - 2.5) * s * 0.24
-				add(Vector3.new(s * 0.08, s * 0.6, s * 0.08), CFrame.new(sx * s * 0.55, s * 0.05, z) * CFrame.Angles(0, 0, -sx * 1.0), "accent", "cyl")
-				add(Vector3.new(s * 0.07, s * 0.6, s * 0.07), CFrame.new(sx * s * 0.88, -s * 0.3, z) * CFrame.Angles(0, 0, sx * 0.35), "accent", "cyl")
+			eyes(0.15 * u, hy + 0.1 * u, hz - 0.27 * u, 0.13 * u, st == "dog" and def.Accent or nil, fox and rgb(255, 200, 40) or nil)
+			if fox then
+				for i = 1, 9 do
+					local a = DEG(-60 + (i - 1) * 15)
+					local tail = add(V(0.32 * u, 1.5 * u, 0.32 * u), at(0, 0, bodyLen * 0.5 * u) * CFrame.Angles(0, 0, a) * CFrame.Angles(DEG(45), 0, 0) * at(0, 0.75 * u, 0), "body", "egg")
+					tail.Name = "Tail"
+					add(V(0.26 * u, 0.4 * u, 0.26 * u), tail.CFrame * at(0, 0.6 * u, 0), "accent", "egg", Enum.Material.Neon)
+				end
+			else
+				add(V(0.16 * u, 0.9 * u, 0.16 * u), at(0, 0.25 * u, bodyLen * 0.55 * u) * CFrame.Angles(DEG(45), 0, 0), "body", "egg") -- tail
 			end
 		end
-		add(Vector3.new(s * 0.36, s * 0.08, s * 0.36), CFrame.new(0, s * 0.33, s * 0.1), "accent", "egg", Enum.Material.Neon)
-		foot = s * 0.58
-
-	elseif plan == "serpent" then
-		eyes(s * 0.18, s * 0.16, -s * 0.38, s * 0.16, def.Accent)
-		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.06, s * 0.2, s * 0.06), CFrame.new(sx * s * 0.1, -s * 0.28, -s * 0.38), white, "cyl")
-		end
-		for i = 1, 7 do
-			local seg = s * (0.78 - i * 0.07)
-			add(Vector3.new(seg, seg * 0.9, seg * 1.2), CFrame.new(math.sin(i * 0.9) * s * 0.32, -s * 0.05, s * (0.3 + i * 0.5)), i % 2 == 0 and "accent" or "skin", "egg")
-		end
-		foot = s * 0.4
 
 	elseif plan == "ghost" then
-		root.Transparency = 0.3
-		for i = 1, 3 do
-			local seg = s * (0.75 - i * 0.18)
-			local tail = add(Vector3.new(seg, seg, seg), CFrame.new(0, -s * (0.35 + i * 0.22), s * i * 0.18), "skin", "ball")
-			tail.Transparency = 0.3 + i * 0.15
+		root.Size = V(s * 0.9, s * 1.1, s * 0.8)
+		root.Color = palette.body
+		root.Material = mat
+		root.Transparency = 0.25
+		root:SetAttribute("Skin", true)
+		for i = 1, 4 do
+			local w = s * (0.85 - i * 0.12)
+			local tail = add(V(w, s * 0.5, w * 0.9), at(math.sin(i) * s * 0.08, -s * (0.35 + i * 0.28), s * i * 0.1), "body", "egg")
+			tail.Transparency = 0.25 + i * 0.15
 		end
-		eyes(s * 0.18, s * 0.1, -s * 0.42, s * 0.18, Color3.fromRGB(255, 255, 255))
-		add(Vector3.new(s * 0.3, s * 0.22, s * 0.08), CFrame.new(0, -s * 0.15, -s * 0.46), black, "egg")
-		foot = s * 0.5
+		for _, sx in ipairs({ -1, 1 }) do
+			add(V(s * 0.22, s * 0.28, s * 0.1), at(sx * s * 0.18, s * 0.15, -s * 0.36), black, "egg")
+			add(V(s * 0.08, s * 0.08, s * 0.05), at(sx * s * 0.18, s * 0.15, -s * 0.41), def.Accent, "ball", Enum.Material.Neon)
+			local arm = add(V(s * 0.18, s * 0.7, s * 0.18), at(sx * s * 0.5, -s * 0.05, -s * 0.15) * CFrame.Angles(DEG(-50), 0, sx * DEG(20)), "body", "egg")
+			arm.Transparency = 0.35
+		end
+		add(V(s * 0.2, s * 0.3, s * 0.08), at(0, -s * 0.15, -s * 0.38), black, "egg") -- "oooh" mouth
+		foot = s * 0.55
 		hover = 2.5
+
+	elseif plan == "serpent" then
+		-- Grootslang: giant snake body with an elephant head
+		root.Size = V(s * 0.95, s * 0.85, s * 1.0)
+		root.Color = palette.body
+		root.Material = mat
+		root:SetAttribute("Skin", true)
+		for _, sx in ipairs({ -1, 1 }) do
+			add(V(s * 0.08, s * 0.85, s * 0.7), at(sx * s * 0.52, s * 0.05, s * 0.05) * CFrame.Angles(0, sx * DEG(25), 0), "body", "egg") -- big ears
+			add(V(s * 0.08, s * 0.55, s * 0.08), at(sx * s * 0.2, -s * 0.32, -s * 0.48) * CFrame.Angles(DEG(-60), 0, 0), "accent", "cyl") -- tusks
+		end
+		eyes(s * 0.22, s * 0.15, -s * 0.42, s * 0.12, nil, black)
+		for i = 1, 4 do
+			add(V(s * (0.28 - i * 0.03), s * 0.32, s * (0.28 - i * 0.03)), at(0, -s * (0.05 + i * 0.22), -s * (0.5 + i * 0.05)) * CFrame.Angles(DEG(i * 8), 0, 0), "body", "egg") -- trunk
+		end
+		for i = 1, 8 do
+			local seg = s * (0.85 - i * 0.07)
+			add(V(seg, seg * 0.8, seg * 1.3), at(math.sin(i * 0.8) * s * 0.4, -s * 0.15, s * (0.4 + i * 0.62)), i % 2 == 0 and "accent" or "body", "egg")
+		end
+		foot = s * 0.45
+
+	elseif plan == "dragon" then
+		local u = s * 0.55
+		root.Size = V(1.1 * u, 1.0 * u, 2.0 * u)
+		root.Color = palette.body
+		root.Material = mat
+		root:SetAttribute("Skin", true)
+		add(V(0.9 * u, 0.6 * u, 1.6 * u), at(0, -0.25 * u, 0), "accent", "egg") -- belly
+		for _, sx in ipairs({ -1, 1 }) do
+			for _, sz in ipairs({ -1, 1 }) do
+				add(V(0.5 * u, 0.75 * u, 0.6 * u), at(sx * 0.45 * u, -0.35 * u, sz * 0.6 * u), "body", "egg")
+				add(V(0.3 * u, 0.7 * u, 0.3 * u), at(sx * 0.5 * u, -0.9 * u, sz * 0.6 * u), "body", "cyl")
+				add(V(0.4 * u, 0.2 * u, 0.5 * u), at(sx * 0.5 * u, -1.25 * u, sz * 0.6 * u - 0.1 * u), "body", "egg")
+				for i = -1, 1 do
+					add(V(0.05 * u, 0.05 * u, 0.2 * u), at(sx * 0.5 * u + i * 0.12 * u, -1.3 * u, sz * 0.6 * u - 0.35 * u), white, "egg") -- claws
+				end
+			end
+			-- wings: arm bone + big membrane
+			add(V(0.12 * u, 1.8 * u, 0.12 * u), at(sx * 1.0 * u, 0.9 * u, 0.1 * u) * CFrame.Angles(DEG(-15), 0, -sx * DEG(55)), "body", "cyl")
+			local wing = add(V(0.06 * u, 2.4 * u, 2.2 * u), at(sx * 1.35 * u, 0.85 * u, 0.55 * u) * CFrame.Angles(DEG(-10), 0, -sx * DEG(55)), "accent", "egg", nil, 0.1)
+			wing.Name = "Wing"
+		end
+		-- neck and head
+		for i = 1, 3 do
+			add(V((0.6 - i * 0.05) * u, (0.6 - i * 0.05) * u, 0.6 * u), at(0, (0.35 + i * 0.32) * u, -(0.9 + i * 0.3) * u), "body", "egg")
+		end
+		local hy, hz = 1.55 * u, -2.05 * u
+		add(V(0.65 * u, 0.55 * u, 0.85 * u), at(0, hy, hz), "body", "egg")
+		add(V(0.45 * u, 0.25 * u, 0.6 * u), at(0, hy - 0.22 * u, hz - 0.45 * u), "body", "egg") -- jaw
+		add(V(0.5 * u, 0.3 * u, 0.65 * u), at(0, hy - 0.02 * u, hz - 0.5 * u), "body", "egg") -- snout
+		eyes(0.22 * u, hy + 0.12 * u, hz - 0.3 * u, 0.13 * u, rgb(255, 210, 50))
+		for _, sx in ipairs({ -1, 1 }) do
+			add(V(0.1 * u, 0.7 * u, 0.1 * u), at(sx * 0.22 * u, hy + 0.45 * u, hz + 0.35 * u) * CFrame.Angles(DEG(55), 0, -sx * DEG(20)), "accent", "cyl")
+			add(V(0.04 * u, 0.12 * u, 0.04 * u), at(sx * 0.12 * u, hy - 0.2 * u, hz - 0.7 * u), white, "cyl") -- teeth
+		end
+		for i = 0, 5 do
+			add(V(0.08 * u, 0.35 * u, 0.25 * u), at(0, 0.5 * u - i * 0.05 * u, -0.6 * u + i * 0.45 * u), "accent", "egg") -- back spikes
+		end
+		for i = 1, 6 do
+			local w = (0.55 - i * 0.07) * u
+			add(V(w, w, 0.7 * u), at(math.sin(i * 0.7) * 0.3 * u, -0.1 * u - i * 0.06 * u, (0.9 + i * 0.55) * u), "body", "egg") -- tail
+		end
+		if def.Crown then
+			add(V(0.6 * u, 0.2 * u, 0.6 * u), at(0, hy + 0.38 * u, hz + 0.05 * u), rgb(255, 225, 80), "cyl", Enum.Material.Neon)
+			for i = 1, 5 do
+				local a = DEG(i * 72)
+				add(V(0.08 * u, 0.3 * u, 0.08 * u), at(math.cos(a) * 0.25 * u, hy + 0.55 * u, hz + 0.05 * u + math.sin(a) * 0.25 * u), rgb(255, 225, 80), "cyl", Enum.Material.Neon)
+			end
+		end
+		foot = 1.35 * u
+
+	else -- bird
+		root.Size = V(s * 0.8, s * 0.85, s * 1.0)
+		root.Color = palette.body
+		root.Material = mat
+		root:SetAttribute("Skin", true)
+		add(V(s * 0.5, s * 0.5, s * 0.5), at(0, s * 0.42, -s * 0.38), "body", "ball")
+		add(V(s * 0.12, s * 0.12, s * 0.34), at(0, s * 0.37, -s * 0.72), rgb(255, 175, 40), "egg")
+		eyes(s * 0.14, s * 0.5, -s * 0.56, s * 0.13)
+		add(V(s * 0.08, s * 0.4, s * 0.3), at(0, s * 0.75, -s * 0.3), "accent", "egg", Enum.Material.Neon)
+		for _, sx in ipairs({ -1, 1 }) do
+			add(V(s * 0.12, s * 0.8, s * 1.1), at(sx * s * 0.55, s * 0.2, s * 0.05) * CFrame.Angles(0, 0, sx * 0.6), "accent", "egg")
+			add(V(s * 0.07, s * 0.42, s * 0.07), at(sx * s * 0.15, -s * 0.58, 0), rgb(255, 175, 40), "cyl")
+			add(V(s * 0.18, s * 0.05, s * 0.22), at(sx * s * 0.15, -s * 0.78, -s * 0.06), rgb(255, 175, 40), "egg")
+		end
+		for i = -1, 1 do
+			add(V(s * 0.18, s * 0.08, s * 0.9), at(i * s * 0.15, s * 0.1, s * 0.75) * CFrame.Angles(0.35, i * 0.3, 0), "accent", "egg", Enum.Material.Neon)
+		end
+		foot = s * 0.8
 	end
 
 	if def.Rarity >= 5 or variant >= 5 then
@@ -1873,7 +2055,7 @@ local function getInfo(player)
 	end
 	local auras = {}
 	for i, a in ipairs(AURAS) do
-		auras[i] = { Name = a.Name, Mult = a.Mult, Cost = a.Cost, Color = a.Color, Owned = data.Auras[a.Name] == true }
+		auras[i] = { Name = a.Name, Tier = a.Tier, Mult = a.Mult, Cost = a.Cost, Color = a.Color, Owned = data.Auras[a.Name] == true }
 	end
 	local nextHammer = HAMMERS[data.Hammer + 1]
 	local nextSwing = SWINGS[data.Swing + 1]
@@ -2020,6 +2202,11 @@ requestRemote.OnServerInvoke = function(player, action, a, b)
 		data.Swing = data.Swing + 1
 		updateStats(player)
 		return true, "Faster swing! One hit every " .. nextS.Time .. " seconds"
+
+	elseif action == "UnequipAura" then
+		data.Aura = ""
+		applyAura(player)
+		return true, "Aura removed."
 
 	elseif action == "BuyAura" or action == "EquipAura" then
 		local aura = AURA_BY_NAME[a]
@@ -2535,4 +2722,4 @@ task.spawn(function()
 	end
 end)
 
-print("MOG MONSTERS server v4 started OK!")
+print("MOG MONSTERS server v5 started OK!")
