@@ -1,51 +1,42 @@
-# Power Empire – Roblox-spil (overdragelse til Claude)
+# MOG MONSTERS – Roblox-spil (overdragelse til Claude)
 
-Ejeren hedder Oliver, taler **dansk** og er nybegynder i Roblox Studio (bruger Mac → Cmd i stedet for Ctrl).
-Forklar alt enkelt og trin for trin, på dansk. Teksten **inde i spillet** er på engelsk (større publikum).
+Ejeren hedder Oliver, taler **dansk** og er nybegynder i Roblox Studio (Mac → Cmd i stedet for Ctrl).
+Forklar alt enkelt og trin for trin, på dansk. Teksten **inde i spillet** er på engelsk.
+Oliver har pt. ikke adgang til sin Mac; vi arbejder fra en cloud-session og sender filer.
 
-## Hvad spillet er
-"⚡ POWER EMPIRE – Steal, Build & Become OP". Et "steal"/tycoon-spil Oliver selv har designet:
-- 8 baser i en cirkel om en plads i midten. Kræfter (glødende kugler) på piedestaler tjener penge/sek.
-- **Power Market** midt på (10 podier, begrænset lager, restock hvert 90. sek; plads 10 kan give Mythic/Secret).
-- **Stjæl** fra andres baser (hold E), alarm hos ejeren, løb hjem eller **kast** (F) kraften ind i egen base.
-- Forsvar: laser-lås (rød LOCK-plade), turret (3 levels), alarm, **vault** (kan ikke stjæles, overlever rebirth).
-- **Power Fusion** station (16 hemmelige opskrifter, 28 kræfter), **mutationer** (Neon/Golden/Corrupted/Rainbow/Galaxy).
-- **Rebirth** via knap i højre side (IKKE en station på kortet – Oliver ville have den i siden af skærmen).
-- **Battle Arena**: "Power Blast"-tool, bedste kraft bestemmer angreb. Udenfor arenaen kun mod tyve.
-- Secret Portal-event, daily rewards, 2x Server Luck, gamepasses + developer products (IDs i CONFIG, 0 = "coming soon").
-- Oliver ønsker: Secret-kræfter må IKKE kunne købes direkte for Robux.
+## Spillet (nuværende idé – Olivers egen)
+"👹 MOG MONSTERS". Erstatter tidligere versioner (Floor is Lava, Egg Heist, Power Empire – ligger i git-historikken).
+- Monstre går ned ad en lang **Monster Lane** (x = -130 → 130). Hver har et MOG-krav.
+  Er spillerens **MOG** ≥ kravet: hold E ("MOG IT!") → monsteret flyver hjem til basen.
+- 8 **indhegnede baser** (hegn, ikke vægge) i en cirkel. Monstre står på pladser og **tjener penge/sek**.
+- Oliver ville IKKE have hul/graveri (det blev droppet midt i byggeriet). Monstre graver ikke.
+- Sjældenheder Common → … → Secret (1/1M) → **GODLY: GIGAMOG 1 ud af 1.000.000.000**.
+- Niveauer (variants): Normal, Golden, Diamond, Rainbow, Cosmic, **Rainbow Cosmic** (1/1M, x100).
+- Opgraderinger (UPGRADES-menu): Train MOG, Money Boost, flere pladser.
+- Beholdt fra Power Empire: stjæl + kast (F), Mog Slap-tool (forsvar), vault, LOCK-plade, alarm,
+  Fusion Machine (2 ens samme niveau → næste niveau), Rebirth (knap i højre side, +1x penge og +1x MOG),
+  Lucky Rush-event, daily rewards, gamepasses/products (IDs i CONFIG, 0 = "coming soon").
+- Oliver ønsker: de sjældneste ting må IKKE kunne købes for Robux.
 
 ## Filer
-- `src/ServerScriptService/GameServer.server.lua` → **Script** i ServerScriptService. Bygger hele kortet selv.
-- `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` → **LocalScript** i StarterPlayer › StarterPlayerScripts.
-- `README.md` → dansk guide til Oliver (opsætning, udgivelse, gamepasses).
-- `default.project.json` → Rojo (valgfrit).
+- `src/ServerScriptService/GameServer.server.lua` → **Script** i ServerScriptService. Bygger hele kortet.
+- `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` → **LocalScript** i StarterPlayerScripts.
+- `MogMonsters.rbxlx` → færdig place-fil med begge scripts (genereres ud fra de to filer).
+  Opdatér den hver gang scripts ændres (se nedenfor).
+- `README.md` → dansk guide til Oliver.
 
-Kun to scripts – al bygning sker i kode, så Oliver kun skal kopiere/indsætte.
+## Status
+- Output ved start: `MOG MONSTERS server v1 started OK!` / `MOG MONSTERS client v1 started OK!`
+- Testet i hjemmelavet Roblox-mock (API-dump-valideret, 2 spillere, ~13 min spil, med/uden DataStore) → 0 fejl.
+  **Endnu ikke testet i rigtig Roblox Studio.**
+- Kendte Studio-faldgruber vi allerede har løst: GetDataStore i pcall (ikke-udgivet place), ZIndexBehavior Sibling,
+  karakterer via auto-load.
 
-## Status (version 4)
-- Når det kører rigtigt, står der i Output:
-  `POWER EMPIRE server v4 started OK!` og `POWER EMPIRE client v4 started OK!`
-- v1 crashede i Studio fordi `DataStoreService:GetDataStore` kastede fejl i et ikke-udgivet place → ingen figur,
-  markedet tomt, timere 0:00. Rettet (pcall). Gemning virker først når spillet er udgivet og
-  "Enable Studio Access to API Services" er slået til.
-- v3: karakterer spawner via Roblox' auto-load (Players.RespawnTime), REBIRTH er en knap i højre menu.
-- v3 er testet i en hjemmelavet Roblox-mock (API-dump-valideret) med 2 spillere: køb, tyveri, kast, blast,
-  fusion, rebirth, vault, alle knapper, død/respawn, 12 min spil → 0 fejl. **Endnu IKKE bekræftet i rigtig Roblox Studio.**
-- Sidst vi hørte fra Oliver kørte han sandsynligvis stadig den gamle server-version (samme symptomer som v1).
-
-## Næste skridt
-1. Sørg for at BEGGE scripts i Studio er den nyeste version fra denne branch (se Output-linjerne ovenfor).
-2. Tryk Play, tjek Output for røde fejl, ret dem.
-3. Test: gå til markedet, hold E på en kugle ("Buy $100"), se den flyve hjem, penge stiger.
-4. Test med 2 spillere: fanen Test → Clients and Servers → 2 Players.
-5. Bagefter: polish (flottere kort/baser), flere kræfter, evt. væsner der vogter basen (Oliver nævnte væsner som idé).
+## Regenerér .rbxlx
+Skriv en XML-place (`<roblox version="4">`) med ServerScriptService › Script "GameServer" og
+StarterPlayer › StarterPlayerScripts › LocalScript "GameClient", Source i `<ProtectedString name="Source"><![CDATA[...]]>`.
 
 ## Vigtigt
 - Udgivelse, gamepasses og alt med Robux/rigtige penge skal Oliver selv (eller en voksen) godkende.
-- Ny Roblox Studio-UI: der er ingen "View"-fane. Explorer = knap øverst til højre. Output = fanen "Script" → "Output".
-- Start-spillet-knappen er den blå ▶ øverst til venstre (ikke "Run" nederst, det er kommandolinjen).
-- v4: flottere kort (stier fra baser til pladsen, lygtepæle, ~70 træer, Atmosphere/Bloom/ColorCorrection/SunRays),
-  partikel-burst + svævende tekst ved køb/tyveri/fusion/portal (RemoteEvent "Effect"),
-  5 nye markedskræfter (Sand, Water, Crystal, Light, Time) og 5 nye opskrifter (Glass, Tsunami, Prism, Chrono Dragon, Supernova).
-  Testet i mock: 0 fejl. Oliver har pt. ikke adgang til sin Mac – vi arbejder videre herfra.
+- Ny Roblox Studio-UI: ingen "View"-fane. Explorer = knap øverst til højre. Output = fanen "Script" → "Output".
+- Start-knappen er den blå ▶ øverst til venstre (ikke "Run" nederst).

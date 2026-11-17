@@ -1,10 +1,10 @@
 --[[
-	⚡ POWER EMPIRE - GameClient ⚡
-	==============================
+	👹 MOG MONSTERS - GameClient 👹
+	===============================
 	Put this as a *LocalScript* in StarterPlayer > StarterPlayerScripts.
 
-	Makes all the screens: money, menus (Shop, Base, Daily, Index),
-	Fusion, Rebirth, the THROW button, alarms and attacks.
+	Makes all the screens: money, MOG, menus (Shop, Upgrades, Daily,
+	Index, Rebirth), Fusion, the THROW button, alarms and effects.
 	You don't need to change anything in here.
 ]]
 
@@ -15,9 +15,9 @@ local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
 
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
 local camera = workspace.CurrentCamera
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local notifyRemote = remotes:WaitForChild("Notify")
@@ -25,30 +25,21 @@ local announceRemote = remotes:WaitForChild("Announce")
 local alarmRemote = remotes:WaitForChild("Alarm")
 local panelRemote = remotes:WaitForChild("OpenPanel")
 local throwRemote = remotes:WaitForChild("Throw")
-local blastRemote = remotes:WaitForChild("Blast")
-local requestRemote = remotes:WaitForChild("Request")
 local effectRemote = remotes:WaitForChild("Effect")
-local Debris = game:GetService("Debris")
+local requestRemote = remotes:WaitForChild("Request")
 
-local RARITY_NAMES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+local RARITY_NAMES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "GODLY" }
 local RARITY_COLORS = {
 	Color3.fromRGB(200, 200, 200), Color3.fromRGB(90, 220, 90), Color3.fromRGB(70, 150, 255),
 	Color3.fromRGB(180, 90, 255), Color3.fromRGB(255, 200, 40), Color3.fromRGB(255, 60, 120),
-	Color3.fromRGB(255, 255, 255),
-}
-local ELEMENT_INFO = {
-	Punch = "Punch (get a power!)",
-	Fire = "Fireball",
-	Ice = "Ice Blast (freezes)",
-	Lightning = "Lightning (super fast)",
-	Shadow = "Shadow Shot (go invisible)",
-	Gravity = "Gravity Pull",
-	Dragon = "DRAGON BLAST",
+	Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255),
 }
 
 local function fmt(n)
 	n = math.floor(n or 0)
-	if n >= 1e12 then
+	if n >= 1e15 then
+		return string.format("%.1fQ", n / 1e15)
+	elseif n >= 1e12 then
 		return string.format("%.1fT", n / 1e12)
 	elseif n >= 1e9 then
 		return string.format("%.1fB", n / 1e9)
@@ -72,9 +63,8 @@ end
 -- UI HELPERS
 ----------------------------------------------------------------------
 local gui = Instance.new("ScreenGui")
-gui.Name = "PowerEmpireGui"
+gui.Name = "MogMonstersGui"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
@@ -233,13 +223,26 @@ effectRemote.OnClientEvent:Connect(function(position, color, text)
 end)
 
 ----------------------------------------------------------------------
--- TOP: CASH + EVENTS
+-- TOP: CASH, MOG, EVENTS
 ----------------------------------------------------------------------
 local cashBox = box(gui, UDim2.new(0, 300, 0, 74), UDim2.new(0.5, -150, 0, 8), Color3.fromRGB(30, 30, 42), 0.15)
 local cashLabel = label(cashBox, "$0", UDim2.new(1, -20, 0.6, 0), UDim2.new(0, 10, 0.05, 0))
 cashLabel.TextColor3 = Color3.fromRGB(110, 255, 110)
 local incomeLabel = label(cashBox, "+$0/s", UDim2.new(1, -20, 0.32, 0), UDim2.new(0, 10, 0.64, 0))
 incomeLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
+
+local mogBox = box(gui, UDim2.new(0, 220, 0, 64), UDim2.new(0, 10, 1, -160), Color3.fromRGB(30, 30, 42), 0.15)
+local mogTitle = label(mogBox, "YOUR MOG", UDim2.new(1, -16, 0.38, 0), UDim2.new(0, 8, 0.05, 0))
+mogTitle.TextColor3 = Color3.fromRGB(255, 120, 200)
+mogTitle.TextXAlignment = Enum.TextXAlignment.Left
+local mogLabel = label(mogBox, "10", UDim2.new(1, -16, 0.52, 0), UDim2.new(0, 8, 0.43, 0))
+mogLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local eventBox = box(gui, UDim2.new(0, 230, 0, 64), UDim2.new(1, -240, 0, 8), Color3.fromRGB(30, 30, 42), 0.15)
+local rushLabel = label(eventBox, "", UDim2.new(1, -16, 0.42, 0), UDim2.new(0, 8, 0.05, 0))
+local luckLabel = label(eventBox, "", UDim2.new(1, -16, 0.42, 0), UDim2.new(0, 8, 0.53, 0))
+rushLabel.TextXAlignment = Enum.TextXAlignment.Left
+luckLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 task.spawn(function()
 	local cash = player:WaitForChild("leaderstats"):WaitForChild("Cash")
@@ -250,33 +253,16 @@ task.spawn(function()
 	refresh()
 end)
 
-local eventBox = box(gui, UDim2.new(0, 230, 0, 92), UDim2.new(1, -240, 0, 8), Color3.fromRGB(30, 30, 42), 0.15)
-local restockLabel = label(eventBox, "", UDim2.new(1, -16, 0.3, 0), UDim2.new(0, 8, 0.03, 0))
-local portalLabel = label(eventBox, "", UDim2.new(1, -16, 0.3, 0), UDim2.new(0, 8, 0.35, 0))
-local luckLabel = label(eventBox, "", UDim2.new(1, -16, 0.3, 0), UDim2.new(0, 8, 0.67, 0))
-for _, l in ipairs({ restockLabel, portalLabel, luckLabel }) do
-	l.TextXAlignment = Enum.TextXAlignment.Left
-end
-
--- Attack info (bottom left)
-local attackBox = box(gui, UDim2.new(0, 250, 0, 56), UDim2.new(0, 10, 1, -150), Color3.fromRGB(30, 30, 42), 0.15)
-local attackTitle = label(attackBox, "YOUR ATTACK", UDim2.new(1, -16, 0.4, 0), UDim2.new(0, 8, 0.05, 0))
-attackTitle.TextColor3 = Color3.fromRGB(255, 200, 60)
-attackTitle.TextXAlignment = Enum.TextXAlignment.Left
-local attackLabel = label(attackBox, "", UDim2.new(1, -16, 0.5, 0), UDim2.new(0, 8, 0.45, 0))
-attackLabel.TextXAlignment = Enum.TextXAlignment.Left
-
 RunService.Heartbeat:Connect(function()
 	incomeLabel.Text = "+$" .. fmt(player:GetAttribute("Income") or 0) .. "/s"
-	attackLabel.Text = ELEMENT_INFO[player:GetAttribute("Element") or "Punch"] or ""
-	restockLabel.Text = "Market restock: " .. timeText(ReplicatedStorage:GetAttribute("RestockIn"))
-	local portalIn = ReplicatedStorage:GetAttribute("PortalIn") or 0
-	if portalIn < 0 then
-		portalLabel.Text = "PORTAL OPEN! " .. timeText(-portalIn)
-		portalLabel.TextColor3 = Color3.fromRGB(200, 120, 255)
+	mogLabel.Text = fmt(player:GetAttribute("Mog") or 0)
+	local rush = ReplicatedStorage:GetAttribute("RushIn") or 0
+	if rush < 0 then
+		rushLabel.Text = "LUCKY RUSH! " .. timeText(-rush)
+		rushLabel.TextColor3 = Color3.fromRGB(255, 220, 60)
 	else
-		portalLabel.Text = "Secret portal: " .. timeText(portalIn)
-		portalLabel.TextColor3 = Color3.new(1, 1, 1)
+		rushLabel.Text = "Lucky Rush: " .. timeText(rush)
+		rushLabel.TextColor3 = Color3.new(1, 1, 1)
 	end
 	local luck = ReplicatedStorage:GetAttribute("LuckLeft") or 0
 	if luck > 0 then
@@ -308,28 +294,6 @@ end)
 player:GetAttributeChangedSignal("Carrying"):Connect(function()
 	throwBtn.Visible = player:GetAttribute("Carrying") == true
 end)
-
-----------------------------------------------------------------------
--- ATTACK (Power Blast tool)
-----------------------------------------------------------------------
-local function hookTool(tool)
-	if tool:IsA("Tool") and tool.Name == "Power Blast" and not tool:GetAttribute("Hooked") then
-		tool:SetAttribute("Hooked", true)
-		tool.Activated:Connect(function()
-			blastRemote:FireServer(mouse.Hit.Position)
-		end)
-	end
-end
-local function hookCharacter(char)
-	char.ChildAdded:Connect(hookTool)
-	for _, c in ipairs(char:GetChildren()) do
-		hookTool(c)
-	end
-end
-if player.Character then
-	hookCharacter(player.Character)
-end
-player.CharacterAdded:Connect(hookCharacter)
 
 ----------------------------------------------------------------------
 -- PANELS
@@ -420,6 +384,8 @@ local function getInfo()
 	return nil
 end
 
+local GREEN, GRAY = Color3.fromRGB(40, 170, 80), Color3.fromRGB(90, 90, 90)
+
 ----------------------------------------------------------------------
 -- SHOP (Robux)
 ----------------------------------------------------------------------
@@ -442,9 +408,9 @@ local SHOP_ITEMS = {
 	{ Header = "GAME PASSES (forever)" },
 	{ Text = "2x Money", Attr = "DoubleMoneyPassId", Pass = true, Owned = "DoubleMoney" },
 	{ Text = "VIP: tag, +20% money, 2x daily", Attr = "VipPassId", Pass = true, Owned = "VIP" },
-	{ Text = "+3 Extra Pedestals", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
+	{ Text = "+3 Monster Spots", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
 	{ Text = "Fast Stealing", Attr = "FastStealPassId", Pass = true, Owned = "FastSteal" },
-	{ Text = "+1 Vault Slot", Attr = "ExtraVaultPassId", Pass = true, Owned = "ExtraVault" },
+	{ Text = "+1 Vault Spot", Attr = "ExtraVaultPassId", Pass = true, Owned = "ExtraVault" },
 	{ Header = "BOOSTS" },
 	{ Text = "2x SERVER LUCK (15 min, everyone!)", Attr = "ServerLuckProductId" },
 	{ Text = "Super Lock (3 min)", Attr = "SuperLockProductId" },
@@ -458,59 +424,61 @@ local function refreshShop()
 			shopPanel.Text(item.Header, Color3.fromRGB(255, 210, 80))
 		else
 			local owned = item.Owned and player:GetAttribute(item.Owned)
-			shopPanel.ButtonRow(item.Text, owned and "OWNED" or "BUY R$",
-				owned and Color3.fromRGB(90, 90, 90) or Color3.fromRGB(40, 170, 80),
-				function()
-					if not owned then
-						promptBuy(item.Attr, item.Pass)
-					end
-				end)
+			shopPanel.ButtonRow(item.Text, owned and "OWNED" or "BUY R$", owned and GRAY or GREEN, function()
+				if not owned then
+					promptBuy(item.Attr, item.Pass)
+				end
+			end)
 		end
 	end
 end
-player.AttributeChanged:Connect(function()
-	if shopPanel.Frame.Visible then
+player.AttributeChanged:Connect(function(name)
+	if shopPanel.Frame.Visible and name ~= "Income" and name ~= "Mog" then
 		refreshShop()
 	end
 end)
 
 ----------------------------------------------------------------------
--- BASE MENU
+-- UPGRADES
 ----------------------------------------------------------------------
-local basePanel = makePanel("MY BASE", Color3.fromRGB(120, 180, 255))
+local upgradePanel = makePanel("UPGRADES", Color3.fromRGB(120, 180, 255))
 
-local function refreshBase()
+local refreshUpgrades
+local function buy(action)
+	local _, msg = requestRemote:InvokeServer(action)
+	showMessage(msg)
+	refreshUpgrades()
+end
+
+refreshUpgrades = function()
 	local info = getInfo()
-	basePanel.Clear()
+	upgradePanel.Clear()
 	if not info then
 		return
 	end
-	basePanel.Text("UPGRADES", Color3.fromRGB(255, 210, 80))
+	upgradePanel.Text("MOG " .. fmt(info.Mog) .. "  ->  " .. fmt(info.NextMog), Color3.fromRGB(255, 120, 200))
+	upgradePanel.ButtonRow("Train MOG (mog better monsters!)", "$" .. fmt(info.MogCost), GREEN, function()
+		buy("TrainMog")
+	end)
+	upgradePanel.Text("Money Boost: x" .. info.Boost .. (info.NextBoost and ("  ->  x" .. info.NextBoost) or ""), Color3.fromRGB(110, 255, 110))
+	if info.BoostCost then
+		upgradePanel.ButtonRow("Monsters make more money", "$" .. fmt(info.BoostCost), GREEN, function()
+			buy("BuyBoost")
+		end)
+	else
+		upgradePanel.ButtonRow("Money Boost", "MAX", GRAY)
+	end
+	upgradePanel.Text("Monster spots: " .. info.Slots, Color3.fromRGB(255, 210, 80))
 	if info.BaseSlots < info.MaxSlots then
-		basePanel.ButtonRow("Pedestals: " .. info.Slots .. "  (+1 slot)", "$" .. fmt(info.SlotCost), Color3.fromRGB(40, 170, 80), function()
-			local _, msg = requestRemote:InvokeServer("BuySlot")
-			showMessage(msg)
-			refreshBase()
+		upgradePanel.ButtonRow("+1 monster spot", "$" .. fmt(info.SlotCost), GREEN, function()
+			buy("BuySlot")
 		end)
 	else
-		basePanel.ButtonRow("Pedestals: " .. info.Slots, "MAX", Color3.fromRGB(90, 90, 90))
+		upgradePanel.ButtonRow("Monster spots", "MAX", GRAY)
 	end
-	if info.TurretCost then
-		basePanel.ButtonRow("Turret: Level " .. info.Turret .. "/3", "$" .. fmt(info.TurretCost), Color3.fromRGB(40, 170, 80), function()
-			local _, msg = requestRemote:InvokeServer("BuyTurret")
-			showMessage(msg)
-			refreshBase()
-		end)
-	else
-		basePanel.ButtonRow("Turret: Level 3/3", "MAX", Color3.fromRGB(90, 90, 90))
-	end
-	basePanel.Text("DEFENSE TIPS", Color3.fromRGB(255, 210, 80))
-	basePanel.Text("Vault slots: " .. info.Vaults .. " (vault powers can't be stolen)", nil, 26)
-	basePanel.Text("Stand on the red LOCK pad to lock your base", nil, 26)
-	basePanel.Text("Hit thieves with Power Blast to make them drop it", nil, 26)
-	basePanel.Text("REBIRTH", Color3.fromRGB(255, 210, 80))
-	basePanel.Text("Rebirths: " .. info.Rebirths .. "  |  Next: $" .. fmt(info.RebirthCost), nil, 26)
-	basePanel.Text("Press the REBIRTH button on the right side", nil, 26)
+	upgradePanel.Text("Vault spots: " .. info.Vaults .. " (can't be stolen)", nil, 26)
+	upgradePanel.Text("Stand on the red LOCK pad to lock your base", nil, 26)
+	upgradePanel.Text("Use MOG SLAP on thieves to make them drop it", nil, 26)
 end
 
 ----------------------------------------------------------------------
@@ -526,22 +494,22 @@ local function refreshDaily()
 	end
 	dailyPanel.Text("Streak: " .. info.Streak .. " days", Color3.fromRGB(255, 210, 80))
 	dailyPanel.Text("Come back every day for bigger rewards!", nil, 26)
-	dailyPanel.Text("Day 7 = a FREE Epic or better power!", nil, 26)
+	dailyPanel.Text("Day 7 = a FREE Epic or Legendary monster!", nil, 26)
 	if info.DailyReady then
-		dailyPanel.ButtonRow("Your reward is ready!", "CLAIM", Color3.fromRGB(40, 170, 80), function()
+		dailyPanel.ButtonRow("Your reward is ready!", "CLAIM", GREEN, function()
 			local _, msg = requestRemote:InvokeServer("ClaimDaily")
 			showMessage(msg, Color3.fromRGB(255, 210, 60))
 			refreshDaily()
 		end)
 	else
-		dailyPanel.ButtonRow("Next reward in " .. timeText(info.DailyWait), "WAIT", Color3.fromRGB(90, 90, 90))
+		dailyPanel.ButtonRow("Next reward in " .. timeText(info.DailyWait), "WAIT", GRAY)
 	end
 end
 
 ----------------------------------------------------------------------
--- INDEX (recipes & mutations)
+-- INDEX
 ----------------------------------------------------------------------
-local indexPanel = makePanel("POWER INDEX", Color3.fromRGB(200, 120, 255))
+local indexPanel = makePanel("MONSTER INDEX", Color3.fromRGB(200, 120, 255))
 
 local function refreshIndex()
 	local info = getInfo()
@@ -549,72 +517,87 @@ local function refreshIndex()
 	if not info then
 		return
 	end
-	indexPanel.Text("FUSION RECIPES", Color3.fromRGB(255, 210, 80))
 	local found = 0
-	for _, r in ipairs(info.Recipes) do
-		if r.Hidden then
-			local l = indexPanel.Text("??? + ??? = ??? (" .. RARITY_NAMES[r.Rarity] .. ")", RARITY_COLORS[r.Rarity], 26)
-			l.TextTransparency = 0.3
-		else
+	indexPanel.Text("MONSTERS", Color3.fromRGB(255, 210, 80))
+	for _, m in ipairs(info.Index) do
+		local odds = m.Exclusive and "Rebirth 10 only" or ("1 in " .. fmt(m.Odds))
+		if m.Found then
 			found = found + 1
-			indexPanel.Text(info.Names[r.A] .. " + " .. info.Names[r.B] .. " = " .. r.Name, Color3.fromRGB(110, 255, 110), 26)
+			indexPanel.Text(m.Name .. "  (" .. RARITY_NAMES[m.Rarity] .. ", " .. odds .. ")", RARITY_COLORS[m.Rarity], 26)
+		else
+			local l = indexPanel.Text("???  (" .. RARITY_NAMES[m.Rarity] .. ", " .. odds .. ")", RARITY_COLORS[m.Rarity], 26)
+			l.TextTransparency = 0.35
 		end
 	end
-	indexPanel.Text("Found " .. found .. "/" .. #info.Recipes .. " - try fusing different powers!", nil, 26)
-	indexPanel.Text("MUTATIONS", Color3.fromRGB(255, 210, 80))
-	indexPanel.Text("Neon x1.5  |  Golden x2  |  Corrupted x3", nil, 26)
-	indexPanel.Text("Rainbow x5  |  Galaxy x10", nil, 26)
+	indexPanel.Text("Found " .. found .. "/" .. #info.Index, nil, 26)
+	indexPanel.Text("LEVELS", Color3.fromRGB(255, 210, 80))
+	for i, v in ipairs(info.Variants) do
+		local odds = i == 1 and "" or ("  (1 in " .. fmt(v.Odds) .. ")")
+		indexPanel.Text(v.Name .. "  x" .. v.Mult .. odds, nil, 26)
+	end
+	indexPanel.Text("Fuse 2 of the same = next level!", Color3.fromRGB(220, 150, 255), 26)
 end
 
 ----------------------------------------------------------------------
 -- FUSION
 ----------------------------------------------------------------------
-local fusionPanel = makePanel("POWER FUSION", Color3.fromRGB(200, 80, 255), 110)
+local fusionPanel = makePanel("FUSION MACHINE", Color3.fromRGB(200, 80, 255), 110)
 local fusionBottom = Instance.new("Frame")
 fusionBottom.Size = UDim2.new(1, -24, 0, 100)
 fusionBottom.Position = UDim2.new(0, 12, 1, -108)
 fusionBottom.BackgroundTransparency = 1
 fusionBottom.Parent = fusionPanel.Frame
-local fusionPreview = label(fusionBottom, "Pick 2 powers", UDim2.new(1, 0, 0.4, 0))
+local fusionPreview = label(fusionBottom, "Pick 2 of the same monster", UDim2.new(1, 0, 0.4, 0))
 local fuseBtn = button(fusionBottom, "FUSE!", Color3.fromRGB(170, 60, 255), UDim2.new(0.6, 0, 0.5, 0), UDim2.new(0.2, 0, 0.48, 0))
+local LEVEL_NAMES = { "Normal", "Golden", "Diamond", "Rainbow", "Cosmic", "Rainbow Cosmic" }
 
 local selected = {}
-local fusionInfo = nil
 local refreshFusion
 
+local function baseName(m)
+	local name = m.Name
+	for i = #LEVEL_NAMES, 2, -1 do
+		local prefix = LEVEL_NAMES[i] .. " "
+		if string.sub(name, 1, #prefix) == prefix then
+			return string.sub(name, #prefix + 1)
+		end
+	end
+	return name
+end
+
 local function updateFusionPreview()
-	if #selected < 2 or not fusionInfo then
-		fusionPreview.Text = "Pick 2 powers (" .. #selected .. "/2)"
+	if #selected < 2 then
+		fusionPreview.Text = "Pick 2 of the same monster (" .. #selected .. "/2)"
 		return
 	end
 	local a, b = selected[1], selected[2]
-	local cost = math.floor((a.Price + b.Price) * fusionInfo.FuseCostPercent)
-	local result = "???"
-	for _, r in ipairs(fusionInfo.Recipes) do
-		if not r.Hidden and ((r.A == a.Id and r.B == b.Id) or (r.A == b.Id and r.B == a.Id)) then
-			result = r.Name
-		end
+	if a.Id ~= b.Id or a.Variant ~= b.Variant then
+		fusionPreview.Text = "They must be the SAME monster and level!"
+	elseif a.Variant >= #LEVEL_NAMES then
+		fusionPreview.Text = "Already max level!"
+	else
+		local nextName = LEVEL_NAMES[a.Variant + 1]
+		fusionPreview.Text = "= " .. nextName .. " " .. baseName(a) .. "  ($" .. fmt(a.Value * 0.5) .. ")"
 	end
-	fusionPreview.Text = a.Name .. " + " .. b.Name .. " = " .. result .. "  ($" .. fmt(cost) .. ")"
 end
 
 refreshFusion = function()
-	fusionInfo = getInfo()
+	local info = getInfo()
 	selected = {}
 	fusionPanel.Clear()
-	if not fusionInfo then
+	if not info then
 		return
 	end
-	if #fusionInfo.Powers < 2 then
-		fusionPanel.Text("You need at least 2 powers in your base!", nil, 30)
+	if #info.Monsters < 2 then
+		fusionPanel.Text("You need at least 2 monsters in your base!", nil, 30)
 	end
-	for _, p in ipairs(fusionInfo.Powers) do
-		local text = p.Name .. " (" .. RARITY_NAMES[p.Rarity] .. ")  $" .. fmt(p.Income) .. "/s" .. (p.Vault and " [V]" or "")
+	for _, m in ipairs(info.Monsters) do
+		local text = m.Name .. "  $" .. fmt(m.Income) .. "/s" .. (m.Vault and " [V]" or "")
 		local b, l = fusionPanel.ButtonRow(text, "SELECT", Color3.fromRGB(70, 110, 200))
-		l.TextColor3 = RARITY_COLORS[p.Rarity]
+		l.TextColor3 = RARITY_COLORS[m.Rarity]
 		b.Activated:Connect(function()
 			for i, s in ipairs(selected) do
-				if s == p then
+				if s == m then
 					table.remove(selected, i)
 					b.Text = "SELECT"
 					b.BackgroundColor3 = Color3.fromRGB(70, 110, 200)
@@ -626,7 +609,7 @@ refreshFusion = function()
 				showMessage("You can only pick 2!")
 				return
 			end
-			table.insert(selected, p)
+			table.insert(selected, m)
 			b.Text = "PICKED"
 			b.BackgroundColor3 = Color3.fromRGB(170, 60, 255)
 			updateFusionPreview()
@@ -637,7 +620,7 @@ end
 
 fuseBtn.Activated:Connect(function()
 	if #selected < 2 then
-		showMessage("Pick 2 powers first!")
+		showMessage("Pick 2 monsters first!")
 		return
 	end
 	local _, msg = requestRemote:InvokeServer("Fuse", selected[1].Slot, selected[2].Slot)
@@ -660,13 +643,13 @@ local function refreshRebirth()
 	end
 	rebirthPanel.Text("Rebirths: " .. info.Rebirths, Color3.fromRGB(255, 210, 80))
 	rebirthPanel.Text("Cost: $" .. fmt(info.RebirthCost) .. "  (you have $" .. fmt(info.Cash) .. ")", nil, 28)
-	rebirthPanel.Text("You LOSE: cash, powers outside the vault, bought slots", Color3.fromRGB(255, 120, 120), 26)
-	rebirthPanel.Text("You KEEP: vault powers, turret, recipes", Color3.fromRGB(110, 255, 110), 26)
+	rebirthPanel.Text("You LOSE: cash, monsters outside the vault, upgrades", Color3.fromRGB(255, 120, 120), 26)
+	rebirthPanel.Text("You KEEP: vault monsters, index", Color3.fromRGB(110, 255, 110), 26)
 	rebirthPanel.Text("REWARDS", Color3.fromRGB(255, 210, 80))
-	rebirthPanel.Text("Every rebirth: +1x money (Rebirth 1 = 2x)", nil, 26)
-	rebirthPanel.Text("Rebirth 2 and 5: +1 vault slot", nil, 26)
+	rebirthPanel.Text("Every rebirth: +1x money AND +1x MOG", nil, 26)
+	rebirthPanel.Text("Rebirth 2 and 5: +1 vault spot", nil, 26)
 	rebirthPanel.Text("Rebirth 3+: run faster", nil, 26)
-	rebirthPanel.Text("Rebirth 10: exclusive GOLDEN PHOENIX power!", Color3.fromRGB(255, 160, 60), 26)
+	rebirthPanel.Text("Rebirth 10: exclusive GOLDEN PHOENIXMOG!", Color3.fromRGB(255, 160, 60), 26)
 end
 
 rebirthBtn.Activated:Connect(function()
@@ -678,8 +661,6 @@ end)
 panelRemote.OnClientEvent:Connect(function(name)
 	if name == "Fusion" then
 		openPanel(fusionPanel, refreshFusion)
-	elseif name == "Rebirth" then
-		openPanel(rebirthPanel, refreshRebirth)
 	end
 end)
 
@@ -688,12 +669,12 @@ end)
 ----------------------------------------------------------------------
 local menu = Instance.new("Frame")
 menu.BackgroundTransparency = 1
-menu.Size = UDim2.new(0, 130, 0, 320)
-menu.Position = UDim2.new(1, -140, 0.5, -140)
+menu.Size = UDim2.new(0, 140, 0, 320)
+menu.Position = UDim2.new(1, -150, 0.5, -140)
 menu.Parent = gui
 local menuItems = {
 	{ "SHOP", Color3.fromRGB(40, 170, 80), shopPanel, refreshShop },
-	{ "BASE", Color3.fromRGB(70, 120, 220), basePanel, refreshBase },
+	{ "UPGRADES", Color3.fromRGB(70, 120, 220), upgradePanel, refreshUpgrades },
 	{ "DAILY", Color3.fromRGB(230, 160, 30), dailyPanel, refreshDaily },
 	{ "INDEX", Color3.fromRGB(150, 70, 220), indexPanel, refreshIndex },
 	{ "REBIRTH", Color3.fromRGB(255, 150, 30), rebirthPanel, refreshRebirth },
@@ -710,9 +691,9 @@ for i, item in ipairs(menuItems) do
 end
 
 ----------------------------------------------------------------------
--- POWER PROMPTS: only show the ones that make sense for you
+-- MONSTER PROMPTS + MOG colors
 ----------------------------------------------------------------------
-local function updatePrompts(part)
+local function updateMonster(part)
 	local state = part:GetAttribute("State")
 	local mine = part:GetAttribute("OwnerId") == player.UserId
 	local vault = (part:GetAttribute("Slot") or 0) > 100
@@ -720,7 +701,7 @@ local function updatePrompts(part)
 	for _, p in ipairs(part:GetChildren()) do
 		if p:IsA("ProximityPrompt") then
 			local n = p.Name
-			p.Enabled = (n == "Buy" and state == "Market")
+			p.Enabled = (n == "Mog" and state == "Lane")
 				or (n == "Steal" and state == "Placed" and not mine and not vault)
 				or (n == "Sell" and state == "Placed" and mine)
 				or (n == "Vault" and state == "Placed" and mine)
@@ -735,36 +716,46 @@ local function updatePrompts(part)
 			end
 		end
 	end
+	-- green MOG text = you can mog it, red = train more MOG
+	local mogLabelInst = part:FindFirstChild("MogLabel", true)
+	if mogLabelInst and state == "Lane" then
+		local enough = (player:GetAttribute("Mog") or 0) >= (part:GetAttribute("MogReq") or 0)
+		mogLabelInst.TextColor3 = enough and Color3.fromRGB(110, 255, 110) or Color3.fromRGB(255, 90, 90)
+	elseif mogLabelInst then
+		mogLabelInst.TextColor3 = Color3.new(1, 1, 1)
+	end
 end
 
 local rainbowParts = {}
 
-local function trackPower(part)
-	updatePrompts(part)
+local function trackMonster(part)
+	updateMonster(part)
 	part.AttributeChanged:Connect(function()
-		updatePrompts(part)
+		updateMonster(part)
 	end)
-	part.ChildAdded:Connect(function()
-		updatePrompts(part)
+	part.DescendantAdded:Connect(function()
+		updateMonster(part)
 	end)
-	if part:GetAttribute("Mut") == "Rainbow" then
+	local v = part:GetAttribute("Variant")
+	if v == "Rainbow" or v == "Rainbow Cosmic" then
 		rainbowParts[part] = true
 	end
 end
-for _, part in ipairs(CollectionService:GetTagged("Power")) do
-	trackPower(part)
+for _, part in ipairs(CollectionService:GetTagged("Monster")) do
+	trackMonster(part)
 end
-CollectionService:GetInstanceAddedSignal("Power"):Connect(trackPower)
-CollectionService:GetInstanceRemovedSignal("Power"):Connect(function(part)
+CollectionService:GetInstanceAddedSignal("Monster"):Connect(trackMonster)
+CollectionService:GetInstanceRemovedSignal("Monster"):Connect(function(part)
 	rainbowParts[part] = nil
 end)
-player:GetAttributeChangedSignal("FastSteal"):Connect(function()
-	for _, part in ipairs(CollectionService:GetTagged("Power")) do
-		updatePrompts(part)
+local function refreshAllMonsters()
+	for _, part in ipairs(CollectionService:GetTagged("Monster")) do
+		updateMonster(part)
 	end
-end)
+end
+player:GetAttributeChangedSignal("FastSteal"):Connect(refreshAllMonsters)
+player:GetAttributeChangedSignal("Mog"):Connect(refreshAllMonsters)
 
--- Rainbow mutation: cycle colors
 RunService.RenderStepped:Connect(function()
 	local color = Color3.fromHSV((os.clock() * 0.3) % 1, 1, 1)
 	for part in pairs(rainbowParts) do
@@ -776,7 +767,7 @@ end)
 -- WELCOME
 ----------------------------------------------------------------------
 task.delay(2, function()
-	showMessage("Welcome to POWER EMPIRE! Buy powers in the MARKET, steal from others, press F to THROW!", Color3.fromRGB(255, 210, 60))
+	showMessage("Welcome to MOG MONSTERS! Hold E on monsters with GREEN mog to MOG them!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("POWER EMPIRE client v4 started OK!")
+print("MOG MONSTERS client v1 started OK!")

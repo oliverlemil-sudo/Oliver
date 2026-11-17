@@ -1,156 +1,103 @@
-# ⚡ POWER EMPIRE: Steal, Build & Become OP
+# 👹 MOG MONSTERS
 
-Et Roblox-spil, hvor du bygger dit eget **Power Empire**. Du køber, **stjæler**, **kaster**
-og **fusionerer** superkræfter, og du bliver hele tiden stærkere end dine venner.
+Et Roblox-spil, hvor monstre går ned ad en lang bane. Har du høj nok **MOG**, kan du
+**mogge** dem, og så løber de hjem til din base og tjener penge til dig.
+Scriptet bygger selv hele kortet.
 
-Scriptet bygger selv hele kortet: 8 baser i en cirkel og et fælles område i midten.
+## 🎮 Sådan spilles det
+1. **Monster Lane:** Monstrene kommer ud af MONSTER GATE og går ned ad den røde bane.
+2. Over hvert monster står det, hvor meget **MOG** du skal have.
+   **Grøn** betyder, at du kan mogge det. **Rød** betyder, at du skal træne mere MOG.
+3. **Hold E** på monsteret (**"MOG IT!"**). Så flyver det hjem til din **indhegnede base**.
+4. Monstrene i din base **tjener penge hvert sekund**.
+5. Brug pengene i **UPGRADES**:
+   - **Train MOG**, så du kan mogge sjældnere monstre
+   - **Money Boost**, så monstrene tjener mere
+   - **Flere pladser** til monstre
 
----
+## 🎲 Sjældenheder
+| Sjældenhed | Chance | MOG du skal have | Penge/sek |
+|---|---|---|---|
+| Common | ca. 1 ud af 1,3 | 10 | $2 |
+| Uncommon | 1 ud af 6 | 40 | $6 |
+| Rare | 1 ud af 25 | 200 | $25 |
+| Epic | 1 ud af 150 | 1.500 | $100 |
+| Legendary | 1 ud af 1.500 | 12.000 | $600 |
+| Mythic | 1 ud af 25.000 | 100.000 | $4.000 |
+| Secret | 1 ud af 1.000.000 | 2.000.000 | $50.000 |
+| **GODLY (GIGAMOG)** | **1 ud af 1.000.000.000** | 100.000.000 | $1.000.000 |
 
-## 🎮 Det er i spillet
+## ✨ Niveauer
+| Niveau | Chance | Bonus |
+|---|---|---|
+| Normal | | x1 |
+| Golden | 1 ud af 25 | x2 |
+| Diamond | 1 ud af 150 | x4 |
+| Rainbow (skifter farve) | 1 ud af 1.000 | x8 |
+| Cosmic | 1 ud af 10.000 | x20 |
+| **Rainbow Cosmic** | **1 ud af 1.000.000** | **x100** |
 
-### 🏠 Din base
-- Du starter med **6 pladser** til kræfter og kan købe op til 12 for penge (+3 med gamepass).
-- Hver kraft står på sin egen plads og **tjener penge hvert sekund**.
-- **Vault** bagerst i basen: Kræfter i vaulten **kan aldrig blive stjålet** og **beholdes ved rebirth**.
-  Du flytter en kraft ind eller ud ved at holde **E** på den.
+Et højere niveau kræver også mere MOG for at blive mogget.
+En **Rainbow Cosmic GIGAMOG** er 1 ud af en million milliarder. 😱
 
-### 🛒 Power Market (midt på kortet)
-- **Begrænset lager:** 10 kræfter ad gangen. Der kommer nye **hvert 90. sekund**.
-- Lageret består af 5 billige, 3 mellem, 1 Epic/Legendary og **1 speciel plads**, hvor der kan komme **Mythic** eller **Secret**.
-- Køber en anden spiller den sjældne kraft først, må du vente til næste gang. Det giver konkurrence!
+**Fusion Machine:** 2 ens monstre på samme niveau bliver til det næste niveau,
+f.eks. 2 Blobby = Golden Blobby.
 
-### 🦹 Stjæl fra dine venner
-- Gå ind i en andens base og hold **E** på en kraft. Jo sjældnere den er, desto længere tager det.
-- **Alarmen** går i gang: Ejerens skærm blinker rødt, og der kommer rødt lys i basen.
-- Løb hjem med kraften, eller **KAST den ind i din base (F)**. Det er vores egen mekanik!
+## 🦹 Stjæl og forsvar
+- Gå ind i andres baser, og hold **E** for at **stjæle**. Ejeren får en alarm.
+- Løb hjem, eller **kast monsteret ind i din base (F)**.
+- **Mog Slap** (dit værktøj): Slå tyve, så de taber monsteret.
+- **Vault:** Monstre i vaulten kan aldrig stjæles og beholdes ved rebirth.
+- **LOCK-pladen:** Låser basen i 45 sekunder.
 
-### 🛡️ Forsvar
-| Forsvar | Hvad det gør |
-|---|---|
-| **Laser-lås** | Stå på den røde LOCK-plade. Tyve bliver smidt ud i 45 sekunder |
-| **Turret** (3 levels) | Skyder automatisk på tyve, så de taber kraften |
-| **Alarm** | Advarer dig, når nogen stjæler |
-| **Vault** | Dine bedste kræfter er 100 % sikre |
-| **Power Blast** | Skyd tyven, så de taber kraften |
+## 🔄 Rebirth (knap i højre side)
+Hver rebirth giver **+1x penge OG +1x MOG**. Rebirth 2 og 5 giver flere vault-pladser,
+rebirth 3+ gør dig hurtigere, og rebirth 10 giver en eksklusiv **Golden Phoenixmog**.
 
-### 🧪 Power Fusion (unik funktion)
-Kombinér 2 kræfter ved **Fusion Station** og få en ny og stærkere kraft.
-**16 hemmelige opskrifter** skal spillerne selv finde frem til. De bliver gemt i **INDEX**.
+## 🌀 Events
+- **Lucky Rush** hvert 10. minut: 3x held og flere monstre på banen i 60 sekunder.
+- **Daily Reward**: Dag 7 giver et gratis Epic- eller Legendary-monster.
+- Hele serveren får besked, når nogen mogger eller stjæler noget sjældent.
 
-| Opskrift | Resultat |
-|---|---|
-| Fire + Lightning | Plasma |
-| Ice + Shadow | Frozen Darkness |
-| Dragon + Lightning | Thunder Dragon |
-| …og 13 hemmelige mere | (spoilers 🤫) |
-
-Kombinerer man to kræfter, der ikke er en opskrift, får man en tilfældig kraft, og nogle gange er den en sjældenhed højere.
-
-### ✨ Mutationer
-| Mutation | Indtjening |
-|---|---|
-| Neon | x1.5 |
-| Golden | x2 |
-| Corrupted | x3 |
-| Rainbow (skifter farve) | x5 |
-| Galaxy | x10 |
-
-En **Rainbow Thunder Dragon** er altså *ekstremt* sjælden og værdifuld.
-
-### 🔄 Rebirth
-| Rebirth | Bonus |
-|---|---|
-| Hver gang | +1x penge (Rebirth 1 = 2x, Rebirth 2 = 3x …) |
-| 2 og 5 | +1 vault-plads |
-| 3+ | Løb hurtigere |
-| 10 | Eksklusiv **Golden Phoenix**-kraft |
-
-Ved rebirth mister du penge og kræfterne udenfor vaulten. Vault-kræfter, turret og opskrifter beholder du.
-
-### ⚔️ Battle Arena
-Udstyr **Power Blast** og kæmp. Din **bedste kraft bestemmer dit angreb**:
-- Fire: ildkugler
-- Ice: fryser modstanderen
-- Lightning: hurtige skud
-- Shadow: du bliver usynlig
-- Gravity: trækker modstanderen hen til dig
-- Dragon: et kæmpe angreb
-
-Når du vinder en kamp, får du penge. Du **mister aldrig kræfter** i arenaen.
-Udenfor arenaen virker angrebet kun mod tyve, så man ikke kan genere folk tilfældigt.
-
-### 🌀 Events og belønninger
-- **Secret Portal:** Åbner hvert 10. minut i 60 sekunder og giver en gratis kraft med ekstra held.
-- **Daily Rewards:** Bonussen bliver større for hver dag i træk, du logger ind. **Dag 7 giver en gratis Epic-kraft eller bedre.**
-- **Beskeder til hele serveren**, når nogen stjæler, finder eller laver noget sjældent. Det er her, man kan drille sine venner!
-
-### 💎 Sjældenheder (28 kræfter)
-Common → Uncommon → Rare → Epic → Legendary → Mythic → **Secret**
-
----
-
-## 💰 Sådan tjener spillet Robux
-
+## 💰 Robux
 | Gamepass | Forslag |
 |---|---|
 | 2x Money | 249 R$ |
-| VIP (tag, +20 % penge, 2x daily) | 399 R$ |
-| +3 Extra Pedestals | 149 R$ |
+| VIP | 399 R$ |
+| +3 Monster Spots | 149 R$ |
 | Fast Stealing | 199 R$ |
-| +1 Vault Slot | 99 R$ |
+| +1 Vault Spot | 99 R$ |
 
 | Developer Product | Forslag |
 |---|---|
-| 2x **Server Luck** i 15 min (for alle på serveren!) | 99 R$ |
+| 2x Server Luck (15 min, alle på serveren) | 99 R$ |
 | Super Lock (3 min) | 29 R$ |
-| Cash Pack (10 min indtjening) | 49 R$ |
+| Cash Pack | 49 R$ |
 
-Som du ønskede, kan **Secret-kræfter ikke købes direkte**. Man finder dem kun ved at spille.
-Server Luck er god at sælge, fordi alle på serveren får glæde af den, og alle kan se, hvem der købte den.
+De sjældneste monstre kan **ikke** købes for Robux. Dem skal man selv mogge.
 
 ---
 
-## 🛠️ Trin 1: Sæt spillet ind i Roblox Studio
+## 🛠️ Sådan starter du det (nemmest)
+1. Download **`MogMonsters.rbxlx`**. Det er spilfilen med begge scripts i.
+2. Åbn **Roblox Studio** → **File** → **Open from File…** → vælg filen.
+3. Tryk på den blå **▶**.
 
-1. Åbn **Roblox Studio** → **New** → **Baseplate**.
-2. I **Explorer**: hold musen over **ServerScriptService** → **+** → **Script**.
-3. Slet alt i det, og kopiér hele indholdet af
-   [`src/ServerScriptService/GameServer.server.lua`](src/ServerScriptService/GameServer.server.lua) ind.
-4. Åbn **StarterPlayer** → hold musen over **StarterPlayerScripts** → **+** → **LocalScript**.
-5. Slet alt i det, og kopiér hele indholdet af
-   [`src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua`](src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua) ind.
-6. Tryk **Play** 🎉
+I **Output** (fanen **Script** → **Output**) skal der stå:
+```
+MOG MONSTERS server v1 started OK!
+MOG MONSTERS client v1 started OK!
+```
 
-> ⚠️ Det første skal være et **Script**, og det andet skal være et **LocalScript**.
+### Eller sæt scripts ind selv
+- `src/ServerScriptService/GameServer.server.lua` → **Script** i **ServerScriptService**
+- `src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua` → **LocalScript** i **StarterPlayer › StarterPlayerScripts**
 
-**Test stjæling:** Fanen **Test** → *Clients and Servers* → **2 Players** → **Start**.
+**Test tyveri:** Fanen **Test** → *Clients and Servers* → **2 Players** → **Start**.
+**Tip:** Sæt `START_CASH = 1000000` i CONFIG for at teste hurtigt. Sæt den tilbage til `0`, før du udgiver.
 
-**Tip til test:** Sæt `START_CASH = 1000000` i CONFIG, så du kan prøve alt med det samme.
-Husk at sætte den tilbage til `150`, før du udgiver.
-
-## 🚀 Trin 2: Udgiv
-
+## 🚀 Udgiv
 1. **File → Publish to Roblox**.
-2. **Game Settings → Security**: slå **Enable Studio Access to API Services** til, så spillet gemmer.
-3. **Game Settings → Places**: sæt **Max Players = 8**, for der er 8 baser.
-4. Sæt spillet til **Public** på https://create.roblox.com.
-
-## 💳 Trin 3: Gamepasses og Products
-
-1. https://create.roblox.com → dit spil → **Monetization**.
-2. Opret 5 **Passes** og 3 **Developer Products** (se tabellerne ovenfor).
-3. Kopiér hvert **ID** ind i toppen af `GameServer` under **CONFIG**, f.eks. `DOUBLE_MONEY_PASS_ID = 123456789,`
-4. Publish igen. Indtil et ID er sat, viser knappen "Coming soon!".
-
-## ✏️ Nemt at ændre
-- **`POWERS`**: tilføj nye kræfter (navn, pris, indtjening, farve, angreb).
-- **`RECIPES`**: tilføj nye hemmelige fusioner.
-- **`MUTATIONS`**: chancer og gangefaktorer.
-- **`CONFIG`**: restock-tid, priser, lås-tid osv.
-
-## 📈 Idéer til opdateringer (hold spillerne tilbage)
-- Nye kræfter og opskrifter hver uge ("UPDATE 2 ⚡ NEW SECRET POWER")
-- **Væsner**, der vogter basen, og fælder
-- Weekend-events med 2x luck
-- Leaderboard over de rigeste spillere i hele spillet
+2. **Game Settings → Security** → slå **Enable Studio Access to API Services** til, så spillet gemmer.
+3. **Max Players = 8**, for der er 8 baser.
+4. Opret gamepasses og products på **create.roblox.com → Monetization**, og sæt deres ID'er ind i **CONFIG**.

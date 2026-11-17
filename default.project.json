@@ -1,5 +1,5 @@
 {
-  "name": "PowerEmpire",
+  "name": "MogMonsters",
   "tree": {
     "$className": "DataModel",
     "ServerScriptService": {
