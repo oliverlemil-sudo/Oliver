@@ -1,98 +1,156 @@
-# 🥚 Egg Heist: Throw & Steal
+# ⚡ POWER EMPIRE: Steal, Build & Become OP
 
-Et helt nyt Roblox-spil, der blander **stjæle**, **kaste** og **superkræfter**.
-Scriptet bygger selv hele banen, så du ikke skal bygge noget i hånden.
+Et Roblox-spil, hvor du bygger dit eget **Power Empire**. Du køber, **stjæler**, **kaster**
+og **fusionerer** superkræfter, og du bliver hele tiden stærkere end dine venner.
 
-## Sådan spiller man
-
-1. **Køb æg** på **Egg Road** (transportbåndet i midten). Hold **E** på et æg.
-2. Æggene flyver hjem til din **base** og giver **penge hvert sekund**.
-3. **Stjæl æg** fra andres baser (hold **E** på deres æg). Ægget ligger nu på dit hoved.
-4. **Det nye:** Tryk **F** for at **KASTE** ægget. Lander det i din base, er det dit!
-   Lander det et andet sted, kan alle samle det op.
-5. **Bonk Bat:** Slå en tyv, så taber de ægget. Ejeren kan samle det op og få det tilbage.
-6. **Lås din base:** Stå på den røde **LOCK**-plade. Så bliver tyve smidt ud i 45 sekunder.
-7. Når et æg **klækker**, giver det **dobbelt så mange penge**. Specielle æg giver en **SUPERKRAFT**:
-
-| Æg | Sjældenhed | Superkraft |
-|---|---|---|
-| Zap Egg | Rare | ⚡ Super Speed: løb hurtigere |
-| Bouncy Egg | Rare | 🦘 Mega Jump: hop højere |
-| Muscle Egg | Epic | 💪 Strong Arm: kast meget længere |
-| Phantom Egg | Legendary | 👻 Ghost: gå ind i låste baser |
-| Titan Egg | Legendary | 🛡️ Iron Grip: du kan ikke blive slået, så du taber ægget |
-| Cosmic Egg | **Mythic** | 💰 Kæmpe indtjening |
-
-Der er 10 slags æg i 5 sjældenheder: Common, Rare, Epic, Legendary og Mythic.
-
-## Sådan tjener du Robux
-
-| Ting | Type | Forslag til pris |
-|---|---|---|
-| **VIP**: +3 ekstra æg-pladser og VIP-skilt | Game Pass | 249 R$ |
-| **2x Cash**: dobbelt penge for altid | Game Pass | 199 R$ |
-| **Lucky Egg**: få et Legendary- eller Mythic-æg | Developer Product | 99 R$ |
-| **Super Lock**: lås basen i 3 minutter | Developer Product | 29 R$ |
-| **+25K Cash** | Developer Product | 49 R$ |
-
-**Lucky Egg** bliver annonceret for hele serveren, så de andre spillere kan se det, og det får dem til at ville have et.
+Scriptet bygger selv hele kortet: 8 baser i en cirkel og et fælles område i midten.
 
 ---
 
-## Trin 1: Sæt spillet ind i Roblox Studio
+## 🎮 Det er i spillet
 
-1. Åbn **Roblox Studio** → **New** → vælg **Baseplate**.
-2. Find **ServerScriptService** i **Explorer** (fanen **View** → **Explorer**, hvis du ikke kan se den).
-3. Hold musen over **ServerScriptService** → klik **+** → vælg **Script**.
-4. Slet alt i det, og kopiér **hele** indholdet af
+### 🏠 Din base
+- Du starter med **6 pladser** til kræfter og kan købe op til 12 for penge (+3 med gamepass).
+- Hver kraft står på sin egen plads og **tjener penge hvert sekund**.
+- **Vault** bagerst i basen: Kræfter i vaulten **kan aldrig blive stjålet** og **beholdes ved rebirth**.
+  Du flytter en kraft ind eller ud ved at holde **E** på den.
+
+### 🛒 Power Market (midt på kortet)
+- **Begrænset lager:** 10 kræfter ad gangen. Der kommer nye **hvert 90. sekund**.
+- Lageret består af 5 billige, 3 mellem, 1 Epic/Legendary og **1 speciel plads**, hvor der kan komme **Mythic** eller **Secret**.
+- Køber en anden spiller den sjældne kraft først, må du vente til næste gang. Det giver konkurrence!
+
+### 🦹 Stjæl fra dine venner
+- Gå ind i en andens base og hold **E** på en kraft. Jo sjældnere den er, desto længere tager det.
+- **Alarmen** går i gang: Ejerens skærm blinker rødt, og der kommer rødt lys i basen.
+- Løb hjem med kraften, eller **KAST den ind i din base (F)**. Det er vores egen mekanik!
+
+### 🛡️ Forsvar
+| Forsvar | Hvad det gør |
+|---|---|
+| **Laser-lås** | Stå på den røde LOCK-plade. Tyve bliver smidt ud i 45 sekunder |
+| **Turret** (3 levels) | Skyder automatisk på tyve, så de taber kraften |
+| **Alarm** | Advarer dig, når nogen stjæler |
+| **Vault** | Dine bedste kræfter er 100 % sikre |
+| **Power Blast** | Skyd tyven, så de taber kraften |
+
+### 🧪 Power Fusion (unik funktion)
+Kombinér 2 kræfter ved **Fusion Station** og få en ny og stærkere kraft.
+**11 hemmelige opskrifter** skal spillerne selv finde frem til. De bliver gemt i **INDEX**.
+
+| Opskrift | Resultat |
+|---|---|
+| Fire + Lightning | Plasma |
+| Ice + Shadow | Frozen Darkness |
+| Dragon + Lightning | Thunder Dragon |
+| …og 8 hemmelige mere | (spoilers 🤫) |
+
+Kombinerer man to kræfter, der ikke er en opskrift, får man en tilfældig kraft, og nogle gange er den en sjældenhed højere.
+
+### ✨ Mutationer
+| Mutation | Indtjening |
+|---|---|
+| Neon | x1.5 |
+| Golden | x2 |
+| Corrupted | x3 |
+| Rainbow (skifter farve) | x5 |
+| Galaxy | x10 |
+
+En **Rainbow Thunder Dragon** er altså *ekstremt* sjælden og værdifuld.
+
+### 🔄 Rebirth
+| Rebirth | Bonus |
+|---|---|
+| Hver gang | +1x penge (Rebirth 1 = 2x, Rebirth 2 = 3x …) |
+| 2 og 5 | +1 vault-plads |
+| 3+ | Løb hurtigere |
+| 10 | Eksklusiv **Golden Phoenix**-kraft |
+
+Ved rebirth mister du penge og kræfterne udenfor vaulten. Vault-kræfter, turret og opskrifter beholder du.
+
+### ⚔️ Battle Arena
+Udstyr **Power Blast** og kæmp. Din **bedste kraft bestemmer dit angreb**:
+- Fire: ildkugler
+- Ice: fryser modstanderen
+- Lightning: hurtige skud
+- Shadow: du bliver usynlig
+- Gravity: trækker modstanderen hen til dig
+- Dragon: et kæmpe angreb
+
+Når du vinder en kamp, får du penge. Du **mister aldrig kræfter** i arenaen.
+Udenfor arenaen virker angrebet kun mod tyve, så man ikke kan genere folk tilfældigt.
+
+### 🌀 Events og belønninger
+- **Secret Portal:** Åbner hvert 10. minut i 60 sekunder og giver en gratis kraft med ekstra held.
+- **Daily Rewards:** Bonussen bliver større for hver dag i træk, du logger ind. **Dag 7 giver en gratis Epic-kraft eller bedre.**
+- **Beskeder til hele serveren**, når nogen stjæler, finder eller laver noget sjældent. Det er her, man kan drille sine venner!
+
+### 💎 Sjældenheder (18 kræfter)
+Common → Uncommon → Rare → Epic → Legendary → Mythic → **Secret**
+
+---
+
+## 💰 Sådan tjener spillet Robux
+
+| Gamepass | Forslag |
+|---|---|
+| 2x Money | 249 R$ |
+| VIP (tag, +20 % penge, 2x daily) | 399 R$ |
+| +3 Extra Pedestals | 149 R$ |
+| Fast Stealing | 199 R$ |
+| +1 Vault Slot | 99 R$ |
+
+| Developer Product | Forslag |
+|---|---|
+| 2x **Server Luck** i 15 min (for alle på serveren!) | 99 R$ |
+| Super Lock (3 min) | 29 R$ |
+| Cash Pack (10 min indtjening) | 49 R$ |
+
+Som du ønskede, kan **Secret-kræfter ikke købes direkte**. Man finder dem kun ved at spille.
+Server Luck er god at sælge, fordi alle på serveren får glæde af den, og alle kan se, hvem der købte den.
+
+---
+
+## 🛠️ Trin 1: Sæt spillet ind i Roblox Studio
+
+1. Åbn **Roblox Studio** → **New** → **Baseplate**.
+2. I **Explorer**: hold musen over **ServerScriptService** → **+** → **Script**.
+3. Slet alt i det, og kopiér hele indholdet af
    [`src/ServerScriptService/GameServer.server.lua`](src/ServerScriptService/GameServer.server.lua) ind.
-5. Åbn **StarterPlayer** → hold musen over **StarterPlayerScripts** → **+** → **LocalScript**.
-6. Slet alt i det, og kopiér hele indholdet af
+4. Åbn **StarterPlayer** → hold musen over **StarterPlayerScripts** → **+** → **LocalScript**.
+5. Slet alt i det, og kopiér hele indholdet af
    [`src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua`](src/StarterPlayer/StarterPlayerScripts/GameClient.client.lua) ind.
-7. Tryk **Play**. Banen bygges automatisk! 🎉
+6. Tryk **Play** 🎉
 
 > ⚠️ Det første skal være et **Script**, og det andet skal være et **LocalScript**.
 
-### Test med flere spillere (for at prøve at stjæle)
-Fanen **Test** → vælg **2 Players** under *Clients and Servers* → klik **Start**.
-Så får du to vinduer og kan stjæle fra dig selv.
+**Test stjæling:** Fanen **Test** → *Clients and Servers* → **2 Players** → **Start**.
 
-## Trin 2: Udgiv
+**Tip til test:** Sæt `START_CASH = 1000000` i CONFIG, så du kan prøve alt med det samme.
+Husk at sætte den tilbage til `150`, før du udgiver.
 
-1. **File** → **Publish to Roblox**.
-2. **Game Settings** → **Security** → slå **Enable Studio Access to API Services** til, så spillet gemmer.
-3. **Game Settings** → **Places**: sæt **Max Players** til **8**, for der er 8 baser.
-4. På https://create.roblox.com: sæt spillet til **Public**.
+## 🚀 Trin 2: Udgiv
 
-## Trin 3: Opret Game Passes og Products
+1. **File → Publish to Roblox**.
+2. **Game Settings → Security**: slå **Enable Studio Access to API Services** til, så spillet gemmer.
+3. **Game Settings → Places**: sæt **Max Players = 8**, for der er 8 baser.
+4. Sæt spillet til **Public** på https://create.roblox.com.
+
+## 💳 Trin 3: Gamepasses og Products
 
 1. https://create.roblox.com → dit spil → **Monetization**.
-2. Opret 2 **Passes**: VIP og 2x Cash.
-3. Opret 3 **Developer Products**: Lucky Egg, Super Lock og 25K Cash.
-4. Kopiér hvert **ID** ind i toppen af `GameServer` under **CONFIG**:
+2. Opret 5 **Passes** og 3 **Developer Products** (se tabellerne ovenfor).
+3. Kopiér hvert **ID** ind i toppen af `GameServer` under **CONFIG**, f.eks. `DOUBLE_MONEY_PASS_ID = 123456789,`
+4. Publish igen. Indtil et ID er sat, viser knappen "Coming soon!".
 
-```lua
-VIP_PASS_ID = 123456789,
-DOUBLE_CASH_PASS_ID = 123456789,
-LUCKY_EGG_PRODUCT_ID = 123456789,
-SUPER_LOCK_PRODUCT_ID = 123456789,
-CASH_PACK_PRODUCT_ID = 123456789,
-```
+## ✏️ Nemt at ændre
+- **`POWERS`**: tilføj nye kræfter (navn, pris, indtjening, farve, angreb).
+- **`RECIPES`**: tilføj nye hemmelige fusioner.
+- **`MUTATIONS`**: chancer og gangefaktorer.
+- **`CONFIG`**: restock-tid, priser, lås-tid osv.
 
-5. Publish igen. Indtil et ID er sat, viser knappen bare "Coming soon!".
-
-## Nemme ting at ændre (i CONFIG og EGGS)
-
-- `EGGS`: tilføj nye æg med navn, pris, indtjening, farve og superkraft.
-- `EGG_SPAWN_EVERY`, `ROAD_SPEED`: hvor tit og hvor hurtigt æggene kommer.
-- `LOCK_TIME`, `THROW_POWER`, `START_CASH` osv.
-
-## Få spillere
-
-- Lav et sjovt **ikon** og **thumbnails**, f.eks. en figur der kaster et glødende æg.
-- Opdatér tit med nye æg og superkræfter. "UPDATE 🥚 NEW MYTHIC EGG" i titlen virker godt.
-- Få venner til at spille og trykke 👍.
-
-## Rigtige penge
-Robux kan veksles via **DevEx**. Du skal være mindst 13 år og have mindst 30.000 tjente Robux.
-Hvis du er under 18, så tag en voksen med.
+## 📈 Idéer til opdateringer (hold spillerne tilbage)
+- Nye kræfter og opskrifter hver uge ("UPDATE 2 ⚡ NEW SECRET POWER")
+- **Væsner**, der vogter basen, og fælder
+- Weekend-events med 2x luck
+- Leaderboard over de rigeste spillere i hele spillet

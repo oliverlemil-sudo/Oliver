@@ -1,15 +1,19 @@
 --[[
-	EGG HEIST: THROW & STEAL  -  GameServer
-	========================================
+	⚡ POWER EMPIRE - Steal, Build & Become OP ⚡
+	=============================================
 	Put this as a *Script* in ServerScriptService.
 
-	The script builds the whole map by itself and runs the game:
-	  - Eggs ride along the Egg Road. Buy them, they earn cash in your base.
-	  - Steal eggs from other bases.
-	  - THROW a stolen egg into your own base (press F) instead of walking!
-	  - Bonk thieves with your bat so they drop the egg.
-	  - When an egg hatches it gives 2x cash and can unlock a SUPERPOWER.
-	  - Lock your base for a short time.
+	This script builds the whole map and runs the game:
+	  * Your own base with pedestals. Powers on them make money every second.
+	  * POWER MARKET with limited stock that restocks every 90 seconds.
+	  * STEAL powers from other bases. Run home or THROW them (F) into your base.
+	  * Protect your base: Lock (laser forcefield), Turret, Alarm and VAULT
+	    (vault powers can never be stolen and survive rebirth).
+	  * POWER FUSION: combine two powers into a new one. Secret recipes!
+	  * MUTATIONS: Neon, Golden, Corrupted, Rainbow, Galaxy.
+	  * REBIRTH for permanent bonuses.
+	  * BATTLE ARENA: your best power decides your attack.
+	  * SECRET PORTAL event, DAILY REWARDS, SERVER LUCK.
 
 	>>> ONLY CHANGE THINGS IN THE "CONFIG" SECTION BELOW <<<
 ]]
@@ -18,79 +22,137 @@
 -- CONFIG
 ----------------------------------------------------------------------
 local CONFIG = {
-	START_CASH = 100,
-	EGG_SPAWN_EVERY = 3,      -- seconds between new eggs on the road
-	ROAD_SPEED = 8,           -- how fast the eggs move (studs per second)
-	NORMAL_SLOTS = 9,         -- egg pedestals everyone gets
-	VIP_SLOTS = 3,            -- extra pedestals for VIP
-	LOCK_TIME = 45,           -- seconds the base is locked
-	LOCK_COOLDOWN = 30,       -- seconds before you can lock again
-	LOOSE_EGG_TIME = 15,      -- seconds a dropped egg lies on the ground
+	START_CASH = 150,
+	START_SLOTS = 6,          -- pedestals you start with
+	MAX_SLOTS = 12,           -- pedestals you can buy with cash
+	SLOT_BASE_COST = 1000,    -- price of slot 7 (then x3 every slot)
+	RESTOCK_TIME = 90,        -- seconds between market restocks
+	LOCK_TIME = 45,
+	LOCK_COOLDOWN = 45,
+	LOOSE_TIME = 15,          -- seconds a dropped power lies on the ground
 	RESPAWN_TIME = 3,
 	THROW_POWER = 75,
-	SELL_PERCENT = 0.5,       -- you get 50% of the price back when you sell
-	CASH_PACK_AMOUNT = 25000,
+	SELL_PERCENT = 0.5,
+	FUSE_COST_PERCENT = 0.1,  -- fusion costs 10% of the two powers' price
+	REBIRTH_BASE_COST = 500000,
+	REBIRTH_COST_MULT = 3,
+	TURRET_COSTS = { 5000, 75000, 1000000 },
+	TURRET_COOLDOWN = { 4, 2.5, 1.5 },
+	PORTAL_EVERY = 600,       -- secret portal opens every 10 minutes
+	PORTAL_OPEN_TIME = 60,
+	FIRST_PORTAL = 300,       -- first portal 5 minutes after the server starts
 
 	-- Paste your IDs here after you create them on create.roblox.com
-	-- (0 = not set up yet, the button will just say "coming soon")
-	VIP_PASS_ID = 0,          -- Game Pass: +3 egg slots + VIP tag
-	DOUBLE_CASH_PASS_ID = 0,  -- Game Pass: 2x cash forever
-	LUCKY_EGG_PRODUCT_ID = 0, -- Developer Product: Legendary or Mythic egg
-	SUPER_LOCK_PRODUCT_ID = 0,-- Developer Product: lock base for 3 minutes
-	CASH_PACK_PRODUCT_ID = 0, -- Developer Product: +25K cash
+	-- (0 = not set up yet, the button just says "coming soon")
+	DOUBLE_MONEY_PASS_ID = 0, -- 2x money
+	VIP_PASS_ID = 0,          -- VIP tag, +20% money, 2x daily reward
+	EXTRA_SLOTS_PASS_ID = 0,  -- +3 pedestals
+	FAST_STEAL_PASS_ID = 0,   -- steal 2x faster, no slow-down when carrying
+	EXTRA_VAULT_PASS_ID = 0,  -- +1 vault slot
+	SERVER_LUCK_PRODUCT_ID = 0, -- 2x luck for EVERYONE for 15 minutes
+	SUPER_LOCK_PRODUCT_ID = 0,  -- lock your base for 3 minutes
+	CASH_PACK_PRODUCT_ID = 0,   -- 10 minutes of income (min 10K)
 }
 
 local RARITIES = {
-	{ Name = "Common",    Weight = 62,  Color = Color3.fromRGB(200, 200, 200), HatchTime = 60 },
-	{ Name = "Rare",      Weight = 24,  Color = Color3.fromRGB(70, 150, 255),  HatchTime = 120 },
-	{ Name = "Epic",      Weight = 10,  Color = Color3.fromRGB(180, 90, 255),  HatchTime = 240 },
-	{ Name = "Legendary", Weight = 3.5, Color = Color3.fromRGB(255, 200, 40),  HatchTime = 480 },
-	{ Name = "Mythic",    Weight = 0.5, Color = Color3.fromRGB(255, 60, 120),  HatchTime = 900 },
+	{ Name = "Common",    Color = Color3.fromRGB(200, 200, 200) },
+	{ Name = "Uncommon",  Color = Color3.fromRGB(90, 220, 90) },
+	{ Name = "Rare",      Color = Color3.fromRGB(70, 150, 255) },
+	{ Name = "Epic",      Color = Color3.fromRGB(180, 90, 255) },
+	{ Name = "Legendary", Color = Color3.fromRGB(255, 200, 40) },
+	{ Name = "Mythic",    Color = Color3.fromRGB(255, 60, 120) },
+	{ Name = "Secret",    Color = Color3.fromRGB(20, 20, 20) },
 }
 
--- Rarity: 1 = Common ... 5 = Mythic.  Income = cash per second.
-local EGGS = {
-	{ Id = "Pebble",  Name = "Pebble Egg",  Rarity = 1, Price = 25,     Income = 1,    Color = Color3.fromRGB(150, 140, 130) },
-	{ Id = "Leafy",   Name = "Leafy Egg",   Rarity = 1, Price = 60,     Income = 2,    Color = Color3.fromRGB(90, 200, 90) },
-	{ Id = "Bubble",  Name = "Bubble Egg",  Rarity = 1, Price = 120,    Income = 4,    Color = Color3.fromRGB(150, 220, 255) },
-	{ Id = "Zap",     Name = "Zap Egg",     Rarity = 2, Price = 400,    Income = 10,   Color = Color3.fromRGB(255, 240, 60),  Power = "Speed" },
-	{ Id = "Bouncy",  Name = "Bouncy Egg",  Rarity = 2, Price = 900,    Income = 20,   Color = Color3.fromRGB(255, 120, 200), Power = "Jump" },
-	{ Id = "Frost",   Name = "Frost Egg",   Rarity = 3, Price = 2500,   Income = 50,   Color = Color3.fromRGB(180, 240, 255) },
-	{ Id = "Muscle",  Name = "Muscle Egg",  Rarity = 3, Price = 6000,   Income = 110,  Color = Color3.fromRGB(230, 110, 60),  Power = "StrongArm" },
-	{ Id = "Phantom", Name = "Phantom Egg", Rarity = 4, Price = 20000,  Income = 300,  Color = Color3.fromRGB(120, 255, 220), Power = "Ghost" },
-	{ Id = "Titan",   Name = "Titan Egg",   Rarity = 4, Price = 50000,  Income = 650,  Color = Color3.fromRGB(120, 120, 140), Power = "IronGrip" },
-	{ Id = "Cosmic",  Name = "Cosmic Egg",  Rarity = 5, Price = 200000, Income = 2000, Color = Color3.fromRGB(110, 40, 200) },
-}
-
+-- Element = which attack you get in battle when this is your best power
 local POWERS = {
-	Speed = "Super Speed",
-	Jump = "Mega Jump",
-	StrongArm = "Strong Arm (throw farther)",
-	Ghost = "Ghost (walk through locked bases)",
-	IronGrip = "Iron Grip (can't be bonked loose)",
+	-- Market powers
+	{ Id = "Fire",      Name = "Fire",      Rarity = 1, Price = 100,     Income = 5,     Color = Color3.fromRGB(255, 110, 30),  Element = "Fire",      Market = true },
+	{ Id = "Earth",     Name = "Earth",     Rarity = 1, Price = 180,     Income = 8,     Color = Color3.fromRGB(140, 95, 60),   Element = "Gravity",   Market = true },
+	{ Id = "Ice",       Name = "Ice",       Rarity = 2, Price = 600,     Income = 15,    Color = Color3.fromRGB(150, 230, 255), Element = "Ice",       Market = true },
+	{ Id = "Wind",      Name = "Wind",      Rarity = 2, Price = 900,     Income = 22,    Color = Color3.fromRGB(200, 255, 220), Element = "Lightning", Market = true },
+	{ Id = "Lightning", Name = "Lightning", Rarity = 3, Price = 3000,    Income = 50,    Color = Color3.fromRGB(255, 245, 70),  Element = "Lightning", Market = true },
+	{ Id = "Poison",    Name = "Poison",    Rarity = 3, Price = 4500,    Income = 70,    Color = Color3.fromRGB(130, 255, 60),  Element = "Shadow",    Market = true },
+	{ Id = "Shadow",    Name = "Shadow",    Rarity = 4, Price = 18000,   Income = 200,   Color = Color3.fromRGB(60, 30, 90),    Element = "Shadow",    Market = true },
+	{ Id = "Gravity",   Name = "Gravity",   Rarity = 4, Price = 28000,   Income = 300,   Color = Color3.fromRGB(120, 80, 255),  Element = "Gravity",   Market = true },
+	{ Id = "Dragon",    Name = "Dragon",    Rarity = 5, Price = 120000,  Income = 1000,  Color = Color3.fromRGB(220, 40, 40),   Element = "Dragon",    Market = true },
+	{ Id = "Void",      Name = "Void",      Rarity = 6, Price = 700000,  Income = 5000,  Color = Color3.fromRGB(10, 0, 30),     Element = "Gravity",   Market = true },
+	{ Id = "Celestial", Name = "Celestial", Rarity = 7, Price = 5000000, Income = 25000, Color = Color3.fromRGB(255, 250, 220), Element = "Dragon",    Market = true },
+
+	-- Fusion-only powers
+	{ Id = "Magma",          Name = "Magma",           Rarity = 2, Price = 900,      Income = 30,     Color = Color3.fromRGB(255, 70, 0),    Element = "Fire" },
+	{ Id = "Steam",          Name = "Steam",           Rarity = 2, Price = 1000,     Income = 35,     Color = Color3.fromRGB(230, 230, 230), Element = "Ice" },
+	{ Id = "Blizzard",       Name = "Blizzard",        Rarity = 3, Price = 4000,     Income = 70,     Color = Color3.fromRGB(220, 250, 255), Element = "Ice" },
+	{ Id = "Plasma",         Name = "Plasma",          Rarity = 3, Price = 7000,     Income = 110,    Color = Color3.fromRGB(255, 80, 220),  Element = "Lightning" },
+	{ Id = "Storm",          Name = "Storm",           Rarity = 3, Price = 9000,     Income = 150,    Color = Color3.fromRGB(90, 110, 160),  Element = "Lightning" },
+	{ Id = "FrozenDarkness", Name = "Frozen Darkness", Rarity = 4, Price = 45000,    Income = 500,    Color = Color3.fromRGB(40, 60, 120),   Element = "Ice" },
+	{ Id = "ToxicShadow",    Name = "Toxic Shadow",    Rarity = 4, Price = 55000,    Income = 600,    Color = Color3.fromRGB(60, 120, 30),   Element = "Shadow" },
+	{ Id = "SolarDragon",    Name = "Solar Dragon",    Rarity = 5, Price = 280000,   Income = 2300,   Color = Color3.fromRGB(255, 170, 0),   Element = "Dragon" },
+	{ Id = "ThunderDragon",  Name = "Thunder Dragon",  Rarity = 5, Price = 300000,   Income = 2500,   Color = Color3.fromRGB(255, 230, 0),   Element = "Dragon" },
+	{ Id = "Phoenix",        Name = "Phoenix",         Rarity = 6, Price = 1000000,  Income = 8000,   Color = Color3.fromRGB(255, 120, 40),  Element = "Fire" },
+	{ Id = "BlackHole",      Name = "Black Hole",      Rarity = 6, Price = 1600000,  Income = 12000,  Color = Color3.fromRGB(5, 5, 5),       Element = "Gravity" },
+	{ Id = "Eclipse",        Name = "Eclipse",         Rarity = 7, Price = 10000000, Income = 60000,  Color = Color3.fromRGB(255, 140, 0),   Element = "Shadow" },
+}
+
+-- Fusion recipes (order doesn't matter). Players have to discover them!
+local RECIPES = {
+	{ "Fire", "Earth", "Magma" },
+	{ "Fire", "Ice", "Steam" },
+	{ "Ice", "Wind", "Blizzard" },
+	{ "Fire", "Lightning", "Plasma" },
+	{ "Wind", "Lightning", "Storm" },
+	{ "Ice", "Shadow", "FrozenDarkness" },
+	{ "Poison", "Shadow", "ToxicShadow" },
+	{ "Dragon", "Fire", "SolarDragon" },
+	{ "Dragon", "Lightning", "ThunderDragon" },
+	{ "Gravity", "Void", "BlackHole" },
+	{ "Celestial", "Shadow", "Eclipse" },
+}
+
+-- Chance is in percent
+local MUTATIONS = {
+	{ Name = "Galaxy",    Mult = 10,  Chance = 0.1, Color = Color3.fromRGB(70, 20, 140) },
+	{ Name = "Rainbow",   Mult = 5,   Chance = 0.4 },
+	{ Name = "Corrupted", Mult = 3,   Chance = 1,   Color = Color3.fromRGB(110, 0, 0) },
+	{ Name = "Golden",    Mult = 2,   Chance = 2.5, Color = Color3.fromRGB(255, 200, 40) },
+	{ Name = "Neon",      Mult = 1.5, Chance = 4 },
+}
+
+-- Battle attacks
+local ELEMENTS = {
+	Punch     = { Damage = 10, Cooldown = 1.0, Range = 12, Width = 0.4, Color = Color3.fromRGB(255, 255, 255) },
+	Fire      = { Damage = 25, Cooldown = 0.8, Range = 80, Width = 0.8, Color = Color3.fromRGB(255, 110, 30) },
+	Ice       = { Damage = 15, Cooldown = 1.5, Range = 80, Width = 0.6, Color = Color3.fromRGB(150, 230, 255), Freeze = 1.3 },
+	Lightning = { Damage = 12, Cooldown = 0.35, Range = 90, Width = 0.3, Color = Color3.fromRGB(255, 245, 70) },
+	Shadow    = { Damage = 20, Cooldown = 2.0, Range = 70, Width = 0.6, Color = Color3.fromRGB(80, 40, 120), Invisible = 3 },
+	Gravity   = { Damage = 15, Cooldown = 2.0, Range = 70, Width = 0.7, Color = Color3.fromRGB(120, 80, 255), Pull = true },
+	Dragon    = { Damage = 55, Cooldown = 3.0, Range = 90, Width = 2.0, Color = Color3.fromRGB(220, 40, 40) },
 }
 
 ----------------------------------------------------------------------
--- SERVICES & REMOTES
+-- SERVICES, REMOTES, HELPERS
 ----------------------------------------------------------------------
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local DataStoreService = game:GetService("DataStoreService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local CollectionService = game:GetService("CollectionService")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
 
 Players.CharacterAutoLoads = false
+Lighting.ClockTime = 14.5
 
 for key, value in pairs({
+	DoubleMoneyPassId = CONFIG.DOUBLE_MONEY_PASS_ID,
 	VipPassId = CONFIG.VIP_PASS_ID,
-	DoubleCashPassId = CONFIG.DOUBLE_CASH_PASS_ID,
-	LuckyEggProductId = CONFIG.LUCKY_EGG_PRODUCT_ID,
+	ExtraSlotsPassId = CONFIG.EXTRA_SLOTS_PASS_ID,
+	FastStealPassId = CONFIG.FAST_STEAL_PASS_ID,
+	ExtraVaultPassId = CONFIG.EXTRA_VAULT_PASS_ID,
+	ServerLuckProductId = CONFIG.SERVER_LUCK_PRODUCT_ID,
 	SuperLockProductId = CONFIG.SUPER_LOCK_PRODUCT_ID,
 	CashPackProductId = CONFIG.CASH_PACK_PRODUCT_ID,
-	CashPackAmount = CONFIG.CASH_PACK_AMOUNT,
 }) do
 	ReplicatedStorage:SetAttribute(key, value)
 end
@@ -103,22 +165,27 @@ local function remote(className, name)
 	r.Parent = remotes
 	return r
 end
-local notifyRemote = remote("RemoteEvent", "Notify")     -- message to one player
-local announceRemote = remote("RemoteEvent", "Announce") -- message to everyone
+local notifyRemote = remote("RemoteEvent", "Notify")
+local announceRemote = remote("RemoteEvent", "Announce")
+local alarmRemote = remote("RemoteEvent", "Alarm")
+local panelRemote = remote("RemoteEvent", "OpenPanel")
 local throwRemote = remote("RemoteEvent", "Throw")
+local blastRemote = remote("RemoteEvent", "Blast")
+local requestRemote = remote("RemoteFunction", "Request")
 remotes.Parent = ReplicatedStorage
 
 local function notify(player, text)
 	notifyRemote:FireClient(player, text)
 end
-
 local function announce(text)
 	announceRemote:FireAllClients(text)
 end
 
 local function fmt(n)
 	n = math.floor(n)
-	if n >= 1e9 then
+	if n >= 1e12 then
+		return string.format("%.1fT", n / 1e12)
+	elseif n >= 1e9 then
 		return string.format("%.1fB", n / 1e9)
 	elseif n >= 1e6 then
 		return string.format("%.1fM", n / 1e6)
@@ -128,13 +195,36 @@ local function fmt(n)
 	return tostring(n)
 end
 
-local EGG_BY_ID = {}
-for _, def in ipairs(EGGS) do
-	EGG_BY_ID[def.Id] = def
+local POWER_BY_ID = {}
+for _, def in ipairs(POWERS) do
+	POWER_BY_ID[def.Id] = def
+end
+local MUT_BY_NAME = {}
+for _, m in ipairs(MUTATIONS) do
+	MUT_BY_NAME[m.Name] = m
+end
+
+local function recipeKey(a, b)
+	if a > b then
+		a, b = b, a
+	end
+	return a .. "+" .. b
+end
+local RECIPE_BY_KEY = {}
+for _, r in ipairs(RECIPES) do
+	RECIPE_BY_KEY[recipeKey(r[1], r[2])] = r[3]
+end
+
+local function displayName(id, mut)
+	local def = POWER_BY_ID[id]
+	if mut then
+		return mut .. " " .. def.Name
+	end
+	return def.Name
 end
 
 ----------------------------------------------------------------------
--- MAP BUILDING
+-- MAP
 ----------------------------------------------------------------------
 local oldBaseplate = workspace:FindFirstChild("Baseplate")
 if oldBaseplate then
@@ -144,9 +234,9 @@ end
 local map = Instance.new("Folder")
 map.Name = "Map"
 map.Parent = workspace
-local eggFolder = Instance.new("Folder")
-eggFolder.Name = "Eggs"
-eggFolder.Parent = workspace
+local powerFolder = Instance.new("Folder")
+powerFolder.Name = "Powers"
+powerFolder.Parent = workspace
 
 local function block(size, cframe, color, material, parent)
 	local p = Instance.new("Part")
@@ -165,7 +255,7 @@ local function surfaceText(part, text, face)
 	local gui = Instance.new("SurfaceGui")
 	gui.Face = face or Enum.NormalId.Top
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 30
+	gui.PixelsPerStud = 25
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
@@ -179,116 +269,205 @@ local function surfaceText(part, text, face)
 	return label
 end
 
--- Ground
-block(Vector3.new(420, 2, 320), CFrame.new(0, -1, 0), Color3.fromRGB(90, 170, 80), Enum.Material.Grass)
-
--- Egg Road (conveyor) along the X axis
-local ROAD_START, ROAD_END = -185, 185
-local EGG_Y = 1.2 + 1.9
-local road = block(Vector3.new(ROAD_END - ROAD_START, 1.2, 14), CFrame.new(0, 0.6, 0), Color3.fromRGB(45, 45, 55), Enum.Material.DiamondPlate)
-road.Name = "EggRoad"
-for _, z in ipairs({ -7.5, 7.5 }) do
-	block(Vector3.new(ROAD_END - ROAD_START, 2, 1), CFrame.new(0, 1, z), Color3.fromRGB(255, 200, 40), Enum.Material.Neon)
+local function billboard(part, width, height, offset, lines)
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.new(0, width, 0, height)
+	bb.StudsOffset = offset
+	bb.MaxDistance = 300
+	bb.Parent = part
+	local labels = {}
+	for i = 1, lines do
+		local l = Instance.new("TextLabel")
+		l.Size = UDim2.new(1, 0, 1 / lines, 0)
+		l.Position = UDim2.new(0, 0, (i - 1) / lines, 0)
+		l.BackgroundTransparency = 1
+		l.Font = Enum.Font.FredokaOne
+		l.TextScaled = true
+		l.TextColor3 = Color3.new(1, 1, 1)
+		l.TextStrokeTransparency = 0
+		l.Text = ""
+		l.Parent = bb
+		labels[i] = l
+	end
+	return bb, labels
 end
-local roadSign = block(Vector3.new(30, 8, 1), CFrame.new(ROAD_START + 5, 6, 0) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(30, 30, 40))
-surfaceText(roadSign, "EGG ROAD", Enum.NormalId.Front)
-surfaceText(roadSign, "EGG ROAD", Enum.NormalId.Back)
 
--- Bases
-local PLOT_W, PLOT_D = 60, 50
+local function stationSign(position, text, color)
+	local p = block(Vector3.new(1, 1, 1), CFrame.new(position), color)
+	p.Transparency = 1
+	p.CanCollide = false
+	local _, labels = billboard(p, 300, 80, Vector3.new(), 2)
+	labels[1].Text = text
+	labels[1].TextColor3 = color
+	return labels[2]
+end
+
+-- Ground + central plaza
+block(Vector3.new(560, 2, 560), CFrame.new(0, -1, 0), Color3.fromRGB(85, 165, 75), Enum.Material.Grass)
+local plaza = block(Vector3.new(2, 220, 220), CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(170, 170, 180), Enum.Material.Slate)
+plaza.Shape = Enum.PartType.Cylinder
+
+-- POWER MARKET
+local marketPodiums = {}
+for i = 1, 10 do
+	local x = -45 + (i - 1) * 10
+	local podium = block(Vector3.new(6, 3, 6), CFrame.new(x, 1.5, -62), Color3.fromRGB(60, 60, 75), Enum.Material.Marble)
+	podium.Name = "MarketPodium"
+	marketPodiums[i] = podium
+end
+block(Vector3.new(104, 1, 14), CFrame.new(0, 14, -64), Color3.fromRGB(255, 200, 40), Enum.Material.Neon)
+local marketTimerLabel = stationSign(Vector3.new(0, 20, -64), "POWER MARKET", Color3.fromRGB(255, 200, 40))
+
+-- FUSION STATION
+local fusionPos = Vector3.new(-70, 0, 0)
+local fusionBase = block(Vector3.new(2, 16, 16), CFrame.new(fusionPos + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 30, 80), Enum.Material.Metal)
+fusionBase.Shape = Enum.PartType.Cylinder
+local fusionCore = block(Vector3.new(6, 6, 6), CFrame.new(fusionPos + Vector3.new(0, 7, 0)), Color3.fromRGB(200, 80, 255), Enum.Material.ForceField)
+fusionCore.Shape = Enum.PartType.Ball
+fusionCore.CanCollide = false
+local fusionPrompt = Instance.new("ProximityPrompt")
+fusionPrompt.ActionText = "Fuse Powers"
+fusionPrompt.ObjectText = "Fusion Station"
+fusionPrompt.MaxActivationDistance = 16
+fusionPrompt.RequiresLineOfSight = false
+fusionPrompt.Parent = fusionCore
+stationSign(fusionPos + Vector3.new(0, 14, 0), "POWER FUSION", Color3.fromRGB(200, 80, 255)).Text = "Combine 2 powers!"
+
+-- REBIRTH STATION
+local rebirthPos = Vector3.new(70, 0, 0)
+local rebirthPillar = block(Vector3.new(8, 12, 8), CFrame.new(rebirthPos + Vector3.new(0, 6, 0)), Color3.fromRGB(255, 255, 255), Enum.Material.Neon)
+local rebirthPrompt = Instance.new("ProximityPrompt")
+rebirthPrompt.ActionText = "Rebirth"
+rebirthPrompt.ObjectText = "Rebirth Station"
+rebirthPrompt.MaxActivationDistance = 14
+rebirthPrompt.RequiresLineOfSight = false
+rebirthPrompt.Parent = rebirthPillar
+stationSign(rebirthPos + Vector3.new(0, 16, 0), "REBIRTH", Color3.fromRGB(255, 255, 255)).Text = "Start over, get stronger!"
+
+-- BATTLE ARENA
+local ARENA_CENTER = Vector3.new(0, 0, 62)
+local ARENA_RADIUS = 28
+local arenaFloor = block(Vector3.new(1.5, ARENA_RADIUS * 2, ARENA_RADIUS * 2), CFrame.new(ARENA_CENTER + Vector3.new(0, 0.75, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 40, 40), Enum.Material.Slate)
+arenaFloor.Shape = Enum.PartType.Cylinder
+for i = 0, 11 do
+	if i % 3 ~= 0 then -- leave openings
+		local a = math.rad(i * 30)
+		local pos = ARENA_CENTER + Vector3.new(math.sin(a) * ARENA_RADIUS, 2.5, math.cos(a) * ARENA_RADIUS)
+		block(Vector3.new(14, 3, 1), CFrame.lookAt(pos, ARENA_CENTER + Vector3.new(0, 2.5, 0)), Color3.fromRGB(90, 20, 20), Enum.Material.Brick)
+	end
+end
+stationSign(ARENA_CENTER + Vector3.new(0, 16, 0), "BATTLE ARENA", Color3.fromRGB(255, 80, 80)).Text = "Equip Power Blast and fight!"
+
+local function inArena(position)
+	local flat = Vector3.new(position.X - ARENA_CENTER.X, 0, position.Z - ARENA_CENTER.Z)
+	return flat.Magnitude <= ARENA_RADIUS and position.Y < 30
+end
+
+-- SECRET PORTAL
+local portalPos = Vector3.new(0, 0, 0)
+local portalFrame = block(Vector3.new(14, 16, 2), CFrame.new(portalPos + Vector3.new(0, 8, 0)), Color3.fromRGB(30, 10, 50), Enum.Material.Basalt)
+portalFrame.CanCollide = false
+portalFrame.Transparency = 0.2
+local portal = block(Vector3.new(1, 12, 12), CFrame.new(portalPos + Vector3.new(0, 8, 0)) * CFrame.Angles(0, math.rad(90), 0), Color3.fromRGB(170, 60, 255), Enum.Material.Neon)
+portal.Shape = Enum.PartType.Cylinder
+portal.CanCollide = false
+portal.Transparency = 1
+local portalLabel = stationSign(portalPos + Vector3.new(0, 19, 0), "SECRET PORTAL", Color3.fromRGB(170, 60, 255))
+
+-- BASES (in a circle around the plaza)
+local PLOT_W, PLOT_D = 72, 64
+local BASE_RADIUS = 175
 local PLOT_COLORS = {
 	Color3.fromRGB(255, 120, 120), Color3.fromRGB(120, 180, 255), Color3.fromRGB(140, 230, 140), Color3.fromRGB(255, 210, 110),
-	Color3.fromRGB(210, 140, 255), Color3.fromRGB(120, 230, 230), Color3.fromRGB(255, 160, 210), Color3.fromRGB(200, 200, 200),
+	Color3.fromRGB(210, 140, 255), Color3.fromRGB(120, 230, 230), Color3.fromRGB(255, 160, 210), Color3.fromRGB(220, 220, 220),
 }
+local NORMAL_PEDESTALS = 15 -- 12 buyable + 3 from the Extra Slots pass
+local VAULT_PEDESTALS = 4
+local VAULT_OFFSET = 100    -- vault slots are numbered 101, 102, ...
 
 local plots = {}
-local playerPlot = {} -- [player] = plot
+local playerPlot = {}
 
-local function buildPlot(index, center, rotation)
-	local cf = CFrame.new(center) * CFrame.Angles(0, rotation, 0) -- looks toward the road (-Z local)
+local function buildPlot(index)
+	local angle = math.rad((index - 1) * 45)
+	local center = Vector3.new(math.sin(angle) * BASE_RADIUS, 0, math.cos(angle) * BASE_RADIUS)
+	local cf = CFrame.lookAt(center, Vector3.new(0, 0, 0)) -- -Z points at the plaza
 	local color = PLOT_COLORS[index]
 	local folder = Instance.new("Folder")
 	folder.Name = "Base" .. index
 	folder.Parent = map
 
-	block(Vector3.new(PLOT_W, 1, PLOT_D), cf * CFrame.new(0, 0.5, 0), color:Lerp(Color3.new(1, 1, 1), 0.4), Enum.Material.SmoothPlastic, folder)
+	block(Vector3.new(PLOT_W, 1, PLOT_D), cf * CFrame.new(0, 0.5, 0), color:Lerp(Color3.new(1, 1, 1), 0.45), nil, folder)
 	local wallColor = color:Lerp(Color3.new(0, 0, 0), 0.25)
 	block(Vector3.new(PLOT_W, 8, 1), cf * CFrame.new(0, 5, PLOT_D / 2 - 0.5), wallColor, nil, folder)
 	block(Vector3.new(1, 8, PLOT_D), cf * CFrame.new(PLOT_W / 2 - 0.5, 5, 0), wallColor, nil, folder)
 	block(Vector3.new(1, 8, PLOT_D), cf * CFrame.new(-PLOT_W / 2 + 0.5, 5, 0), wallColor, nil, folder)
-	local doorW = 14
+	local doorW = 16
 	local sideW = (PLOT_W - doorW) / 2
 	for _, sx in ipairs({ -1, 1 }) do
 		block(Vector3.new(sideW, 8, 1), cf * CFrame.new(sx * (doorW / 2 + sideW / 2), 5, -PLOT_D / 2 + 0.5), wallColor, nil, folder)
 	end
 
 	local laser = block(Vector3.new(doorW, 8, 0.5), cf * CFrame.new(0, 5, -PLOT_D / 2 + 0.5), Color3.fromRGB(255, 30, 30), Enum.Material.Neon, folder)
-	laser.Name = "Laser"
 	laser.CanCollide = false
 	laser.Transparency = 1
 
 	local pedestals = {}
-	local total = CONFIG.NORMAL_SLOTS + CONFIG.VIP_SLOTS
-	for i = 1, total do
-		local row = (i - 1) // 6
-		local col = (i - 1) % 6
-		local vip = i > CONFIG.NORMAL_SLOTS
-		local ped = block(Vector3.new(4, 2, 4), cf * CFrame.new(-22.5 + col * 9, 2, 4 + row * 12),
-			vip and Color3.fromRGB(255, 200, 40) or Color3.fromRGB(235, 235, 240), Enum.Material.Marble, folder)
-		ped.Name = vip and "VipPedestal" or "Pedestal"
-		if vip then
-			surfaceText(ped, "VIP", Enum.NormalId.Back)
-		end
-		table.insert(pedestals, ped)
+	for i = 1, NORMAL_PEDESTALS do
+		local row = (i - 1) // 5
+		local col = (i - 1) % 5
+		local ped = block(Vector3.new(5, 2, 5), cf * CFrame.new(-24 + col * 12, 2, -12 + row * 12), Color3.fromRGB(235, 235, 240), Enum.Material.Marble, folder)
+		ped.Name = "Pedestal"
+		pedestals[i] = ped
 	end
+	-- Vault: raised platform at the back
+	block(Vector3.new(PLOT_W - 4, 2, 10), cf * CFrame.new(0, 2, 25), Color3.fromRGB(40, 60, 110), Enum.Material.DiamondPlate, folder)
+	for i = 1, VAULT_PEDESTALS do
+		local ped = block(Vector3.new(5, 2, 5), cf * CFrame.new(-24 + (i - 1) * 16, 4, 25), Color3.fromRGB(80, 160, 255), Enum.Material.Glass, folder)
+		ped.Name = "VaultPedestal"
+		pedestals[VAULT_OFFSET + i] = ped
+		local dome = block(Vector3.new(7, 7, 7), ped.CFrame * CFrame.new(0, 3, 0), Color3.fromRGB(80, 160, 255), Enum.Material.ForceField, folder)
+		dome.Shape = Enum.PartType.Ball
+		dome.CanCollide = false
+		dome.CanQuery = false
+		dome.CanTouch = false
+	end
+	local vaultSign = block(Vector3.new(20, 3, 0.5), cf * CFrame.new(0, 9, PLOT_D / 2 - 1.5), Color3.fromRGB(40, 60, 110), nil, folder)
+	surfaceText(vaultSign, "VAULT (can't be stolen)", Enum.NormalId.Front)
 
-	local lockPad = block(Vector3.new(6, 0.4, 6), cf * CFrame.new(-22, 1.2, -18), Color3.fromRGB(255, 60, 60), Enum.Material.Neon, folder)
-	lockPad.Name = "LockPad"
+	local lockPad = block(Vector3.new(6, 0.4, 6), cf * CFrame.new(-28, 1.2, -24), Color3.fromRGB(255, 60, 60), Enum.Material.Neon, folder)
 	surfaceText(lockPad, "LOCK")
 
-	local signPart = block(Vector3.new(1, 1, 1), cf * CFrame.new(0, 12, -PLOT_D / 2), color, nil, folder)
+	-- Turret tower (front right corner)
+	block(Vector3.new(4, 10, 4), cf * CFrame.new(31, 5, -27), Color3.fromRGB(70, 70, 80), Enum.Material.Metal, folder)
+	local turretHead = block(Vector3.new(3, 3, 3), cf * CFrame.new(31, 11.5, -27), Color3.fromRGB(40, 40, 40), Enum.Material.Metal, folder)
+	turretHead.Shape = Enum.PartType.Ball
+
+	local signPart = block(Vector3.new(1, 1, 1), cf * CFrame.new(0, 13, -PLOT_D / 2), color, nil, folder)
 	signPart.Transparency = 1
 	signPart.CanCollide = false
-	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.new(0, 260, 0, 70)
-	bb.MaxDistance = 250
-	bb.Parent = signPart
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, 0, 0.6, 0)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.Font = Enum.Font.FredokaOne
-	nameLabel.TextScaled = true
-	nameLabel.TextColor3 = color
-	nameLabel.TextStrokeTransparency = 0
-	nameLabel.Text = "Empty Base"
-	nameLabel.Parent = bb
-	local lockLabel = nameLabel:Clone()
-	lockLabel.Size = UDim2.new(1, 0, 0.4, 0)
-	lockLabel.Position = UDim2.new(0, 0, 0.6, 0)
-	lockLabel.TextColor3 = Color3.new(1, 1, 1)
-	lockLabel.Text = ""
-	lockLabel.Parent = bb
+	local _, labels = billboard(signPart, 300, 90, Vector3.new(), 3)
+	labels[1].TextColor3 = color
+	labels[1].Text = "Empty Base"
+	local alarmLight = Instance.new("PointLight")
+	alarmLight.Color = Color3.fromRGB(255, 0, 0)
+	alarmLight.Range = 60
+	alarmLight.Brightness = 5
+	alarmLight.Enabled = false
+	alarmLight.Parent = signPart
 
 	local plot = {
 		Index = index, CF = cf, Owner = nil, Pedestals = pedestals, Slots = {},
-		Laser = laser, LockPad = lockPad, NameLabel = nameLabel, LockLabel = lockLabel,
-		LockUntil = 0, LockCooldownUntil = 0,
+		Laser = laser, LockPad = lockPad, TurretHead = turretHead, AlarmLight = alarmLight,
+		NameLabel = labels[1], IncomeLabel = labels[2], StatusLabel = labels[3],
+		LockUntil = 0, LockCooldownUntil = 0, AlarmUntil = 0, TurretNext = 0,
 	}
 	plots[index] = plot
 	return plot
 end
 
-do
-	local xs = { -112.5, -37.5, 37.5, 112.5 }
-	local i = 0
-	for _, x in ipairs(xs) do
-		i = i + 1
-		buildPlot(i, Vector3.new(x, 0, 55), 0)        -- north side, door faces the road
-	end
-	for _, x in ipairs(xs) do
-		i = i + 1
-		buildPlot(i, Vector3.new(x, 0, -55), math.pi) -- south side
-	end
+for i = 1, 8 do
+	buildPlot(i)
 end
 
 local function plotAt(position)
@@ -304,8 +483,15 @@ end
 ----------------------------------------------------------------------
 -- PLAYER DATA
 ----------------------------------------------------------------------
-local store = DataStoreService:GetDataStore("EggHeist_v1")
-local sessions = {} -- [player] = data
+local store = DataStoreService:GetDataStore("PowerEmpire_v1")
+local sessions = {}
+
+local function newData()
+	return {
+		Cash = CONFIG.START_CASH, Steals = 0, Rebirths = 0, Slots = CONFIG.START_SLOTS,
+		Turret = 0, Powers = {}, Discovered = {}, LastDaily = 0, Streak = 0,
+	}
+end
 
 local function loadData(player)
 	for attempt = 1, 3 do
@@ -313,7 +499,7 @@ local function loadData(player)
 			return store:GetAsync("player_" .. player.UserId)
 		end)
 		if ok then
-			local data = { Cash = CONFIG.START_CASH, Stolen = 0, Powers = {}, Eggs = {} }
+			local data = newData()
 			if type(result) == "table" then
 				for k, v in pairs(result) do
 					data[k] = v
@@ -324,7 +510,9 @@ local function loadData(player)
 		warn("Load failed (attempt " .. attempt .. "): " .. tostring(result))
 		task.wait(1)
 	end
-	return { Cash = CONFIG.START_CASH, Stolen = 0, Powers = {}, Eggs = {}, NoSave = true }
+	local data = newData()
+	data.NoSave = true
+	return data
 end
 
 local function saveData(player)
@@ -333,15 +521,20 @@ local function saveData(player)
 	if not data or data.NoSave then
 		return
 	end
-	local eggs = {}
+	local powers = {}
 	if plot then
-		for slot, egg in pairs(plot.Slots) do
-			if egg.Owner == player then
-				table.insert(eggs, { Id = egg.Id, P = egg.Progress, H = egg.Hatched, S = slot })
+		for slot, power in pairs(plot.Slots) do
+			if power.Owner == player then
+				table.insert(powers, { Id = power.Id, M = power.Mut, S = slot })
 			end
 		end
 	end
-	local toSave = { Cash = data.Cash, Stolen = data.Stolen, Powers = data.Powers, Eggs = eggs }
+	local toSave = {}
+	for k, v in pairs(data) do
+		toSave[k] = v
+	end
+	toSave.Powers = powers
+	toSave.NoSave = nil
 	local ok, err = pcall(function()
 		store:SetAsync("player_" .. player.UserId, toSave)
 	end)
@@ -355,155 +548,282 @@ local function updateStats(player)
 	local stats = player:FindFirstChild("leaderstats")
 	if data and stats then
 		stats.Cash.Value = math.floor(data.Cash)
-		stats.Stolen.Value = data.Stolen
+		stats.Rebirths.Value = data.Rebirths
+		stats.Steals.Value = data.Steals
 	end
 end
 
-local function hasPower(player, power)
+local function normalLimit(player)
 	local data = sessions[player]
-	return data ~= nil and data.Powers[power] == true
+	local n = data and data.Slots or CONFIG.START_SLOTS
+	if player:GetAttribute("ExtraSlots") then
+		n = n + 3
+	end
+	return math.min(n, NORMAL_PEDESTALS)
+end
+
+local function vaultLimit(player)
+	local data = sessions[player]
+	local r = data and data.Rebirths or 0
+	local n = 1
+	if r >= 2 then
+		n = n + 1
+	end
+	if r >= 5 then
+		n = n + 1
+	end
+	if player:GetAttribute("ExtraVault") then
+		n = n + 1
+	end
+	return math.min(n, VAULT_PEDESTALS)
+end
+
+local function incomeMultiplier(player)
+	local data = sessions[player]
+	local m = 1 + (data and data.Rebirths or 0)
+	if player:GetAttribute("DoubleMoney") then
+		m = m * 2
+	end
+	if player:GetAttribute("VIP") then
+		m = m * 1.2
+	end
+	return m
+end
+
+local function rebirthCost(data)
+	return CONFIG.REBIRTH_BASE_COST * CONFIG.REBIRTH_COST_MULT ^ data.Rebirths
+end
+
+local function slotCost(data)
+	return CONFIG.SLOT_BASE_COST * 3 ^ (data.Slots - CONFIG.START_SLOTS)
 end
 
 ----------------------------------------------------------------------
--- EGGS
+-- LUCK & RANDOM
 ----------------------------------------------------------------------
-local eggsByPart = {}  -- [part] = egg
-local roadEggs = {}    -- [egg] = true
-local carriers = {}    -- [player] = egg they carry
-
-local applyMovement -- defined later
-
-local function setState(egg, state)
-	egg.State = state
-	egg.Part:SetAttribute("State", state)
+local luckUntil = 0
+local function luck()
+	return os.clock() < luckUntil and 2 or 1
 end
 
-local function updateEggLabel(egg)
-	local def = egg.Def
-	local rarity = RARITIES[def.Rarity]
-	local top = egg.Label
-	local state = egg.State
-	if state == "Road" then
-		top.Text = "$" .. fmt(def.Price) .. "  |  +$" .. fmt(def.Income) .. "/s"
-	elseif state == "Placed" or state == "Flying" then
-		local mult = egg.Hatched and 2 or 1
-		local hatchText
-		if egg.Hatched then
-			hatchText = "HATCHED x2"
-		else
-			hatchText = math.floor(egg.Progress / rarity.HatchTime * 100) .. "% hatched"
+local function rollMutation(extraLuck)
+	local l = luck() * (extraLuck or 1)
+	for _, m in ipairs(MUTATIONS) do
+		if math.random() * 100 < m.Chance * l then
+			return m.Name
 		end
-		top.Text = "+$" .. fmt(def.Income * mult) .. "/s  |  " .. hatchText
-	elseif state == "Loose" then
-		top.Text = "DROPPED! Grab it!"
-	else
-		top.Text = "STOLEN!"
 	end
+	return nil
 end
 
-local function styleHatched(egg)
-	if egg.Part:FindFirstChild("HatchSparkles") then
-		return
+-- weights = { [rarity] = weight }. Luck boosts Epic and above.
+local function rollRarity(weights, extraLuck)
+	local l = luck() * (extraLuck or 1)
+	local total = 0
+	local adjusted = {}
+	for r, w in pairs(weights) do
+		local aw = r >= 4 and w * l or w
+		adjusted[r] = aw
+		total = total + aw
 	end
-	local s = Instance.new("Sparkles")
-	s.Name = "HatchSparkles"
-	s.SparkleColor = RARITIES[egg.Def.Rarity].Color
-	s.Parent = egg.Part
+	local roll = math.random() * total
+	local best = 1
+	for r = 1, #RARITIES do
+		local w = adjusted[r]
+		if w then
+			best = r
+			roll = roll - w
+			if roll <= 0 then
+				return r
+			end
+		end
+	end
+	return best
 end
 
-local onEggPrompt -- defined later
+local function randomMarketPower(rarity)
+	local options = {}
+	for _, def in ipairs(POWERS) do
+		if def.Market and def.Rarity == rarity then
+			table.insert(options, def.Id)
+		end
+	end
+	if #options == 0 then
+		return "Fire"
+	end
+	return options[math.random(1, #options)]
+end
 
-local function createEgg(id)
-	local def = EGG_BY_ID[id]
+----------------------------------------------------------------------
+-- POWER OBJECTS
+----------------------------------------------------------------------
+local powersByPart = {}
+local carriers = {}
+local marketStock = {} -- [podiumIndex] = power
+
+local applyMovement
+local onPowerPrompt
+
+local function powerIncome(power)
+	local m = power.Mut and MUT_BY_NAME[power.Mut]
+	return power.Def.Income * (m and m.Mult or 1)
+end
+
+local function setState(power, state)
+	power.State = state
+	power.Part:SetAttribute("State", state)
+end
+
+local function isVaultSlot(slot)
+	return slot ~= nil and slot > VAULT_OFFSET
+end
+
+local function updatePowerLabel(power)
+	local def = power.Def
 	local rarity = RARITIES[def.Rarity]
+	local info = power.InfoLabel
+	if power.State == "Market" then
+		info.Text = "$" .. fmt(def.Price) .. "  |  +$" .. fmt(powerIncome(power)) .. "/s"
+	elseif power.State == "Placed" or power.State == "Flying" then
+		info.Text = "+$" .. fmt(powerIncome(power)) .. "/s" .. (isVaultSlot(power.Slot) and "  (VAULT)" or "")
+	elseif power.State == "Loose" then
+		info.Text = "DROPPED! Grab it!"
+	else
+		info.Text = "STOLEN!"
+	end
+	power.RarityLabel.Text = string.upper(rarity.Name)
+end
+
+local function createPower(id, mut)
+	local def = POWER_BY_ID[id]
+	local rarity = RARITIES[def.Rarity]
+	local mutation = mut and MUT_BY_NAME[mut]
 
 	local part = Instance.new("Part")
-	part.Name = "Egg"
-	part.Size = Vector3.new(3, 3.8, 3)
-	part.Color = def.Color
-	part.Material = def.Rarity >= 4 and Enum.Material.Neon or Enum.Material.SmoothPlastic
+	part.Name = "Power"
+	part.Shape = Enum.PartType.Ball
+	part.Size = Vector3.new(3.2, 3.2, 3.2)
+	part.Color = (mutation and mutation.Color) or def.Color
+	part.Material = Enum.Material.Neon
 	part.Anchored = true
 	part.CanCollide = false
 	part.CustomPhysicalProperties = PhysicalProperties.new(1, 1, 0, 1, 1)
-	local mesh = Instance.new("SpecialMesh")
-	mesh.MeshType = Enum.MeshType.Sphere
-	mesh.Parent = part
-	if def.Rarity >= 4 then
+
+	local particles = Instance.new("ParticleEmitter")
+	particles.Color = ColorSequence.new(part.Color)
+	particles.LightEmission = 1
+	particles.Rate = 8 + def.Rarity * 4
+	particles.Lifetime = NumberRange.new(0.6, 1.2)
+	particles.Speed = NumberRange.new(1, 3)
+	particles.SpreadAngle = Vector2.new(180, 180)
+	particles.Size = NumberSequence.new(0.6, 0)
+	particles.Parent = part
+	if def.Element == "Fire" or def.Element == "Dragon" then
+		local fire = Instance.new("Fire")
+		fire.Size = 4
+		fire.Heat = 6
+		fire.Color = def.Color
+		fire.Parent = part
+	elseif def.Element == "Shadow" or mut == "Corrupted" then
+		local smoke = Instance.new("Smoke")
+		smoke.Color = Color3.fromRGB(30, 0, 40)
+		smoke.Size = 2
+		smoke.RiseVelocity = 1
+		smoke.Parent = part
+	end
+	if def.Rarity >= 4 or mut then
 		local light = Instance.new("PointLight")
-		light.Color = rarity.Color
-		light.Range = 10
+		light.Color = part.Color
+		light.Range = 8 + def.Rarity * 2
+		light.Brightness = 2
 		light.Parent = part
 	end
+	if mut == "Galaxy" or def.Rarity == 7 then
+		local sparkles = Instance.new("Sparkles")
+		sparkles.SparkleColor = Color3.fromRGB(255, 255, 255)
+		sparkles.Parent = part
+	end
 
-	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.new(0, 220, 0, 64)
-	bb.StudsOffset = Vector3.new(0, 3.6, 0)
-	bb.MaxDistance = 70
-	bb.Parent = part
-	local nameLabel = Instance.new("TextLabel")
-	nameLabel.Size = UDim2.new(1, 0, 0.55, 0)
-	nameLabel.BackgroundTransparency = 1
-	nameLabel.Font = Enum.Font.FredokaOne
-	nameLabel.TextScaled = true
-	nameLabel.TextStrokeTransparency = 0
-	nameLabel.TextColor3 = rarity.Color
-	nameLabel.Text = def.Name .. " (" .. rarity.Name .. ")"
-	nameLabel.Parent = bb
-	local infoLabel = nameLabel:Clone()
-	infoLabel.Size = UDim2.new(1, 0, 0.45, 0)
-	infoLabel.Position = UDim2.new(0, 0, 0.55, 0)
-	infoLabel.TextColor3 = Color3.new(1, 1, 1)
-	infoLabel.Parent = bb
+	local _, labels = billboard(part, 240, 78, Vector3.new(0, 3.6, 0), 3)
+	labels[1].Text = displayName(id, mut)
+	labels[1].TextColor3 = def.Rarity == 7 and Color3.new(1, 1, 1) or rarity.Color
+	labels[2].TextColor3 = rarity.Color
+	if def.Rarity == 7 then
+		labels[2].TextStrokeColor3 = Color3.new(1, 1, 1)
+		labels[2].TextStrokeTransparency = 0
+	end
+	labels[1].Parent.MaxDistance = 80
+
+	local power = {
+		Part = part, Id = id, Def = def, Mut = mut, State = "New",
+		RarityLabel = labels[2], InfoLabel = labels[3],
+	}
 
 	local prompts = {
 		{ Name = "Buy", Action = "Buy $" .. fmt(def.Price), Hold = 0 },
-		{ Name = "Steal", Action = "Steal", Hold = 0.5 + def.Rarity * 0.5 },
-		{ Name = "Sell", Action = "Sell $" .. fmt(def.Price * CONFIG.SELL_PERCENT), Hold = 1 },
+		{ Name = "Steal", Action = "STEAL", Hold = 1 + def.Rarity * 0.5 },
+		{ Name = "Sell", Action = "Sell $" .. fmt(def.Price * CONFIG.SELL_PERCENT), Hold = 1, Key = Enum.KeyCode.R },
+		{ Name = "Vault", Action = "Move to/from Vault", Hold = 0.3 },
 		{ Name = "Grab", Action = "Grab", Hold = 0.3 },
-	}
-	local egg = {
-		Part = part, Id = id, Def = def, Label = infoLabel,
-		Progress = 0, Hatched = false, State = "New",
 	}
 	for _, info in ipairs(prompts) do
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = info.Name
 		prompt.ActionText = info.Action
-		prompt.ObjectText = def.Name
+		prompt.ObjectText = displayName(id, mut)
 		prompt.HoldDuration = info.Hold
 		prompt.MaxActivationDistance = 11
 		prompt.RequiresLineOfSight = false
+		if info.Key then
+			prompt.KeyboardKeyCode = info.Key
+		end
 		prompt.Parent = part
 		prompt.Triggered:Connect(function(player)
-			onEggPrompt(egg, info.Name, player)
+			onPowerPrompt(power, info.Name, player)
 		end)
 	end
 
+	part:SetAttribute("PowerId", id)
+	part:SetAttribute("Mut", mut or "")
 	part:SetAttribute("OwnerId", 0)
+	part:SetAttribute("Slot", 0)
 	part:SetAttribute("State", "New")
-	CollectionService:AddTag(part, "Egg")
-	eggsByPart[part] = egg
-	part.Parent = eggFolder
-	return egg
+	CollectionService:AddTag(part, "Power")
+	powersByPart[part] = power
+	part.Parent = powerFolder
+	return power
 end
 
-local function destroyEgg(egg)
-	eggsByPart[egg.Part] = nil
-	roadEggs[egg] = nil
-	if egg.Plot and egg.Plot.Slots[egg.Slot] == egg then
-		egg.Plot.Slots[egg.Slot] = nil
+local function powerAlive(power)
+	return powersByPart[power.Part] == power
+end
+
+local function destroyPower(power)
+	powersByPart[power.Part] = nil
+	if power.Plot and power.Plot.Slots[power.Slot] == power then
+		power.Plot.Slots[power.Slot] = nil
 	end
-	egg.Part:Destroy()
-end
-
-local function eggAlive(egg)
-	return eggsByPart[egg.Part] == egg
+	for i, p in pairs(marketStock) do
+		if p == power then
+			marketStock[i] = nil
+		end
+	end
+	power.Part:Destroy()
 end
 
 local function freeSlot(plot, player)
-	for i = 1, #plot.Pedestals do
-		if not plot.Slots[i] and (i <= CONFIG.NORMAL_SLOTS or player:GetAttribute("VIP")) then
+	for i = 1, normalLimit(player) do
+		if not plot.Slots[i] then
 			return i
+		end
+	end
+	return nil
+end
+
+local function freeVaultSlot(plot, player)
+	for i = 1, vaultLimit(player) do
+		if not plot.Slots[VAULT_OFFSET + i] then
+			return VAULT_OFFSET + i
 		end
 	end
 	return nil
@@ -511,51 +831,63 @@ end
 
 local function slotCFrame(plot, slot)
 	local ped = plot.Pedestals[slot]
-	return CFrame.new(ped.Position + Vector3.new(0, ped.Size.Y / 2 + 1.9, 0))
+	return CFrame.new(ped.Position + Vector3.new(0, ped.Size.Y / 2 + 2, 0))
 end
 
-local function place(egg, plot, slot, owner)
-	plot.Slots[slot] = egg
-	egg.Plot, egg.Slot, egg.Owner = plot, slot, owner
-	egg.HomeOwner, egg.HomeSlot = nil, nil
-	local part = egg.Part
+local function refreshPedestals(plot)
+	local owner = plot.Owner
+	for slot, ped in pairs(plot.Pedestals) do
+		local unlocked
+		if not owner then
+			unlocked = false
+		elseif isVaultSlot(slot) then
+			unlocked = slot - VAULT_OFFSET <= vaultLimit(owner)
+		else
+			unlocked = slot <= normalLimit(owner)
+		end
+		ped.Transparency = unlocked and 0 or 0.7
+	end
+end
+
+local function place(power, plot, slot, owner)
+	plot.Slots[slot] = power
+	power.Plot, power.Slot, power.Owner = plot, slot, owner
+	power.HomeOwner, power.HomeSlot = nil, nil
+	local part = power.Part
 	part.Anchored = true
 	part.CanCollide = false
 	part.CFrame = slotCFrame(plot, slot)
 	part:SetAttribute("OwnerId", owner.UserId)
-	setState(egg, "Placed")
-	if egg.Hatched then
-		styleHatched(egg)
-	end
-	updateEggLabel(egg)
+	part:SetAttribute("Slot", slot)
+	setState(power, "Placed")
+	updatePowerLabel(power)
 end
 
-local function flyToSlot(egg, plot, slot, owner)
-	plot.Slots[slot] = egg -- reserve the pedestal
-	egg.Plot, egg.Slot, egg.Owner = plot, slot, owner
-	local part = egg.Part
+local function flyToSlot(power, plot, slot, owner)
+	plot.Slots[slot] = power
+	power.Plot, power.Slot, power.Owner = plot, slot, owner
+	local part = power.Part
 	part.Anchored = true
 	part.CanCollide = false
 	part:SetAttribute("OwnerId", owner.UserId)
-	setState(egg, "Flying")
-	updateEggLabel(egg)
-	local target = slotCFrame(plot, slot)
-	local tween = TweenService:Create(part, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = target })
+	part:SetAttribute("Slot", slot)
+	setState(power, "Flying")
+	updatePowerLabel(power)
+	local tween = TweenService:Create(part, TweenInfo.new(1.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = slotCFrame(plot, slot) })
 	tween.Completed:Connect(function()
-		if eggAlive(egg) and egg.State == "Flying" and plot.Slots[slot] == egg and owner.Parent then
-			place(egg, plot, slot, owner)
+		if powerAlive(power) and power.State == "Flying" and plot.Slots[slot] == power and owner.Parent then
+			place(power, plot, slot, owner)
 		end
 	end)
 	tween:Play()
 end
 
-local function attachToCarrier(egg, player)
-	local char = player.Character
-	local root = char and char:FindFirstChild("HumanoidRootPart")
+local function attachToCarrier(power, player)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not root then
 		return false
 	end
-	local part = egg.Part
+	local part = power.Part
 	part.CanCollide = false
 	part.Massless = true
 	part.CFrame = root.CFrame * CFrame.new(0, 4.5, 0)
@@ -565,26 +897,26 @@ local function attachToCarrier(egg, player)
 	weld.Part1 = part
 	weld.Parent = part
 	part.Anchored = false
-	egg.Carrier = player
-	carriers[player] = egg
+	power.Carrier = player
+	carriers[player] = power
 	player:SetAttribute("Carrying", true)
 	part:SetAttribute("OwnerId", 0)
-	setState(egg, "Carried")
-	updateEggLabel(egg)
+	setState(power, "Carried")
+	updatePowerLabel(power)
 	applyMovement(player)
 	return true
 end
 
-local function detach(egg)
-	local part = egg.Part
+local function detach(power)
+	local part = power.Part
 	local weld = part:FindFirstChild("CarryWeld")
 	if weld then
 		weld:Destroy()
 	end
 	part.Anchored = true
 	part.Massless = false
-	local carrier = egg.Carrier
-	egg.Carrier = nil
+	local carrier = power.Carrier
+	power.Carrier = nil
 	if carrier then
 		carriers[carrier] = nil
 		carrier:SetAttribute("Carrying", false)
@@ -592,51 +924,51 @@ local function detach(egg)
 	end
 end
 
--- Send an egg back to the base it was stolen from
-local function returnHome(egg)
-	if not eggAlive(egg) then
+local function returnHome(power)
+	if not powerAlive(power) then
 		return
 	end
-	detach(egg)
-	local owner = egg.HomeOwner
+	detach(power)
+	local owner = power.HomeOwner
 	local plot = owner and owner.Parent and playerPlot[owner]
 	if plot then
-		local slot = egg.HomeSlot
+		local slot = power.HomeSlot
 		if not slot or plot.Slots[slot] then
 			slot = freeSlot(plot, owner)
 		end
 		if slot then
-			egg.HomeOwner, egg.HomeSlot = nil, nil
-			flyToSlot(egg, plot, slot, owner)
+			power.HomeOwner, power.HomeSlot = nil, nil
+			flyToSlot(power, plot, slot, owner)
 			return
 		end
 	end
-	destroyEgg(egg) -- owner left the game: the egg vanishes
+	destroyPower(power)
 end
 
-local function deliver(egg, player, plot, slot)
-	local victim = egg.HomeOwner
-	detach(egg)
-	place(egg, plot, slot, player)
+local function deliver(power, player, plot, slot)
+	local victim = power.HomeOwner
+	detach(power)
+	place(power, plot, slot, player)
 	if victim and victim ~= player then
 		local data = sessions[player]
 		if data then
-			data.Stolen = data.Stolen + 1
+			data.Steals = data.Steals + 1
 			updateStats(player)
 		end
-		notify(player, "You stole a " .. egg.Def.Name .. "!")
+		local name = displayName(power.Id, power.Mut)
+		notify(player, "You stole " .. name .. " from " .. victim.Name .. "!")
 		if victim.Parent then
-			notify(victim, player.Name .. " stole your " .. egg.Def.Name .. "!")
+			notify(victim, player.Name .. " STOLE your " .. name .. "!")
 		end
-		if egg.Def.Rarity >= 4 then
-			announce(player.Name .. " stole a " .. RARITIES[egg.Def.Rarity].Name .. " " .. egg.Def.Name .. "!")
+		if power.Def.Rarity >= 5 or power.Mut then
+			announce(player.Name .. " stole " .. victim.Name .. "'s " .. RARITIES[power.Def.Rarity].Name .. " " .. name .. "!")
 		end
 	end
 end
 
 local function groundBelow(position)
 	local params = RaycastParams.new()
-	local ignore = { eggFolder }
+	local ignore = { powerFolder }
 	for _, p in ipairs(Players:GetPlayers()) do
 		if p.Character then
 			table.insert(ignore, p.Character)
@@ -646,82 +978,126 @@ local function groundBelow(position)
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local result = workspace:Raycast(position + Vector3.new(0, 2, 0), Vector3.new(0, -100, 0), params)
 	if result then
-		return result.Position + Vector3.new(0, 1.9, 0)
+		return result.Position + Vector3.new(0, 1.8, 0)
 	end
-	return Vector3.new(position.X, EGG_Y, position.Z)
+	return Vector3.new(position.X, 2, position.Z)
 end
 
--- Egg lies on the ground: anyone can grab it
-local function makeLoose(egg, position)
-	detach(egg)
-	local part = egg.Part
+local function makeLoose(power, position)
+	detach(power)
+	local part = power.Part
 	part.Anchored = true
 	part.CanCollide = false
 	part.CFrame = CFrame.new(groundBelow(position))
 	part:SetAttribute("OwnerId", 0)
-	setState(egg, "Loose")
-	updateEggLabel(egg)
+	setState(power, "Loose")
+	updatePowerLabel(power)
 	local token = {}
-	egg.LooseToken = token
-	task.delay(CONFIG.LOOSE_EGG_TIME, function()
-		if eggAlive(egg) and egg.State == "Loose" and egg.LooseToken == token then
-			returnHome(egg)
+	power.LooseToken = token
+	task.delay(CONFIG.LOOSE_TIME, function()
+		if powerAlive(power) and power.State == "Loose" and power.LooseToken == token then
+			returnHome(power)
 		end
 	end)
 end
 
-local function spawnRoadEgg(id)
-	local egg = createEgg(id)
-	egg.Part.CFrame = CFrame.new(ROAD_START, EGG_Y, 0)
-	setState(egg, "Road")
-	updateEggLabel(egg)
-	roadEggs[egg] = true
-	return egg
-end
-
-local function randomEggId(minRarity)
-	minRarity = minRarity or 1
-	local totalWeight = 0
-	for r = minRarity, #RARITIES do
-		totalWeight = totalWeight + RARITIES[r].Weight
+-- Give a player a brand new power (portal, daily, rebirth reward)
+local function givePower(player, id, mut, fromPosition)
+	local plot = playerPlot[player]
+	if not plot then
+		return false
 	end
-	local roll = math.random() * totalWeight
-	local rarity = #RARITIES
-	for r = minRarity, #RARITIES do
-		roll = roll - RARITIES[r].Weight
-		if roll <= 0 then
-			rarity = r
-			break
-		end
+	local slot = freeSlot(plot, player) or freeVaultSlot(plot, player)
+	if not slot then
+		return false
 	end
-	local options = {}
-	for _, def in ipairs(EGGS) do
-		if def.Rarity == rarity then
-			table.insert(options, def.Id)
-		end
-	end
-	return options[math.random(1, #options)]
+	local power = createPower(id, mut)
+	power.Part.CFrame = CFrame.new(fromPosition or (slotCFrame(plot, slot).Position + Vector3.new(0, 40, 0)))
+	flyToSlot(power, plot, slot, player)
+	return true
 end
 
 ----------------------------------------------------------------------
--- EGG ACTIONS (Buy / Steal / Sell / Grab)
+-- MOVEMENT
+----------------------------------------------------------------------
+local frozenUntil = {}
+
+applyMovement = function(player)
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	local data = sessions[player]
+	if not hum or not data then
+		return
+	end
+	local speed = 16
+	if data.Rebirths >= 3 then
+		speed = speed + math.min(10, 4 + (data.Rebirths - 3) * 2)
+	end
+	if carriers[player] and not player:GetAttribute("FastSteal") then
+		speed = speed - 3
+	end
+	if frozenUntil[player] and os.clock() < frozenUntil[player] then
+		speed = 0
+	end
+	hum.WalkSpeed = speed
+end
+
+----------------------------------------------------------------------
+-- MARKET
+----------------------------------------------------------------------
+local nextRestock = 0
+
+local function restockMarket()
+	for i, power in pairs(marketStock) do
+		if powerAlive(power) and power.State == "Market" then
+			destroyPower(power)
+		end
+		marketStock[i] = nil
+	end
+	for i = 1, #marketPodiums do
+		local rarity
+		if i <= 5 then
+			rarity = rollRarity({ [1] = 70, [2] = 30 })
+		elseif i <= 8 then
+			rarity = rollRarity({ [2] = 50, [3] = 35, [4] = 15 })
+		elseif i == 9 then
+			rarity = rollRarity({ [4] = 60, [5] = 40 })
+		else
+			rarity = rollRarity({ [3] = 40, [4] = 34, [5] = 19, [6] = 6, [7] = 1 })
+		end
+		local id = randomMarketPower(rarity)
+		local mut = rollMutation()
+		local power = createPower(id, mut)
+		local podium = marketPodiums[i]
+		power.Part.CFrame = CFrame.new(podium.Position + Vector3.new(0, podium.Size.Y / 2 + 2, 0))
+		setState(power, "Market")
+		updatePowerLabel(power)
+		marketStock[i] = power
+		if rarity >= 6 or (mut and rarity >= 4) then
+			announce("A " .. RARITIES[rarity].Name:upper() .. " " .. displayName(id, mut) .. " is in the POWER MARKET!")
+		end
+	end
+	nextRestock = os.clock() + CONFIG.RESTOCK_TIME
+end
+
+----------------------------------------------------------------------
+-- POWER PROMPTS (Buy / Steal / Sell / Vault / Grab)
 ----------------------------------------------------------------------
 local function isAlive(player)
-	local char = player.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	return hum ~= nil and hum.Health > 0
 end
 
-onEggPrompt = function(egg, action, player)
+onPowerPrompt = function(power, action, player)
 	local data = sessions[player]
 	local plot = playerPlot[player]
-	if not data or not plot or not eggAlive(egg) or not isAlive(player) then
+	if not data or not plot or not powerAlive(power) or not isAlive(player) then
 		return
 	end
-	local def = egg.Def
+	local def = power.Def
+	local name = displayName(power.Id, power.Mut)
 
 	if action == "Buy" then
-		if egg.State ~= "Road" then
+		if power.State ~= "Market" then
 			return
 		end
 		if data.Cash < def.Price then
@@ -730,62 +1106,87 @@ onEggPrompt = function(egg, action, player)
 		end
 		local slot = freeSlot(plot, player)
 		if not slot then
-			notify(player, "Your base is full! Sell an egg first.")
+			notify(player, "Your base is full! Sell a power or buy more slots (BASE menu).")
 			return
 		end
 		data.Cash = data.Cash - def.Price
 		updateStats(player)
-		roadEggs[egg] = nil
-		flyToSlot(egg, plot, slot, player)
-		if def.Rarity >= 4 then
-			announce(player.Name .. " bought a " .. RARITIES[def.Rarity].Name .. " " .. def.Name .. "!")
+		for i, p in pairs(marketStock) do
+			if p == power then
+				marketStock[i] = nil
+			end
+		end
+		flyToSlot(power, plot, slot, player)
+		if def.Rarity >= 5 then
+			announce(player.Name .. " bought a " .. RARITIES[def.Rarity].Name .. " " .. name .. "!")
 		end
 
 	elseif action == "Steal" then
-		if egg.State ~= "Placed" or egg.Owner == player or carriers[player] then
+		if power.State ~= "Placed" or power.Owner == player or carriers[player] or isVaultSlot(power.Slot) then
 			return
 		end
 		if not freeSlot(plot, player) then
-			notify(player, "Your base is full! Sell an egg first.")
+			notify(player, "Your base is full! Make room first.")
 			return
 		end
-		local victim = egg.Owner
-		local fromPlot, fromSlot = egg.Plot, egg.Slot
-		if not attachToCarrier(egg, player) then
+		local victim, fromPlot, fromSlot = power.Owner, power.Plot, power.Slot
+		if not attachToCarrier(power, player) then
 			return
 		end
 		fromPlot.Slots[fromSlot] = nil
-		egg.Plot, egg.Slot, egg.Owner = nil, nil, nil
-		egg.HomeOwner, egg.HomeSlot = victim, fromSlot
+		power.Plot, power.Slot, power.Owner = nil, nil, nil
+		power.HomeOwner, power.HomeSlot = victim, fromSlot
+		fromPlot.AlarmUntil = os.clock() + 10
 		notify(player, "Run home or THROW it into your base! (F)")
 		if victim and victim.Parent then
-			notify(victim, "!! " .. player.Name .. " is stealing your " .. def.Name .. "! Bonk them!")
+			alarmRemote:FireClient(victim, player.Name .. " is stealing your " .. name .. "!")
 		end
 
 	elseif action == "Sell" then
-		if egg.State ~= "Placed" or egg.Owner ~= player then
+		if power.State ~= "Placed" or power.Owner ~= player then
 			return
 		end
 		local amount = math.floor(def.Price * CONFIG.SELL_PERCENT)
 		data.Cash = data.Cash + amount
 		updateStats(player)
-		destroyEgg(egg)
-		notify(player, "Sold for $" .. fmt(amount))
+		destroyPower(power)
+		notify(player, "Sold " .. name .. " for $" .. fmt(amount))
 
-	elseif action == "Grab" then
-		if egg.State ~= "Loose" or carriers[player] then
+	elseif action == "Vault" then
+		if power.State ~= "Placed" or power.Owner ~= player then
 			return
 		end
-		if egg.HomeOwner == player then
-			returnHome(egg)
-			notify(player, "You got your egg back!")
+		local target
+		if isVaultSlot(power.Slot) then
+			target = freeSlot(plot, player)
+			if not target then
+				notify(player, "No free pedestal outside the vault.")
+				return
+			end
+		else
+			target = freeVaultSlot(plot, player)
+			if not target then
+				notify(player, "Your vault is full! Rebirth or get Extra Vault for more.")
+				return
+			end
+		end
+		plot.Slots[power.Slot] = nil
+		flyToSlot(power, plot, target, player)
+
+	elseif action == "Grab" then
+		if power.State ~= "Loose" or carriers[player] then
+			return
+		end
+		if power.HomeOwner == player then
+			returnHome(power)
+			notify(player, "You got your " .. name .. " back!")
 			return
 		end
 		if not freeSlot(plot, player) then
-			notify(player, "Your base is full! Sell an egg first.")
+			notify(player, "Your base is full! Make room first.")
 			return
 		end
-		attachToCarrier(egg, player)
+		attachToCarrier(power, player)
 	end
 end
 
@@ -794,29 +1195,29 @@ end
 ----------------------------------------------------------------------
 local lastThrow = {}
 
-local function landed(egg, thrower)
-	if not eggAlive(egg) or egg.State ~= "Thrown" then
+local function landed(power, thrower)
+	if not powerAlive(power) or power.State ~= "Thrown" then
 		return
 	end
-	local pos = egg.Part.Position
+	local pos = power.Part.Position
 	local plot = plotAt(pos)
 	if plot and plot.Owner == thrower and thrower.Parent then
 		local slot = freeSlot(plot, thrower)
 		if slot then
-			deliver(egg, thrower, plot, slot)
+			deliver(power, thrower, plot, slot)
 			return
 		end
 	end
-	if plot and plot.Owner and plot.Owner == egg.HomeOwner then
-		returnHome(egg)
+	if plot and plot.Owner and plot.Owner == power.HomeOwner then
+		returnHome(power)
 		return
 	end
-	makeLoose(egg, pos)
+	makeLoose(power, pos)
 end
 
 throwRemote.OnServerEvent:Connect(function(player, direction)
-	local egg = carriers[player]
-	if not egg or typeof(direction) ~= "Vector3" then
+	local power = carriers[player]
+	if not power or typeof(direction) ~= "Vector3" then
 		return
 	end
 	if lastThrow[player] and os.clock() - lastThrow[player] < 1 then
@@ -827,35 +1228,34 @@ throwRemote.OnServerEvent:Connect(function(player, direction)
 	if not root then
 		return
 	end
-
 	local flat = Vector3.new(direction.X, 0, direction.Z)
-	if flat.Magnitude < 0.1 or flat.Magnitude ~= flat.Magnitude then -- also catches NaN
+	if flat.Magnitude < 0.1 or flat.Magnitude ~= flat.Magnitude then
 		flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	end
 	flat = flat.Unit
 
-	detach(egg)
-	setState(egg, "Thrown")
-	updateEggLabel(egg)
-	local part = egg.Part
+	detach(power)
+	setState(power, "Thrown")
+	updatePowerLabel(power)
+	local part = power.Part
 	part.CFrame = CFrame.new(root.Position + Vector3.new(0, 4, 0) + flat * 3)
 	part.CanCollide = true
 	part.Anchored = false
 	part:SetNetworkOwner(nil)
-	local power = CONFIG.THROW_POWER * (hasPower(player, "StrongArm") and 1.5 or 1)
-	part.AssemblyLinearVelocity = flat * power + Vector3.new(0, power * 0.9, 0)
+	local speed = CONFIG.THROW_POWER
+	part.AssemblyLinearVelocity = flat * speed + Vector3.new(0, speed * 0.9, 0)
 
 	task.spawn(function()
 		local start = os.clock()
-		while eggAlive(egg) and egg.State == "Thrown" do
+		while powerAlive(power) and power.State == "Thrown" do
 			task.wait(0.1)
 			local t = os.clock() - start
 			if part.Position.Y < -30 then
-				returnHome(egg)
+				returnHome(power)
 				return
 			end
 			if (t > 0.5 and part.AssemblyLinearVelocity.Magnitude < 4) or t > 5 then
-				landed(egg, player)
+				landed(power, player)
 				return
 			end
 		end
@@ -863,101 +1263,183 @@ throwRemote.OnServerEvent:Connect(function(player, direction)
 end)
 
 ----------------------------------------------------------------------
--- MOVEMENT & POWERS
+-- BATTLE: POWER BLAST
 ----------------------------------------------------------------------
-applyMovement = function(player)
-	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-	if not hum then
-		return
+local lastBlast = {}
+
+local function bestPower(player)
+	local plot = playerPlot[player]
+	local best, bestIncome = nil, -1
+	if plot then
+		for _, power in pairs(plot.Slots) do
+			if power.Owner == player and powerIncome(power) > bestIncome then
+				best, bestIncome = power, powerIncome(power)
+			end
+		end
 	end
-	local speed = 16
-	if hasPower(player, "Speed") then
-		speed = speed + 10
-	end
-	if carriers[player] then
-		speed = speed - 4
-	end
-	hum.WalkSpeed = speed
-	hum.UseJumpPower = true
-	hum.JumpPower = hasPower(player, "Jump") and 75 or 50
+	return best
 end
 
-local function unlockPower(player, power)
-	local data = sessions[player]
-	if not data or not power or data.Powers[power] then
-		return
-	end
-	data.Powers[power] = true
-	player:SetAttribute("Power_" .. power, true)
-	applyMovement(player)
-	notify(player, "NEW SUPERPOWER: " .. POWERS[power] .. "!")
+local function elementOf(player)
+	local best = bestPower(player)
+	return best and best.Def.Element or "Punch"
 end
 
-----------------------------------------------------------------------
--- BONK BAT
-----------------------------------------------------------------------
-local lastBonk = {}
-
-local function knockback(root, direction)
+local function knockback(root, velocity)
 	local att = Instance.new("Attachment")
 	att.Parent = root
 	local lv = Instance.new("LinearVelocity")
 	lv.Attachment0 = att
 	lv.MaxForce = 1e6
-	lv.VectorVelocity = direction * 55 + Vector3.new(0, 30, 0)
+	lv.VectorVelocity = velocity
 	lv.Parent = root
 	Debris:AddItem(lv, 0.15)
 	Debris:AddItem(att, 0.15)
 end
 
-local function bonk(player)
-	if lastBonk[player] and os.clock() - lastBonk[player] < 0.8 then
-		return
-	end
-	lastBonk[player] = os.clock()
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not root or not isAlive(player) then
-		return
-	end
-	for _, other in ipairs(Players:GetPlayers()) do
-		local oroot = other ~= player and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
-		if oroot and isAlive(other) then
-			local offset = oroot.Position - root.Position
-			if offset.Magnitude < 9 and root.CFrame.LookVector:Dot(offset.Unit) > 0.2 then
-				local flat = Vector3.new(offset.X, 0, offset.Z)
-				knockback(oroot, flat.Magnitude > 0.1 and flat.Unit or root.CFrame.LookVector)
-				local egg = carriers[other]
-				if egg then
-					if hasPower(other, "IronGrip") then
-						notify(player, other.Name .. " has IRON GRIP!")
-					else
-						makeLoose(egg, oroot.Position)
-						notify(player, "BONK! " .. other.Name .. " dropped the egg!")
-						notify(other, "You got bonked and dropped the egg!")
-					end
-				end
-			end
-		end
-	end
+local function beam(from, to, element)
+	local e = ELEMENTS[element]
+	local dist = (to - from).Magnitude
+	local p = Instance.new("Part")
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanQuery = false
+	p.CanTouch = false
+	p.Material = Enum.Material.Neon
+	p.Color = e.Color
+	p.Size = Vector3.new(e.Width, e.Width, dist)
+	p.CFrame = CFrame.lookAt((from + to) / 2, to)
+	p.Parent = workspace
+	TweenService:Create(p, TweenInfo.new(0.25), { Transparency = 1 }):Play()
+	Debris:AddItem(p, 0.3)
 end
 
-local function giveBat(player)
+local function makeInvisible(player, seconds)
+	local char = player.Character
+	if not char then
+		return
+	end
+	local changed = {}
+	for _, d in ipairs(char:GetDescendants()) do
+		if (d:IsA("BasePart") and d.Name ~= "HumanoidRootPart") or d:IsA("Decal") then
+			changed[d] = d.Transparency
+			d.Transparency = 0.92
+		end
+	end
+	task.delay(seconds, function()
+		for d, t in pairs(changed) do
+			if d.Parent then
+				d.Transparency = t
+			end
+		end
+	end)
+end
+
+local function onKO(attacker, victim)
+	local data = sessions[attacker]
+	if not data then
+		return
+	end
+	local reward = math.max(100, math.floor((attacker:GetAttribute("Income") or 0) * 30))
+	data.Cash = data.Cash + reward
+	updateStats(attacker)
+	notify(attacker, "KO! You beat " .. victim.Name .. " and got $" .. fmt(reward))
+	notify(victim, attacker.Name .. " knocked you out in the arena!")
+end
+
+blastRemote.OnServerEvent:Connect(function(player, target)
+	if typeof(target) ~= "Vector3" or target.Magnitude ~= target.Magnitude then
+		return
+	end
+	local char = player.Character
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local head = char and char:FindFirstChild("Head")
+	if not root or not head or not isAlive(player) or not char:FindFirstChild("Power Blast") then
+		return
+	end
+	local element = elementOf(player)
+	local e = ELEMENTS[element]
+	if lastBlast[player] and os.clock() - lastBlast[player] < e.Cooldown then
+		return
+	end
+	lastBlast[player] = os.clock()
+
+	local origin = head.Position
+	local dir = target - origin
+	if dir.Magnitude < 0.1 then
+		dir = root.CFrame.LookVector
+	end
+	dir = dir.Unit * e.Range
+	local params = RaycastParams.new()
+	params.FilterDescendantsInstances = { char, powerFolder }
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local result = workspace:Raycast(origin, dir, params)
+	local hitPos = result and result.Position or (origin + dir)
+	beam(origin, hitPos, element)
+
+	if e.Invisible then
+		makeInvisible(player, e.Invisible)
+	end
+	if not result then
+		return
+	end
+	local model = result.Instance:FindFirstAncestorOfClass("Model")
+	local victim = model and Players:GetPlayerFromCharacter(model)
+	local vhum = model and model:FindFirstChildOfClass("Humanoid")
+	local vroot = model and model:FindFirstChild("HumanoidRootPart")
+	if not victim or victim == player or not vhum or vhum.Health <= 0 or not vroot then
+		return
+	end
+
+	local arenaFight = inArena(root.Position) and inArena(vroot.Position)
+	local carrying = carriers[victim]
+	local defending = playerPlot[player] ~= nil and plotAt(vroot.Position) == playerPlot[player]
+	if not arenaFight and not carrying and not defending then
+		return -- no fighting outside the arena, except vs thieves
+	end
+
+	local push = Vector3.new(dir.X, 0, dir.Z)
+	push = push.Magnitude > 0.1 and push.Unit or root.CFrame.LookVector
+	if e.Pull then
+		knockback(vroot, -push * 45 + Vector3.new(0, 15, 0))
+	else
+		knockback(vroot, push * (element == "Dragon" and 80 or 45) + Vector3.new(0, 25, 0))
+	end
+	if e.Freeze then
+		frozenUntil[victim] = os.clock() + e.Freeze
+		applyMovement(victim)
+		task.delay(e.Freeze, function()
+			if victim.Parent then
+				applyMovement(victim)
+			end
+		end)
+	end
+	if carrying then
+		makeLoose(carrying, vroot.Position)
+		notify(player, "You hit " .. victim.Name .. " and they DROPPED the power!")
+		notify(victim, "You got hit and dropped the power!")
+	end
+	if arenaFight then
+		vhum:TakeDamage(e.Damage)
+		if vhum.Health <= 0 then
+			onKO(player, victim)
+		end
+	end
+end)
+
+local function givePowerBlast(player)
 	local tool = Instance.new("Tool")
-	tool.Name = "Bonk Bat"
+	tool.Name = "Power Blast"
 	tool.CanBeDropped = false
-	tool.GripForward = Vector3.new(-1, 0, 0)
-	tool.GripRight = Vector3.new(0, 1, 0)
-	tool.GripUp = Vector3.new(0, 0, 1)
-	tool.GripPos = Vector3.new(0, 0, -1.5)
+	tool.RequiresHandle = true
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(0.7, 0.7, 4.5)
-	handle.Color = Color3.fromRGB(150, 100, 50)
-	handle.Material = Enum.Material.Wood
+	handle.Shape = Enum.PartType.Ball
+	handle.Size = Vector3.new(1.2, 1.2, 1.2)
+	handle.Material = Enum.Material.Neon
+	handle.Color = ELEMENTS[elementOf(player)].Color
+	handle.CanCollide = false
 	handle.Parent = tool
-	tool.Activated:Connect(function()
-		bonk(player)
-	end)
 	tool.Parent = player:WaitForChild("Backpack")
 end
 
@@ -965,8 +1447,7 @@ end
 -- BASE LOCK
 ----------------------------------------------------------------------
 local function lockBase(plot, seconds)
-	local now = os.clock()
-	plot.LockUntil = now + seconds
+	plot.LockUntil = os.clock() + seconds
 	plot.LockCooldownUntil = plot.LockUntil + CONFIG.LOCK_COOLDOWN
 end
 
@@ -991,32 +1472,320 @@ for _, plot in ipairs(plots) do
 end
 
 ----------------------------------------------------------------------
--- GAME PASSES & PRODUCTS
+-- STATION PROMPTS
 ----------------------------------------------------------------------
-local function grantPass(player, passId)
-	if passId == 0 then
+fusionPrompt.Triggered:Connect(function(player)
+	panelRemote:FireClient(player, "Fusion")
+end)
+rebirthPrompt.Triggered:Connect(function(player)
+	panelRemote:FireClient(player, "Rebirth")
+end)
+
+local function near(player, position, distance)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	return root ~= nil and (root.Position - position).Magnitude <= distance
+end
+
+----------------------------------------------------------------------
+-- SECRET PORTAL
+----------------------------------------------------------------------
+local portalOpenUntil = 0
+local nextPortal = os.clock() + CONFIG.FIRST_PORTAL
+local portalUsed = {}
+
+portal.Touched:Connect(function(hit)
+	if os.clock() >= portalOpenUntil then
 		return
 	end
-	if passId == CONFIG.VIP_PASS_ID then
-		player:SetAttribute("VIP", true)
-		local plot = playerPlot[player]
-		if plot then
-			plot.NameLabel.Text = "[VIP] " .. player.Name .. "'s Base"
+	local model = hit:FindFirstAncestorOfClass("Model")
+	local player = model and Players:GetPlayerFromCharacter(model)
+	if not player or portalUsed[player] or not sessions[player] then
+		return
+	end
+	portalUsed[player] = true
+	local rarity = rollRarity({ [3] = 50, [4] = 30, [5] = 15, [6] = 4.5, [7] = 0.5 })
+	local id = randomMarketPower(rarity)
+	local mut = rollMutation(2)
+	if givePower(player, id, mut, portal.Position) then
+		notify(player, "The portal gave you " .. displayName(id, mut) .. "!")
+		if rarity >= 5 then
+			announce(player.Name .. " got a " .. RARITIES[rarity].Name .. " " .. displayName(id, mut) .. " from the SECRET PORTAL!")
 		end
-	elseif passId == CONFIG.DOUBLE_CASH_PASS_ID then
-		player:SetAttribute("DoubleCash", true)
+	else
+		portalUsed[player] = nil
+		notify(player, "Your base is full! Make room and come back.")
+	end
+end)
+
+----------------------------------------------------------------------
+-- REQUESTS FROM THE CLIENT (menus)
+----------------------------------------------------------------------
+local function myPowersList(player)
+	local plot = playerPlot[player]
+	local list = {}
+	if plot then
+		for slot, power in pairs(plot.Slots) do
+			if power.Owner == player and power.State == "Placed" then
+				table.insert(list, {
+					Slot = slot, Id = power.Id, Mut = power.Mut,
+					Name = displayName(power.Id, power.Mut),
+					Rarity = power.Def.Rarity, Income = powerIncome(power),
+					Price = power.Def.Price, Vault = isVaultSlot(slot),
+				})
+			end
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Income > b.Income
+	end)
+	return list
+end
+
+local function dailyStatus(data)
+	local now = os.time()
+	local since = now - (data.LastDaily or 0)
+	local ready = since >= 20 * 3600
+	return ready, math.max(0, 20 * 3600 - since)
+end
+
+local function getInfo(player)
+	local data = sessions[player]
+	local discovered = {}
+	for _, r in ipairs(RECIPES) do
+		local key = recipeKey(r[1], r[2])
+		if data.Discovered[key] then
+			table.insert(discovered, { A = r[1], B = r[2], Result = r[3], Name = POWER_BY_ID[r[3]].Name })
+		else
+			table.insert(discovered, { Hidden = true, Rarity = POWER_BY_ID[r[3]].Rarity })
+		end
+	end
+	local ready, wait = dailyStatus(data)
+	local names = {}
+	for _, def in ipairs(POWERS) do
+		names[def.Id] = def.Name
+	end
+	return {
+		Cash = data.Cash, Rebirths = data.Rebirths, RebirthCost = rebirthCost(data),
+		Slots = normalLimit(player), MaxSlots = CONFIG.MAX_SLOTS, BaseSlots = data.Slots,
+		SlotCost = slotCost(data), Vaults = vaultLimit(player),
+		Turret = data.Turret, TurretCost = CONFIG.TURRET_COSTS[data.Turret + 1],
+		DailyReady = ready, DailyWait = wait, Streak = data.Streak,
+		Recipes = discovered, Powers = myPowersList(player), Names = names,
+		FuseCostPercent = CONFIG.FUSE_COST_PERCENT,
+	}
+end
+
+local function doFuse(player, slotA, slotB)
+	local data = sessions[player]
+	local plot = playerPlot[player]
+	if not plot or type(slotA) ~= "number" or type(slotB) ~= "number" or slotA == slotB then
+		return false, "Pick two different powers"
+	end
+	if not near(player, fusionPos, 30) then
+		return false, "Go to the Fusion Station!"
+	end
+	local a, b = plot.Slots[slotA], plot.Slots[slotB]
+	if not a or not b or a.Owner ~= player or b.Owner ~= player or a.State ~= "Placed" or b.State ~= "Placed" then
+		return false, "Those powers are not in your base"
+	end
+	local cost = math.floor((a.Def.Price + b.Def.Price) * CONFIG.FUSE_COST_PERCENT)
+	if data.Cash < cost then
+		return false, "Fusion costs $" .. fmt(cost)
+	end
+	data.Cash = data.Cash - cost
+
+	local key = recipeKey(a.Id, b.Id)
+	local resultId = RECIPE_BY_KEY[key]
+	local discoveredNew = false
+	if resultId then
+		if not data.Discovered[key] then
+			data.Discovered[key] = true
+			discoveredNew = true
+		end
+	else
+		-- No recipe: random power, sometimes one rarity higher
+		local rarity = math.max(a.Def.Rarity, b.Def.Rarity)
+		if math.random() < 0.2 then
+			rarity = math.min(rarity + 1, 6)
+		end
+		resultId = randomMarketPower(rarity)
+	end
+
+	local mut = rollMutation(1.5)
+	if not mut and math.random() < 0.5 then
+		local am, bm = a.Mut and MUT_BY_NAME[a.Mut], b.Mut and MUT_BY_NAME[b.Mut]
+		if am and (not bm or am.Mult >= bm.Mult) then
+			mut = a.Mut
+		elseif bm then
+			mut = b.Mut
+		end
+	end
+
+	destroyPower(a)
+	destroyPower(b)
+	local result = createPower(resultId, mut)
+	result.Part.CFrame = fusionCore.CFrame
+	flyToSlot(result, plot, slotA, player)
+	updateStats(player)
+
+	local name = displayName(resultId, mut)
+	local rarity = POWER_BY_ID[resultId].Rarity
+	if discoveredNew then
+		notify(player, "NEW RECIPE DISCOVERED: " .. name .. "!")
+		if rarity >= 4 then
+			announce(player.Name .. " discovered a secret fusion: " .. POWER_BY_ID[resultId].Name .. "!")
+		end
+	elseif rarity >= 5 then
+		announce(player.Name .. " fused a " .. RARITIES[rarity].Name .. " " .. name .. "!")
+	end
+	return true, "You made " .. name .. "!"
+end
+
+local function doRebirth(player)
+	local data = sessions[player]
+	local plot = playerPlot[player]
+	if not plot then
+		return false, "No base"
+	end
+	if not near(player, rebirthPos, 30) then
+		return false, "Go to the Rebirth Station!"
+	end
+	local cost = rebirthCost(data)
+	if data.Cash < cost then
+		return false, "You need $" .. fmt(cost)
+	end
+	for slot, power in pairs(plot.Slots) do
+		if not isVaultSlot(slot) and power.Owner == player then
+			destroyPower(power)
+		end
+	end
+	data.Rebirths = data.Rebirths + 1
+	data.Cash = CONFIG.START_CASH
+	data.Slots = CONFIG.START_SLOTS
+	refreshPedestals(plot)
+	applyMovement(player)
+	updateStats(player)
+	announce(player.Name .. " reached REBIRTH " .. data.Rebirths .. "!")
+	if data.Rebirths == 10 then
+		givePower(player, "Phoenix", "Golden", rebirthPillar.Position)
+		announce(player.Name .. " unlocked the exclusive PHOENIX power!")
+	end
+	saveData(player)
+	return true, "REBIRTH " .. data.Rebirths .. "! Your vault powers were kept."
+end
+
+requestRemote.OnServerInvoke = function(player, action, a, b)
+	local data = sessions[player]
+	local plot = playerPlot[player]
+	if not data or not plot then
+		return false, "Loading..."
+	end
+
+	if action == "GetInfo" then
+		return true, getInfo(player)
+
+	elseif action == "Fuse" then
+		return doFuse(player, a, b)
+
+	elseif action == "Rebirth" then
+		return doRebirth(player)
+
+	elseif action == "BuySlot" then
+		if data.Slots >= CONFIG.MAX_SLOTS then
+			return false, "You have all slots!"
+		end
+		local cost = slotCost(data)
+		if data.Cash < cost then
+			return false, "You need $" .. fmt(cost)
+		end
+		data.Cash = data.Cash - cost
+		data.Slots = data.Slots + 1
+		refreshPedestals(plot)
+		updateStats(player)
+		return true, "New pedestal unlocked!"
+
+	elseif action == "BuyTurret" then
+		local cost = CONFIG.TURRET_COSTS[data.Turret + 1]
+		if not cost then
+			return false, "Turret is max level!"
+		end
+		if data.Cash < cost then
+			return false, "You need $" .. fmt(cost)
+		end
+		data.Cash = data.Cash - cost
+		data.Turret = data.Turret + 1
+		updateStats(player)
+		return true, "Turret upgraded to level " .. data.Turret .. "!"
+
+	elseif action == "ClaimDaily" then
+		local ready = dailyStatus(data)
+		if not ready then
+			return false, "Come back later!"
+		end
+		if os.time() - (data.LastDaily or 0) > 48 * 3600 then
+			data.Streak = 0
+		end
+		data.Streak = data.Streak + 1
+		data.LastDaily = os.time()
+		local day = ((data.Streak - 1) % 7) + 1
+		local reward = math.floor((500 + (player:GetAttribute("Income") or 0) * 120) * day)
+		if player:GetAttribute("VIP") then
+			reward = reward * 2
+		end
+		data.Cash = data.Cash + reward
+		updateStats(player)
+		local msg = "Day " .. day .. " reward: $" .. fmt(reward) .. "!"
+		if day == 7 then
+			local id = randomMarketPower(rollRarity({ [4] = 70, [5] = 25, [6] = 5 }))
+			if givePower(player, id, rollMutation(2)) then
+				msg = msg .. " + a free " .. POWER_BY_ID[id].Name .. " power!"
+			end
+		end
+		return true, msg
+	end
+	return false, "Unknown action"
+end
+
+----------------------------------------------------------------------
+-- GAME PASSES & PRODUCTS
+----------------------------------------------------------------------
+local PASS_ATTRIBUTES = {
+	[CONFIG.DOUBLE_MONEY_PASS_ID] = "DoubleMoney",
+	[CONFIG.VIP_PASS_ID] = "VIP",
+	[CONFIG.EXTRA_SLOTS_PASS_ID] = "ExtraSlots",
+	[CONFIG.FAST_STEAL_PASS_ID] = "FastSteal",
+	[CONFIG.EXTRA_VAULT_PASS_ID] = "ExtraVault",
+}
+PASS_ATTRIBUTES[0] = nil
+
+local function updateNameSign(player)
+	local plot = playerPlot[player]
+	if plot then
+		plot.NameLabel.Text = (player:GetAttribute("VIP") and "[VIP] " or "") .. player.Name .. "'s Empire"
 	end
 end
 
+local function grantPass(player, passId)
+	local attr = PASS_ATTRIBUTES[passId]
+	if not attr then
+		return
+	end
+	player:SetAttribute(attr, true)
+	local plot = playerPlot[player]
+	if plot then
+		refreshPedestals(plot)
+	end
+	updateNameSign(player)
+	applyMovement(player)
+end
+
 local function checkPasses(player)
-	for _, passId in ipairs({ CONFIG.VIP_PASS_ID, CONFIG.DOUBLE_CASH_PASS_ID }) do
-		if passId ~= 0 then
-			local ok, owns = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
-			end)
-			if ok and owns then
-				grantPass(player, passId)
-			end
+	for passId in pairs(PASS_ATTRIBUTES) do
+		local ok, owns = pcall(function()
+			return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+		end)
+		if ok and owns then
+			grantPass(player, passId)
 		end
 	end
 end
@@ -1041,27 +1810,15 @@ MarketplaceService.ProcessReceipt = function(receipt)
 	end
 
 	if receipt.ProductId == CONFIG.CASH_PACK_PRODUCT_ID then
-		data.Cash = data.Cash + CONFIG.CASH_PACK_AMOUNT
-		notify(player, "+$" .. fmt(CONFIG.CASH_PACK_AMOUNT) .. "!")
-
+		local amount = math.max(10000, math.floor((player:GetAttribute("Income") or 0) * 600))
+		data.Cash = data.Cash + amount
+		notify(player, "+$" .. fmt(amount) .. "!")
 	elseif receipt.ProductId == CONFIG.SUPER_LOCK_PRODUCT_ID then
 		lockBase(plot, 180)
 		notify(player, "SUPER LOCK! Your base is locked for 3 minutes.")
-
-	elseif receipt.ProductId == CONFIG.LUCKY_EGG_PRODUCT_ID then
-		local id = randomEggId(4)
-		local def = EGG_BY_ID[id]
-		local slot = freeSlot(plot, player)
-		if slot then
-			local egg = createEgg(id)
-			egg.Part.CFrame = slotCFrame(plot, slot) + Vector3.new(0, 40, 0)
-			flyToSlot(egg, plot, slot, player)
-			announce(player.Name .. " opened a LUCKY EGG and got a " .. RARITIES[def.Rarity].Name .. " " .. def.Name .. "!")
-		else
-			data.Cash = data.Cash + def.Price
-			notify(player, "Base full! You got $" .. fmt(def.Price) .. " instead.")
-		end
-
+	elseif receipt.ProductId == CONFIG.SERVER_LUCK_PRODUCT_ID then
+		luckUntil = math.max(os.clock(), luckUntil) + 900
+		announce(player.Name .. " activated 2x SERVER LUCK for everyone! Thank you!")
 	else
 		warn("Unknown product: " .. tostring(receipt.ProductId))
 		return Enum.ProductPurchaseDecision.NotProcessedYet
@@ -1079,9 +1836,9 @@ end
 local function spawnCFrame(player)
 	local plot = playerPlot[player]
 	if plot then
-		return plot.CF * CFrame.new(0, 4, 12)
+		return plot.CF * CFrame.new(0, 4, -20)
 	end
-	return CFrame.new(0, 6, 20)
+	return CFrame.new(0, 6, -20)
 end
 
 local function onCharacter(player, char)
@@ -1090,11 +1847,11 @@ local function onCharacter(player, char)
 	task.wait()
 	char:PivotTo(spawnCFrame(player))
 	applyMovement(player)
-	giveBat(player)
+	givePowerBlast(player)
 	hum.Died:Connect(function()
-		local egg = carriers[player]
-		if egg then
-			returnHome(egg)
+		local power = carriers[player]
+		if power then
+			returnHome(power)
 		end
 		task.wait(CONFIG.RESPAWN_TIME)
 		if player.Parent then
@@ -1112,7 +1869,7 @@ local function onPlayerAdded(player)
 
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
-	for _, name in ipairs({ "Cash", "Stolen" }) do
+	for _, name in ipairs({ "Cash", "Rebirths", "Steals" }) do
 		local v = Instance.new("IntValue")
 		v.Name = name
 		v.Parent = stats
@@ -1120,11 +1877,6 @@ local function onPlayerAdded(player)
 	stats.Parent = player
 	updateStats(player)
 
-	for power in pairs(data.Powers) do
-		player:SetAttribute("Power_" .. power, true)
-	end
-
-	-- Give the player a free base
 	local plot
 	for _, p in ipairs(plots) do
 		if not p.Owner then
@@ -1135,21 +1887,23 @@ local function onPlayerAdded(player)
 	if plot then
 		plot.Owner = player
 		playerPlot[player] = plot
-		plot.NameLabel.Text = player.Name .. "'s Base"
-		plot.LockUntil, plot.LockCooldownUntil = 0, 0
+		plot.LockUntil, plot.LockCooldownUntil, plot.AlarmUntil = 0, 0, 0
+		updateNameSign(player)
 	end
 
 	checkPasses(player)
 
 	if plot then
-		for _, saved in ipairs(data.Eggs) do
-			local def = EGG_BY_ID[saved.Id]
+		refreshPedestals(plot)
+		for _, saved in ipairs(data.Powers) do
 			local slot = tonumber(saved.S)
-			if def and slot and plot.Pedestals[slot] and not plot.Slots[slot] then
-				local egg = createEgg(saved.Id)
-				egg.Progress = saved.P or 0
-				egg.Hatched = saved.H == true
-				place(egg, plot, slot, player)
+			if POWER_BY_ID[saved.Id] and slot and plot.Pedestals[slot] and not plot.Slots[slot] then
+				local mut = saved.M
+				if mut == "" or not MUT_BY_NAME[mut] then
+					mut = nil
+				end
+				local power = createPower(saved.Id, mut)
+				place(power, plot, slot, player)
 			end
 		end
 	end
@@ -1160,11 +1914,9 @@ local function onPlayerAdded(player)
 	player:LoadCharacter()
 
 	if not plot then
-		notify(player, "Server is full of bases, try another server!")
+		notify(player, "All bases are taken, try another server!")
 	elseif data.NoSave then
 		notify(player, "Saving is OFF (turn on API access in Game Settings).")
-	else
-		notify(player, "Buy eggs on the Egg Road, steal from others and THROW them home!")
 	end
 end
 
@@ -1179,25 +1931,30 @@ Players.PlayerRemoving:Connect(function(player)
 	if carried then
 		returnHome(carried)
 	end
-	for _, egg in pairs(eggsByPart) do
-		if egg.HomeOwner == player then
-			egg.HomeOwner = nil
+	for _, power in pairs(powersByPart) do
+		if power.HomeOwner == player then
+			power.HomeOwner = nil
 		end
 	end
 	local plot = playerPlot[player]
 	if plot then
-		for _, egg in pairs(plot.Slots) do
-			destroyEgg(egg)
+		for _, power in pairs(plot.Slots) do
+			destroyPower(power)
 		end
 		plot.Slots = {}
 		plot.Owner = nil
 		plot.NameLabel.Text = "Empty Base"
-		plot.LockUntil, plot.LockCooldownUntil = 0, 0
+		plot.IncomeLabel.Text = ""
+		plot.StatusLabel.Text = ""
+		plot.LockUntil, plot.LockCooldownUntil, plot.AlarmUntil = 0, 0, 0
+		refreshPedestals(plot)
 	end
 	playerPlot[player] = nil
 	sessions[player] = nil
 	lastThrow[player] = nil
-	lastBonk[player] = nil
+	lastBlast[player] = nil
+	frozenUntil[player] = nil
+	portalUsed[player] = nil
 end)
 
 game:BindToClose(function()
@@ -1218,96 +1975,127 @@ end)
 ----------------------------------------------------------------------
 -- GAME LOOPS
 ----------------------------------------------------------------------
--- Move road eggs + spawn new ones
-local spawnTimer = 0
-RunService.Heartbeat:Connect(function(dt)
-	spawnTimer = spawnTimer + dt
-	if spawnTimer >= CONFIG.EGG_SPAWN_EVERY then
-		spawnTimer = 0
-		spawnRoadEgg(randomEggId())
-	end
-	local move = Vector3.new(CONFIG.ROAD_SPEED * dt, 0, 0)
-	for egg in pairs(roadEggs) do
-		local part = egg.Part
-		part.CFrame = (part.CFrame + move) * CFrame.Angles(0, dt, 0)
-		if part.Position.X > ROAD_END then
-			destroyEgg(egg)
-		end
-	end
-end)
+local function timeText(seconds)
+	seconds = math.max(0, math.ceil(seconds))
+	return string.format("%d:%02d", seconds // 60, seconds % 60)
+end
 
--- Every second: cash, hatching, lock signs
+restockMarket()
+
+-- Every second: money, signs, market, portal
 task.spawn(function()
 	while true do
 		task.wait(1)
 		local now = os.clock()
+
 		for _, plot in ipairs(plots) do
 			local owner = plot.Owner
 			local data = owner and sessions[owner]
 			if data then
 				local income = 0
-				for _, egg in pairs(plot.Slots) do
-					if egg.State == "Placed" and egg.Owner == owner then
-						egg.Progress = egg.Progress + 1
-						if not egg.Hatched and egg.Progress >= RARITIES[egg.Def.Rarity].HatchTime then
-							egg.Hatched = true
-							styleHatched(egg)
-							notify(owner, "Your " .. egg.Def.Name .. " HATCHED! 2x cash!")
-							if egg.Def.Power then
-								unlockPower(owner, egg.Def.Power)
-							end
-						end
-						income = income + egg.Def.Income * (egg.Hatched and 2 or 1)
-						updateEggLabel(egg)
+				for _, power in pairs(plot.Slots) do
+					if power.State == "Placed" and power.Owner == owner then
+						income = income + powerIncome(power)
 					end
 				end
-				if owner:GetAttribute("DoubleCash") then
-					income = income * 2
-				end
+				income = income * incomeMultiplier(owner)
 				data.Cash = data.Cash + income
+				owner:SetAttribute("Income", income)
+				owner:SetAttribute("Element", elementOf(owner))
 				updateStats(owner)
+				plot.IncomeLabel.Text = "$" .. fmt(income) .. "/s" .. (data.Rebirths > 0 and ("  |  Rebirth " .. data.Rebirths) or "")
+				local status
+				if now < plot.LockUntil then
+					status = "LOCKED " .. math.ceil(plot.LockUntil - now) .. "s"
+				elseif now < plot.LockCooldownUntil then
+					status = "Lock ready in " .. math.ceil(plot.LockCooldownUntil - now) .. "s"
+				else
+					status = "Unlocked"
+				end
+				if data.Turret > 0 then
+					status = status .. "  |  Turret Lv." .. data.Turret
+				end
+				plot.StatusLabel.Text = status
 			end
-
-			local locked = now < plot.LockUntil
-			plot.Laser.Transparency = locked and 0.35 or 1
-			if not owner then
-				plot.LockLabel.Text = ""
-			elseif locked then
-				plot.LockLabel.Text = "LOCKED " .. math.ceil(plot.LockUntil - now) .. "s"
-			elseif now < plot.LockCooldownUntil then
-				plot.LockLabel.Text = "Lock ready in " .. math.ceil(plot.LockCooldownUntil - now) .. "s"
-			else
-				plot.LockLabel.Text = "Unlocked"
-			end
+			plot.Laser.Transparency = now < plot.LockUntil and 0.35 or 1
 		end
+
+		if now >= nextRestock then
+			restockMarket()
+			announce("The POWER MARKET has restocked!")
+		end
+		marketTimerLabel.Text = "Restock in " .. timeText(nextRestock - now)
+		ReplicatedStorage:SetAttribute("RestockIn", math.ceil(nextRestock - now))
+
+		if now >= nextPortal then
+			portalOpenUntil = now + CONFIG.PORTAL_OPEN_TIME
+			nextPortal = now + CONFIG.PORTAL_EVERY
+			portalUsed = {}
+			announce("The SECRET PORTAL is OPEN for 60 seconds! Run to the middle!")
+		end
+		if now < portalOpenUntil then
+			portal.Transparency = 0.2
+			portalLabel.Text = "OPEN! " .. timeText(portalOpenUntil - now)
+			ReplicatedStorage:SetAttribute("PortalIn", -math.ceil(portalOpenUntil - now))
+		else
+			portal.Transparency = 1
+			portalLabel.Text = "Opens in " .. timeText(nextPortal - now)
+			ReplicatedStorage:SetAttribute("PortalIn", math.ceil(nextPortal - now))
+		end
+		ReplicatedStorage:SetAttribute("LuckLeft", math.max(0, math.ceil(luckUntil - now)))
 	end
 end)
 
--- Fast checks: deliver carried eggs, kick intruders out of locked bases
+-- Fast loop: deliveries, locks, turrets, alarms
 task.spawn(function()
+	local flash = false
 	while true do
 		task.wait(0.2)
-		for player, egg in pairs(carriers) do
+		local now = os.clock()
+		flash = not flash
+
+		for player, power in pairs(carriers) do
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 			local plot = playerPlot[player]
 			if root and plot and plotAt(root.Position) == plot then
 				local slot = freeSlot(plot, player)
 				if slot then
-					deliver(egg, player, plot, slot)
+					deliver(power, player, plot, slot)
 				end
 			end
 		end
 
-		local now = os.clock()
 		for _, plot in ipairs(plots) do
-			if plot.Owner and now < plot.LockUntil then
+			local owner = plot.Owner
+			plot.AlarmLight.Enabled = now < plot.AlarmUntil and flash
+			if owner then
+				local data = sessions[owner]
+				local locked = now < plot.LockUntil
+				local turretReady = data and data.Turret > 0 and now >= plot.TurretNext
 				for _, player in ipairs(Players:GetPlayers()) do
-					if player ~= plot.Owner and not hasPower(player, "Ghost") then
+					if player ~= owner then
 						local char = player.Character
 						local root = char and char:FindFirstChild("HumanoidRootPart")
-						if root and plotAt(root.Position) == plot then
-							char:PivotTo(plot.CF * CFrame.new(0, 4, -PLOT_D / 2 - 8))
-							notify(player, "This base is LOCKED!")
+						if root and isAlive(player) and plotAt(root.Position) == plot then
+							if locked then
+								char:PivotTo(plot.CF * CFrame.new(0, 4, -PLOT_D / 2 - 8))
+								notify(player, "This base is LOCKED!")
+							elseif turretReady then
+								turretReady = false
+								plot.TurretNext = now + CONFIG.TURRET_COOLDOWN[data.Turret]
+								beam(plot.TurretHead.Position, root.Position, "Lightning")
+								local away = Vector3.new(root.Position.X - plot.CF.Position.X, 0, root.Position.Z - plot.CF.Position.Z)
+								if away.Magnitude > 0.1 then
+									knockback(root, away.Unit * 50 + Vector3.new(0, 25, 0))
+								end
+								local carried = carriers[player]
+								if carried then
+									makeLoose(carried, root.Position)
+									notify(player, "The TURRET zapped you! You dropped the power!")
+								else
+									notify(player, "The TURRET zapped you!")
+								end
+							end
 						end
 					end
 				end
