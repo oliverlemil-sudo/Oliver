@@ -483,7 +483,19 @@ end
 ----------------------------------------------------------------------
 -- PLAYER DATA
 ----------------------------------------------------------------------
-local store = DataStoreService:GetDataStore("PowerEmpire_v1")
+-- In Studio (or before the game is published) DataStores may not work.
+-- Then the game still runs, it just doesn't save.
+local store
+do
+	local ok, result = pcall(function()
+		return DataStoreService:GetDataStore("PowerEmpire_v1")
+	end)
+	if ok then
+		store = result
+	else
+		warn("Saving is off: " .. tostring(result))
+	end
+end
 local sessions = {}
 
 local function newData()
@@ -494,6 +506,11 @@ local function newData()
 end
 
 local function loadData(player)
+	if not store then
+		local data = newData()
+		data.NoSave = true
+		return data
+	end
 	for attempt = 1, 3 do
 		local ok, result = pcall(function()
 			return store:GetAsync("player_" .. player.UserId)
@@ -518,7 +535,7 @@ end
 local function saveData(player)
 	local data = sessions[player]
 	local plot = playerPlot[player]
-	if not data or data.NoSave then
+	if not data or data.NoSave or not store then
 		return
 	end
 	local powers = {}

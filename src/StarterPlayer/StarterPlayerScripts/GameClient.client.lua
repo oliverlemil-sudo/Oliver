@@ -73,6 +73,7 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "PowerEmpireGui"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local function corner(parent, radius)
