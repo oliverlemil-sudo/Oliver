@@ -4,7 +4,7 @@
 	Put this as a *LocalScript* in StarterPlayer > StarterPlayerScripts.
 
 	Makes all the screens: money, MOG, menus (Shop, Upgrades, Daily,
-	Index, Rebirth), Fusion, the THROW button, alarms and effects.
+	Auras, Index, Rebirth), Fusion, MOG battles, THROW button and effects.
 	You don't need to change anything in here.
 ]]
 
@@ -22,7 +22,6 @@ local camera = workspace.CurrentCamera
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local notifyRemote = remotes:WaitForChild("Notify")
 local announceRemote = remotes:WaitForChild("Announce")
-local alarmRemote = remotes:WaitForChild("Alarm")
 local panelRemote = remotes:WaitForChild("OpenPanel")
 local throwRemote = remotes:WaitForChild("Throw")
 local effectRemote = remotes:WaitForChild("Effect")
@@ -159,25 +158,6 @@ announceRemote.OnClientEvent:Connect(function(text)
 	showMessage(text, Color3.fromRGB(255, 210, 60))
 end)
 
-local alarmFrame = Instance.new("Frame")
-alarmFrame.Size = UDim2.fromScale(1, 1)
-alarmFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-alarmFrame.BackgroundTransparency = 1
-alarmFrame.ZIndex = 0
-alarmFrame.Parent = gui
-local alarmText = label(gui, "", UDim2.new(0, 700, 0, 50), UDim2.new(0.5, -350, 0.3, 0))
-alarmText.TextColor3 = Color3.fromRGB(255, 70, 70)
-
-alarmRemote.OnClientEvent:Connect(function(text)
-	alarmText.Text = "ALARM! " .. text
-	for _ = 1, 5 do
-		alarmFrame.BackgroundTransparency = 0.6
-		TweenService:Create(alarmFrame, TweenInfo.new(0.4), { BackgroundTransparency = 1 }):Play()
-		task.wait(0.5)
-	end
-	alarmText.Text = ""
-end)
-
 ----------------------------------------------------------------------
 -- EFFECTS: particle burst + floating text
 ----------------------------------------------------------------------
@@ -234,6 +214,8 @@ incomeLabel.TextColor3 = Color3.fromRGB(200, 255, 200)
 
 local mogBox = box(gui, UDim2.new(0, 220, 0, 64), UDim2.new(0, 10, 1, -160), Color3.fromRGB(30, 30, 42), 0.15)
 local mogTitle = label(mogBox, "YOUR MOG", UDim2.new(1, -16, 0.38, 0), UDim2.new(0, 8, 0.05, 0))
+local trainingLabel = label(gui, "", UDim2.new(0, 400, 0, 40), UDim2.new(0.5, -200, 1, -230))
+trainingLabel.TextColor3 = Color3.fromRGB(255, 120, 200)
 mogTitle.TextColor3 = Color3.fromRGB(255, 120, 200)
 mogTitle.TextXAlignment = Enum.TextXAlignment.Left
 local mogLabel = label(mogBox, "10", UDim2.new(1, -16, 0.52, 0), UDim2.new(0, 8, 0.43, 0))
@@ -257,6 +239,11 @@ end)
 RunService.Heartbeat:Connect(function()
 	incomeLabel.Text = "+$" .. fmt(player:GetAttribute("Income") or 0) .. "/s"
 	mogLabel.Text = fmt(player:GetAttribute("Mog") or 0)
+	if player:GetAttribute("Training") then
+		trainingLabel.Text = "TRAINING MOG...  (E or walk away to stop)"
+	else
+		trainingLabel.Text = ""
+	end
 	local rush = ReplicatedStorage:GetAttribute("RushIn") or 0
 	if rush < 0 then
 		rushLabel.Text = "LUCKY RUSH! " .. timeText(-rush)
@@ -566,13 +553,11 @@ end
 local SHOP_ITEMS = {
 	{ Header = "GAME PASSES (forever)" },
 	{ Text = "2x Money", Attr = "DoubleMoneyPassId", Pass = true, Owned = "DoubleMoney" },
+	{ Text = "2x MOG from training", Attr = "DoubleMogPassId", Pass = true, Owned = "DoubleMog" },
 	{ Text = "VIP: tag, +20% money, 2x daily", Attr = "VipPassId", Pass = true, Owned = "VIP" },
-	{ Text = "+3 Monster Slots", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
-	{ Text = "Fast Stealing", Attr = "FastStealPassId", Pass = true, Owned = "FastSteal" },
-	{ Text = "+1 Vault Slot", Attr = "ExtraVaultPassId", Pass = true, Owned = "ExtraVault" },
+	{ Text = "+5 monsters in your enclosure", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
 	{ Header = "BOOSTS" },
 	{ Text = "2x SERVER LUCK (15 min, everyone!)", Attr = "ServerLuckProductId" },
-	{ Text = "Super Lock (3 min)", Attr = "SuperLockProductId" },
 	{ Text = "Cash Pack (10 min of income)", Attr = "CashPackProductId" },
 }
 
@@ -615,10 +600,30 @@ refreshUpgrades = function()
 	if not info then
 		return
 	end
-	upgradePanel.Text("MOG " .. fmt(info.Mog) .. "  ->  " .. fmt(info.NextMog), Color3.fromRGB(255, 120, 200))
-	upgradePanel.ButtonRow("Train MOG (unlock new zones!)", "$" .. fmt(info.MogCost), GREEN, function()
-		buy("TrainMog")
-	end)
+	upgradePanel.Text("MOG " .. fmt(info.Mog) .. "  (+" .. fmt(info.MogPerHit) .. " per hit)", Color3.fromRGB(255, 120, 200))
+	upgradePanel.Text("Train at the MOG STONE next to your enclosure!", nil, 24)
+	if info.NextHammerCost then
+		upgradePanel.ButtonRow("Hammer Lv." .. info.Hammer .. " -> Lv." .. (info.Hammer + 1) .. "  (" .. fmt(info.HammerPower) .. " -> " .. fmt(info.NextHammerPower) .. " per hit)", "$" .. fmt(info.NextHammerCost), GREEN, function()
+			buy("BuyHammer")
+		end)
+	else
+		upgradePanel.ButtonRow("Hammer Lv." .. info.Hammer .. " (MAX)", "MAX", GRAY)
+	end
+	if info.NextSwingCost then
+		upgradePanel.ButtonRow("Swing speed: " .. info.SwingTime .. "s -> " .. info.NextSwingTime .. "s per hit", "$" .. fmt(info.NextSwingCost), GREEN, function()
+			buy("BuySwing")
+		end)
+	else
+		upgradePanel.ButtonRow("Swing speed: " .. info.SwingTime .. "s (MAX)", "MAX", GRAY)
+	end
+	upgradePanel.Text("ENCLOSURE: " .. info.Slots .. " monsters", Color3.fromRGB(255, 210, 80))
+	if info.BaseSlots < info.MaxSlots then
+		upgradePanel.ButtonRow("Bigger enclosure (+1 monster)", "$" .. fmt(info.SlotCost), GREEN, function()
+			buy("BuySlot")
+		end)
+	else
+		upgradePanel.ButtonRow("Enclosure", "MAX", GRAY)
+	end
 	upgradePanel.Text("Money Boost: x" .. info.Boost .. (info.NextBoost and ("  ->  x" .. info.NextBoost) or ""), Color3.fromRGB(110, 255, 110))
 	if info.BoostCost then
 		upgradePanel.ButtonRow("Monsters make more money", "$" .. fmt(info.BoostCost), GREEN, function()
@@ -627,17 +632,37 @@ refreshUpgrades = function()
 	else
 		upgradePanel.ButtonRow("Money Boost", "MAX", GRAY)
 	end
-	upgradePanel.Text("Monsters you can keep: " .. info.Slots, Color3.fromRGB(255, 210, 80))
-	if info.BaseSlots < info.MaxSlots then
-		upgradePanel.ButtonRow("+1 monster in your base", "$" .. fmt(info.SlotCost), GREEN, function()
-			buy("BuySlot")
-		end)
-	else
-		upgradePanel.ButtonRow("Monster slots", "MAX", GRAY)
+end
+
+----------------------------------------------------------------------
+-- AURAS
+----------------------------------------------------------------------
+local auraPanel = makePanel("AURAS", Color3.fromRGB(255, 160, 255))
+
+local refreshAuras
+refreshAuras = function()
+	local info = getInfo()
+	auraPanel.Clear()
+	if not info then
+		return
 	end
-	upgradePanel.Text("Vault slots: " .. info.Vaults .. " (can't be stolen)", nil, 26)
-	upgradePanel.Text("Stand on the red LOCK pad to lock your base", nil, 26)
-	upgradePanel.Text("Use MOG SLAP on thieves to make them drop it", nil, 26)
+	auraPanel.Text("Auras multiply the MOG you get from training!", nil, 26)
+	for _, a in ipairs(info.Auras) do
+		local text, color
+		if info.Aura == a.Name then
+			text, color = "EQUIPPED", GRAY
+		elseif a.Owned then
+			text, color = "EQUIP", Color3.fromRGB(70, 110, 200)
+		else
+			text, color = "$" .. fmt(a.Cost), GREEN
+		end
+		local b, l = auraPanel.ButtonRow(a.Name .. "  x" .. a.Mult .. " MOG", text, color, function()
+			local _, msg = requestRemote:InvokeServer(a.Owned and "EquipAura" or "BuyAura", a.Name)
+			showMessage(msg)
+			refreshAuras()
+		end)
+		l.TextColor3 = a.Color
+	end
 end
 
 ----------------------------------------------------------------------
@@ -708,7 +733,7 @@ fusionBottom.BackgroundTransparency = 1
 fusionBottom.Parent = fusionPanel.Frame
 local fusionPreview = label(fusionBottom, "Pick 2 of the same monster", UDim2.new(1, 0, 0.4, 0))
 local fuseBtn = button(fusionBottom, "FUSE!", Color3.fromRGB(170, 60, 255), UDim2.new(0.6, 0, 0.5, 0), UDim2.new(0.2, 0, 0.48, 0))
-local LEVEL_NAMES = { "Normal", "Golden", "Diamond", "Rainbow", "Cosmic", "Rainbow Cosmic" }
+local LEVEL_NAMES = { "Normal", "Silver", "Golden", "Diamond", "Rainbow", "Cosmic", "Rainbow Cosmic" }
 
 local selected = {}
 local refreshFusion
@@ -751,7 +776,7 @@ refreshFusion = function()
 		fusionPanel.Text("You need at least 2 monsters in your base!", nil, 30)
 	end
 	for _, m in ipairs(info.Monsters) do
-		local text = m.Name .. "  $" .. fmt(m.Income) .. "/s" .. (m.Vault and " [V]" or "")
+		local text = m.Name .. "  $" .. fmt(m.Income) .. "/s"
 		local b, l = fusionPanel.ButtonRow(text, "SELECT", Color3.fromRGB(70, 110, 200))
 		l.TextColor3 = RARITY_COLORS[m.Rarity]
 		b.Activated:Connect(function()
@@ -802,11 +827,10 @@ local function refreshRebirth()
 	end
 	rebirthPanel.Text("Rebirths: " .. info.Rebirths, Color3.fromRGB(255, 210, 80))
 	rebirthPanel.Text("Cost: $" .. fmt(info.RebirthCost) .. "  (you have $" .. fmt(info.Cash) .. ")", nil, 28)
-	rebirthPanel.Text("You LOSE: cash, monsters outside the vault, upgrades", Color3.fromRGB(255, 120, 120), 26)
-	rebirthPanel.Text("You KEEP: vault monsters, index", Color3.fromRGB(110, 255, 110), 26)
+	rebirthPanel.Text("You LOSE: cash, MOG, monsters, upgrades", Color3.fromRGB(255, 120, 120), 26)
+	rebirthPanel.Text("You KEEP: auras, index", Color3.fromRGB(110, 255, 110), 26)
 	rebirthPanel.Text("REWARDS", Color3.fromRGB(255, 210, 80))
-	rebirthPanel.Text("Every rebirth: +1x money AND +1x MOG", nil, 26)
-	rebirthPanel.Text("Rebirth 2 and 5: +1 vault slot", nil, 26)
+	rebirthPanel.Text("Every rebirth: +1x money AND +1x MOG per hit", nil, 26)
 	rebirthPanel.Text("Rebirth 3+: run faster", nil, 26)
 	rebirthPanel.Text("Rebirth 10: exclusive GOLDEN PHOENIXMOG!", Color3.fromRGB(255, 160, 60), 26)
 end
@@ -828,12 +852,13 @@ end)
 ----------------------------------------------------------------------
 local menu = Instance.new("Frame")
 menu.BackgroundTransparency = 1
-menu.Size = UDim2.new(0, 140, 0, 320)
-menu.Position = UDim2.new(1, -150, 0.5, -140)
+menu.Size = UDim2.new(0, 140, 0, 384)
+menu.Position = UDim2.new(1, -150, 0.5, -180)
 menu.Parent = gui
 local menuItems = {
 	{ "SHOP", Color3.fromRGB(40, 170, 80), shopPanel, refreshShop },
 	{ "UPGRADES", Color3.fromRGB(70, 120, 220), upgradePanel, refreshUpgrades },
+	{ "AURAS", Color3.fromRGB(220, 90, 220), auraPanel, refreshAuras },
 	{ "DAILY", Color3.fromRGB(230, 160, 30), dailyPanel, refreshDaily },
 	{ "INDEX", Color3.fromRGB(150, 70, 220), indexPanel, refreshIndex },
 	{ "REBIRTH", Color3.fromRGB(255, 150, 30), rebirthPanel, refreshRebirth },
@@ -855,24 +880,12 @@ end
 local function updateMonster(part)
 	local state = part:GetAttribute("State")
 	local mine = part:GetAttribute("OwnerId") == player.UserId
-	local vault = (part:GetAttribute("Slot") or 0) > 100
-	local fast = player:GetAttribute("FastSteal") == true
 	for _, p in ipairs(part:GetChildren()) do
 		if p:IsA("ProximityPrompt") then
 			local n = p.Name
 			p.Enabled = (n == "Mog" and state == "Lane")
-				or (n == "Steal" and state == "Placed" and not mine and not vault)
 				or (n == "Sell" and state == "Placed" and mine)
-				or (n == "Vault" and state == "Placed" and mine)
 				or (n == "Grab" and state == "Loose")
-			if n == "Steal" then
-				local base = p:GetAttribute("BaseHold")
-				if not base then
-					base = p.HoldDuration
-					p:SetAttribute("BaseHold", base)
-				end
-				p.HoldDuration = fast and base / 2 or base
-			end
 		end
 	end
 	-- green MOG text = you can mog it, red = train more MOG
@@ -921,7 +934,6 @@ local function refreshAllMonsters()
 		updateMonster(part)
 	end
 end
-player:GetAttributeChangedSignal("FastSteal"):Connect(refreshAllMonsters)
 player:GetAttributeChangedSignal("Mog"):Connect(refreshAllMonsters)
 
 RunService.RenderStepped:Connect(function()
@@ -937,7 +949,7 @@ end)
 -- WELCOME
 ----------------------------------------------------------------------
 task.delay(2, function()
-	showMessage("Welcome to MOG MONSTERS! Walk down the MOG ROAD, press E on a monster and win the MOG BATTLE!", Color3.fromRGB(255, 210, 60))
+	showMessage("Welcome to MOG MONSTERS! Train at your MOG STONE, then win MOG BATTLES on the MOG ROAD!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v3 started OK!")
+print("MOG MONSTERS client v4 started OK!")

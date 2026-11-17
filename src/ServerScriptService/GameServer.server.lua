@@ -4,23 +4,24 @@
 	Put this as a *Script* in ServerScriptService.
 
 	This script builds the whole map and runs the game:
-	  * The MOG ROAD has 8 big walled ZONES. Every gate needs more MOG.
-	    Further out = rarer monsters.
-	  * Press E on a wild monster to start a MOG BATTLE (a mini game).
-	    Win, and you PICK IT UP - carry it home before someone slaps it
-	    out of your hands!
-	  * Monsters walk around freely in your fenced base and make money.
-	  * Levels: Normal, Golden, Diamond, Rainbow, Cosmic, RAINBOW COSMIC.
+	  * TRAIN your MOG: stand at the MOG STATION next to your base and
+	    press E - your HAMMER hits the stone by itself. Upgrade hammer
+	    power and swing speed, buy AURAS to multiply your MOG.
+	  * The MOG ROAD has 8 huge walled ZONES. Every gate needs more MOG.
+	  * Press E on a wild monster for a MOG BATTLE (mini game). Win and
+	    carry it home - other players can hit you with their hammer and
+	    take it! (You can NOT steal from bases, only on the road.)
+	  * Monsters walk around in your enclosure and make money.
+	    Upgrade the enclosure to keep more monsters.
+	  * Levels: Normal, Silver, Golden, Diamond, Rainbow, Cosmic, RAINBOW COSMIC.
 	  * GIGAMOG: 1 in 1,000,000,000!
-	  * Upgrades, stealing, throwing (F), Mog Slap, vault, lock, fusion,
-	    rebirth, Lucky Rush, daily rewards, Robux shop.
+	  * Leaderboard, fusion, rebirth, Lucky Rush, daily rewards, shop.
 
 	REALISTIC MONSTERS (optional):
-	  Make a Folder called "MonsterModels" in ServerStorage. Put a 3D
-	  Model inside and name it like a monster (for example "Frostfang").
+	  In ServerStorage there is a Folder "MonsterModels". Put a 3D Model
+	  inside and name it like a monster (for example "Frostfang").
 	  The game will use your model instead of the built-in one.
-	  The model should look toward its front (-Z). Scripts inside the
-	  model are removed automatically.
+	  Scripts inside the model are removed automatically.
 
 	>>> ONLY CHANGE THINGS IN THE "CONFIG" SECTION BELOW <<<
 ]]
@@ -30,15 +31,14 @@
 ----------------------------------------------------------------------
 local CONFIG = {
 	START_CASH = 0,
-	START_SLOTS = 6,          -- monsters you can keep at the start
-	MAX_SLOTS = 12,           -- you can buy up to this many with cash
-	SLOT_BASE_COST = 500,     -- price of slot 7 (then x3 every slot)
+	START_MOG = 10,
+	START_SLOTS = 6,          -- monsters your enclosure holds at the start
+	MAX_SLOTS = 20,           -- biggest enclosure you can buy with cash
+	SLOT_BASE_COST = 400,     -- price of slot 7 (then x2.2 every slot)
 	WANDER_SPEED = 4,         -- how fast wild monsters walk around
-	PEN_SPEED = 2.5,          -- how fast monsters walk in your base
-	BATTLE_MIN_TIME = 2,      -- a MOG battle takes at least this long
+	PEN_SPEED = 2.5,          -- how fast monsters walk in your enclosure
+	BATTLE_MIN_TIME = 2,
 	BATTLE_MAX_TIME = 25,
-	LOCK_TIME = 45,
-	LOCK_COOLDOWN = 45,
 	LOOSE_TIME = 15,          -- seconds a dropped monster stays on the ground
 	RESPAWN_TIME = 3,
 	THROW_POWER = 75,
@@ -52,70 +52,109 @@ local CONFIG = {
 	-- Paste your IDs here after you create them on create.roblox.com
 	-- (0 = not set up yet, the button just says "coming soon")
 	DOUBLE_MONEY_PASS_ID = 0, -- 2x money
+	DOUBLE_MOG_PASS_ID = 0,   -- 2x MOG from training
 	VIP_PASS_ID = 0,          -- VIP tag, +20% money, 2x daily reward
-	EXTRA_SLOTS_PASS_ID = 0,  -- +3 monster slots
-	FAST_STEAL_PASS_ID = 0,   -- steal 2x faster, no slow-down when carrying
-	EXTRA_VAULT_PASS_ID = 0,  -- +1 vault slot
+	EXTRA_SLOTS_PASS_ID = 0,  -- +5 monsters in your enclosure
 	SERVER_LUCK_PRODUCT_ID = 0, -- 2x luck for EVERYONE for 15 minutes
-	SUPER_LOCK_PRODUCT_ID = 0,  -- lock your base for 3 minutes
 	CASH_PACK_PRODUCT_ID = 0,   -- 10 minutes of income (min 5K)
 }
 
 -- Mog = MOG you need (also the MOG to enter that zone), Income = money per second
 local RARITIES = {
-	{ Name = "Common",    Mog = 10,        Income = 2,       Color = Color3.fromRGB(200, 200, 200) },
-	{ Name = "Uncommon",  Mog = 40,        Income = 6,       Color = Color3.fromRGB(90, 220, 90) },
-	{ Name = "Rare",      Mog = 200,       Income = 25,      Color = Color3.fromRGB(70, 150, 255) },
-	{ Name = "Epic",      Mog = 1500,      Income = 100,     Color = Color3.fromRGB(180, 90, 255) },
-	{ Name = "Legendary", Mog = 12000,     Income = 600,     Color = Color3.fromRGB(255, 200, 40) },
-	{ Name = "Mythic",    Mog = 100000,    Income = 4000,    Color = Color3.fromRGB(255, 60, 120) },
-	{ Name = "Secret",    Mog = 2000000,   Income = 50000,   Color = Color3.fromRGB(30, 30, 30) },
+	{ Name = "Common",    Mog = 10,        Income = 2,       Color = Color3.fromRGB(220, 220, 220) },
+	{ Name = "Uncommon",  Mog = 40,        Income = 6,       Color = Color3.fromRGB(110, 235, 110) },
+	{ Name = "Rare",      Mog = 200,       Income = 25,      Color = Color3.fromRGB(90, 170, 255) },
+	{ Name = "Epic",      Mog = 1500,      Income = 100,     Color = Color3.fromRGB(200, 110, 255) },
+	{ Name = "Legendary", Mog = 12000,     Income = 600,     Color = Color3.fromRGB(255, 205, 50) },
+	{ Name = "Mythic",    Mog = 100000,    Income = 4000,    Color = Color3.fromRGB(255, 80, 140) },
+	{ Name = "Secret",    Mog = 2000000,   Income = 50000,   Color = Color3.fromRGB(60, 60, 60) },
 	{ Name = "GODLY",     Mog = 100000000, Income = 1000000, Color = Color3.fromRGB(255, 255, 255) },
 }
 
 -- One ZONE per rarity along the Mog Road.
 -- Every = seconds between new monsters, Max = most monsters at once.
 local ZONES = {
-	{ Every = 3,   Max = 12 },
-	{ Every = 5,   Max = 10 },
-	{ Every = 8,   Max = 8 },
-	{ Every = 15,  Max = 6 },
-	{ Every = 30,  Max = 4 },
-	{ Every = 60,  Max = 3 },
-	{ Every = 180, Max = 2 },
+	{ Every = 3,   Max = 16 },
+	{ Every = 5,   Max = 13 },
+	{ Every = 8,   Max = 10 },
+	{ Every = 15,  Max = 8 },
+	{ Every = 30,  Max = 6 },
+	{ Every = 60,  Max = 4 },
+	{ Every = 180, Max = 3 },
 	{ Every = nil, Max = 1 }, -- GODLY zone: only a GIGAMOG (1 in a billion per spawn)
 }
 local GIGAMOG_CHANCE = 1 / 1000000000
 
 -- Plan = body shape: blob, beast, bird, spider, golem, serpent, ghost, dragon
 local MONSTERS = {
-	{ Id = "Blobby",      Name = "Blobby",      Rarity = 1, Plan = "blob",    Color = Color3.fromRGB(100, 220, 100) },
-	{ Id = "Pebblo",      Name = "Pebblo",      Rarity = 1, Plan = "golem",   Color = Color3.fromRGB(150, 140, 130), Material = Enum.Material.Slate, Scale = 0.8 },
-	{ Id = "Zappit",      Name = "Zappit",      Rarity = 2, Plan = "bird",    Color = Color3.fromRGB(255, 240, 70), Accent = Color3.fromRGB(255, 150, 0) },
-	{ Id = "Mudmaw",      Name = "Mudmaw",      Rarity = 2, Plan = "beast",   Color = Color3.fromRGB(140, 100, 60), Material = Enum.Material.Sand },
-	{ Id = "Frostfang",   Name = "Frostfang",   Rarity = 3, Plan = "beast",   Color = Color3.fromRGB(200, 235, 255), Accent = Color3.fromRGB(90, 160, 255), Ears = true },
-	{ Id = "Emberclaw",   Name = "Emberclaw",   Rarity = 3, Plan = "spider",  Color = Color3.fromRGB(255, 110, 30), Accent = Color3.fromRGB(80, 20, 0) },
-	{ Id = "Shadowgloom", Name = "Shadowgloom", Rarity = 4, Plan = "ghost",   Color = Color3.fromRGB(80, 45, 140) },
-	{ Id = "Crystalix",   Name = "Crystalix",   Rarity = 4, Plan = "golem",   Color = Color3.fromRGB(120, 220, 230), Accent = Color3.fromRGB(180, 255, 255), Crystals = true },
-	{ Id = "Thunderhorn", Name = "Thunderhorn", Rarity = 5, Plan = "beast",   Color = Color3.fromRGB(90, 80, 70), Accent = Color3.fromRGB(255, 230, 0), Horns = true },
-	{ Id = "Magmaroth",   Name = "Magmaroth",   Rarity = 5, Plan = "golem",   Color = Color3.fromRGB(60, 30, 25), Accent = Color3.fromRGB(255, 80, 0), Material = Enum.Material.Basalt, Crystals = true },
-	{ Id = "Voidwyrm",    Name = "Voidwyrm",    Rarity = 6, Plan = "serpent", Color = Color3.fromRGB(40, 10, 70), Accent = Color3.fromRGB(200, 60, 255) },
-	{ Id = "Solaris",     Name = "Solaris",     Rarity = 6, Plan = "bird",    Color = Color3.fromRGB(255, 170, 40), Accent = Color3.fromRGB(255, 240, 150) },
-	{ Id = "Celestion",   Name = "Celestion",   Rarity = 7, Plan = "dragon",  Color = Color3.fromRGB(250, 245, 230), Accent = Color3.fromRGB(255, 210, 80) },
-	{ Id = "Glitchling",  Name = "Glitchling",  Rarity = 7, Plan = "spider",  Color = Color3.fromRGB(20, 20, 20), Accent = Color3.fromRGB(0, 255, 170) },
-	{ Id = "Gigamog",     Name = "GIGAMOG",     Rarity = 8, Plan = "dragon",  Color = Color3.fromRGB(255, 255, 255), Accent = Color3.fromRGB(255, 120, 255), Scale = 1.3 },
+	{ Id = "Blobby",      Name = "Blobby",      Rarity = 1, Plan = "blob",    Color = Color3.fromRGB(120, 235, 120) },
+	{ Id = "Pebblo",      Name = "Pebblo",      Rarity = 1, Plan = "golem",   Color = Color3.fromRGB(175, 165, 155), Material = Enum.Material.Rock, Scale = 0.8 },
+	{ Id = "Zappit",      Name = "Zappit",      Rarity = 2, Plan = "bird",    Color = Color3.fromRGB(255, 240, 90), Accent = Color3.fromRGB(255, 160, 30) },
+	{ Id = "Mudmaw",      Name = "Mudmaw",      Rarity = 2, Plan = "beast",   Color = Color3.fromRGB(170, 120, 75), Accent = Color3.fromRGB(110, 75, 45) },
+	{ Id = "Frostfang",   Name = "Frostfang",   Rarity = 3, Plan = "beast",   Color = Color3.fromRGB(225, 240, 255), Accent = Color3.fromRGB(110, 180, 255), Ears = true },
+	{ Id = "Emberclaw",   Name = "Emberclaw",   Rarity = 3, Plan = "spider",  Color = Color3.fromRGB(255, 130, 40), Accent = Color3.fromRGB(120, 40, 10) },
+	{ Id = "Shadowgloom", Name = "Shadowgloom", Rarity = 4, Plan = "ghost",   Color = Color3.fromRGB(150, 100, 230) },
+	{ Id = "Crystalix",   Name = "Crystalix",   Rarity = 4, Plan = "golem",   Color = Color3.fromRGB(140, 235, 245), Accent = Color3.fromRGB(200, 255, 255), Crystals = true },
+	{ Id = "Thunderhorn", Name = "Thunderhorn", Rarity = 5, Plan = "beast",   Color = Color3.fromRGB(120, 105, 90), Accent = Color3.fromRGB(255, 230, 40), Horns = true },
+	{ Id = "Magmaroth",   Name = "Magmaroth",   Rarity = 5, Plan = "golem",   Color = Color3.fromRGB(90, 50, 40), Accent = Color3.fromRGB(255, 110, 20), Material = Enum.Material.Basalt, Crystals = true },
+	{ Id = "Voidwyrm",    Name = "Voidwyrm",    Rarity = 6, Plan = "serpent", Color = Color3.fromRGB(90, 40, 150), Accent = Color3.fromRGB(230, 120, 255) },
+	{ Id = "Solaris",     Name = "Solaris",     Rarity = 6, Plan = "bird",    Color = Color3.fromRGB(255, 185, 60), Accent = Color3.fromRGB(255, 245, 170) },
+	{ Id = "Celestion",   Name = "Celestion",   Rarity = 7, Plan = "dragon",  Color = Color3.fromRGB(250, 248, 240), Accent = Color3.fromRGB(255, 215, 90) },
+	{ Id = "Glitchling",  Name = "Glitchling",  Rarity = 7, Plan = "spider",  Color = Color3.fromRGB(40, 40, 50), Accent = Color3.fromRGB(0, 255, 180) },
+	{ Id = "Gigamog",     Name = "GIGAMOG",     Rarity = 8, Plan = "dragon",  Color = Color3.fromRGB(255, 255, 255), Accent = Color3.fromRGB(255, 130, 255), Scale = 1.3 },
 	-- Only from Rebirth 10:
-	{ Id = "Phoenixmog",  Name = "Phoenixmog",  Rarity = 6, Plan = "bird",    Color = Color3.fromRGB(255, 120, 40), Accent = Color3.fromRGB(255, 220, 60), Exclusive = true },
+	{ Id = "Phoenixmog",  Name = "Phoenixmog",  Rarity = 6, Plan = "bird",    Color = Color3.fromRGB(255, 130, 50), Accent = Color3.fromRGB(255, 225, 70), Exclusive = true },
 }
 
 -- Levels. Chance is per monster. Mult boosts money AND the MOG you need.
 local VARIANTS = {
 	{ Name = "Normal",         Chance = nil,         Mult = 1 },
-	{ Name = "Golden",         Chance = 1 / 25,      Mult = 2,   Color = Color3.fromRGB(255, 200, 40) },
-	{ Name = "Diamond",        Chance = 1 / 150,     Mult = 4,   Color = Color3.fromRGB(170, 240, 255) },
-	{ Name = "Rainbow",        Chance = 1 / 1000,    Mult = 8 },
-	{ Name = "Cosmic",         Chance = 1 / 10000,   Mult = 20,  Color = Color3.fromRGB(50, 10, 100) },
-	{ Name = "Rainbow Cosmic", Chance = 1 / 1000000, Mult = 100 },
+	{ Name = "Silver",         Chance = 1 / 10,      Mult = 1.5, Color = Color3.fromRGB(215, 220, 230), Material = Enum.Material.Metal },
+	{ Name = "Golden",         Chance = 1 / 40,      Mult = 2,   Color = Color3.fromRGB(255, 205, 50),  Material = Enum.Material.Foil },
+	{ Name = "Diamond",        Chance = 1 / 250,     Mult = 4,   Color = Color3.fromRGB(180, 245, 255), Material = Enum.Material.Glass },
+	{ Name = "Rainbow",        Chance = 1 / 1500,    Mult = 8 },
+	{ Name = "Cosmic",         Chance = 1 / 15000,   Mult = 20,  Color = Color3.fromRGB(80, 30, 160),   Material = Enum.Material.Neon },
+	{ Name = "Rainbow Cosmic", Chance = 1 / 1000000, Mult = 100, Material = Enum.Material.Neon },
+}
+
+-- HAMMER: MOG per hit for each level (and the price to get it)
+local HAMMERS = {
+	{ Power = 1,     Cost = 0 },
+	{ Power = 2,     Cost = 50 },
+	{ Power = 4,     Cost = 160 },
+	{ Power = 8,     Cost = 500 },
+	{ Power = 15,    Cost = 1600 },
+	{ Power = 30,    Cost = 5200 },
+	{ Power = 60,    Cost = 17000 },
+	{ Power = 120,   Cost = 54000 },
+	{ Power = 250,   Cost = 170000 },
+	{ Power = 500,   Cost = 550000 },
+	{ Power = 1000,  Cost = 1800000 },
+	{ Power = 2500,  Cost = 5600000 },
+	{ Power = 6000,  Cost = 18000000 },
+	{ Power = 15000, Cost = 58000000 },
+	{ Power = 40000, Cost = 185000000 },
+}
+-- SWING SPEED: seconds between hammer hits for each level
+local SWINGS = {
+	{ Time = 1.0,  Cost = 0 },
+	{ Time = 0.8,  Cost = 100 },
+	{ Time = 0.65, Cost = 400 },
+	{ Time = 0.5,  Cost = 1600 },
+	{ Time = 0.4,  Cost = 6400 },
+	{ Time = 0.3,  Cost = 25000 },
+	{ Time = 0.22, Cost = 100000 },
+	{ Time = 0.15, Cost = 400000 },
+}
+-- AURAS multiply the MOG you get from training
+local AURAS = {
+	{ Name = "Spark Aura",   Mult = 1.25, Cost = 1000,      Color = Color3.fromRGB(255, 255, 150) },
+	{ Name = "Flame Aura",   Mult = 1.5,  Cost = 10000,     Color = Color3.fromRGB(255, 120, 40) },
+	{ Name = "Frost Aura",   Mult = 2,    Cost = 75000,     Color = Color3.fromRGB(130, 220, 255) },
+	{ Name = "Thunder Aura", Mult = 3,    Cost = 500000,    Color = Color3.fromRGB(255, 240, 60) },
+	{ Name = "Shadow Aura",  Mult = 5,    Cost = 4000000,   Color = Color3.fromRGB(140, 60, 220) },
+	{ Name = "Cosmic Aura",  Mult = 8,    Cost = 30000000,  Color = Color3.fromRGB(90, 40, 255) },
+	{ Name = "Rainbow Aura", Mult = 12,   Cost = 250000000, Color = Color3.fromRGB(255, 120, 220), Rainbow = true },
 }
 
 -- Money Boost upgrade levels
@@ -137,30 +176,33 @@ local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
 
 Players.RespawnTime = CONFIG.RESPAWN_TIME
-Lighting.ClockTime = 14.5
+
+-- Bright, happy lighting
+Lighting.ClockTime = 13
+Lighting.Brightness = 3
+Lighting.Ambient = Color3.fromRGB(150, 150, 160)
+Lighting.OutdoorAmbient = Color3.fromRGB(180, 180, 190)
 local function addLightingEffect(className, props)
-	if Lighting:FindFirstChildOfClass(className) then
-		return
+	local e = Lighting:FindFirstChildOfClass(className)
+	if not e then
+		e = Instance.new(className)
+		e.Parent = Lighting
 	end
-	local e = Instance.new(className)
 	for k, v in pairs(props) do
 		e[k] = v
 	end
-	e.Parent = Lighting
 end
-addLightingEffect("Atmosphere", { Density = 0.25, Haze = 1, Color = Color3.fromRGB(200, 215, 255), Decay = Color3.fromRGB(120, 140, 200) })
-addLightingEffect("BloomEffect", { Intensity = 0.7, Size = 24, Threshold = 1.5 })
-addLightingEffect("ColorCorrectionEffect", { Saturation = 0.15, Contrast = 0.05 })
-addLightingEffect("SunRaysEffect", { Intensity = 0.06, Spread = 0.8 })
+addLightingEffect("Atmosphere", { Density = 0.2, Haze = 0.3, Color = Color3.fromRGB(220, 235, 255), Decay = Color3.fromRGB(180, 200, 255), Glare = 0.2 })
+addLightingEffect("BloomEffect", { Intensity = 0.4, Size = 20, Threshold = 1.8 })
+addLightingEffect("ColorCorrectionEffect", { Saturation = 0.3, Contrast = 0.08, Brightness = 0.03 })
+addLightingEffect("SunRaysEffect", { Intensity = 0.04, Spread = 0.6 })
 
 for key, value in pairs({
 	DoubleMoneyPassId = CONFIG.DOUBLE_MONEY_PASS_ID,
+	DoubleMogPassId = CONFIG.DOUBLE_MOG_PASS_ID,
 	VipPassId = CONFIG.VIP_PASS_ID,
 	ExtraSlotsPassId = CONFIG.EXTRA_SLOTS_PASS_ID,
-	FastStealPassId = CONFIG.FAST_STEAL_PASS_ID,
-	ExtraVaultPassId = CONFIG.EXTRA_VAULT_PASS_ID,
 	ServerLuckProductId = CONFIG.SERVER_LUCK_PRODUCT_ID,
-	SuperLockProductId = CONFIG.SUPER_LOCK_PRODUCT_ID,
 	CashPackProductId = CONFIG.CASH_PACK_PRODUCT_ID,
 }) do
 	ReplicatedStorage:SetAttribute(key, value)
@@ -176,7 +218,6 @@ local function remote(className, name)
 end
 local notifyRemote = remote("RemoteEvent", "Notify")
 local announceRemote = remote("RemoteEvent", "Announce")
-local alarmRemote = remote("RemoteEvent", "Alarm")
 local panelRemote = remote("RemoteEvent", "OpenPanel")
 local throwRemote = remote("RemoteEvent", "Throw")
 local effectRemote = remote("RemoteEvent", "Effect")
@@ -213,6 +254,10 @@ end
 local MONSTER_BY_ID = {}
 for _, def in ipairs(MONSTERS) do
 	MONSTER_BY_ID[def.Id] = def
+end
+local AURA_BY_NAME = {}
+for _, a in ipairs(AURAS) do
+	AURA_BY_NAME[a.Name] = a
 end
 
 local function variantChance(v)
@@ -252,7 +297,7 @@ local function monsterIncome(id, variant)
 	return RARITIES[MONSTER_BY_ID[id].Rarity].Income * VARIANTS[variant].Mult
 end
 local function monsterMog(id, variant)
-	return RARITIES[MONSTER_BY_ID[id].Rarity].Mog * VARIANTS[variant].Mult
+	return math.floor(RARITIES[MONSTER_BY_ID[id].Rarity].Mog * VARIANTS[variant].Mult)
 end
 local function monsterValue(id, variant)
 	return monsterIncome(id, variant) * 30
@@ -337,57 +382,65 @@ local function sign(position, title, color)
 	return labels[2]
 end
 
--- Ground + hub (between the two rows of bases)
-local ROAD_X0 = 20
-local ZONE_LEN = 90
-local ROAD_W = 80
+-- Sizes
+local ROAD_X0 = 30
+local ZONE_LEN = 140
+local ROAD_W = 110
 local ROAD_END = ROAD_X0 + ZONE_LEN * #ZONES
-block(Vector3.new(ROAD_END + 560, 2, 640), CFrame.new((ROAD_END - 440) / 2, -1, 0), Color3.fromRGB(85, 165, 75), Enum.Material.Grass)
-block(Vector3.new(440, 0.2, 100), CFrame.new(-210, 0.1, 0), Color3.fromRGB(165, 160, 150), Enum.Material.Cobblestone)
-block(Vector3.new(30, 0.3, ROAD_W), CFrame.new(ROAD_X0 - 15, 0.15, 0), Color3.fromRGB(165, 160, 150), Enum.Material.Cobblestone)
+local MAP_X1, MAP_X2, MAP_Z = -500, ROAD_END + 40, 200
+local WALL_H = 26
+local WALL_COLOR = Color3.fromRGB(245, 235, 215)
+local GRASS = Color3.fromRGB(120, 215, 95)
 
--- MOG ROAD: big walled zones
-local WALL_H = 24
-local zoneInfo = {}
-local wallColor = Color3.fromRGB(120, 110, 105)
-for _, z in ipairs({ -ROAD_W / 2 - 2, ROAD_W / 2 + 2 }) do
-	block(Vector3.new(ROAD_END - ROAD_X0, WALL_H, 4), CFrame.new((ROAD_X0 + ROAD_END) / 2, WALL_H / 2, z), wallColor, Enum.Material.Brick)
+-- Ground, hub and walls around the whole map
+block(Vector3.new(MAP_X2 - MAP_X1, 2, MAP_Z * 2), CFrame.new((MAP_X1 + MAP_X2) / 2, -1, 0), GRASS, Enum.Material.Grass)
+block(Vector3.new(500, 0.2, 100), CFrame.new(-250, 0.1, 0), Color3.fromRGB(250, 238, 215), Enum.Material.Pavement)
+block(Vector3.new(ROAD_X0 + 2, 0.3, ROAD_W), CFrame.new(ROAD_X0 / 2, 0.15, 0), Color3.fromRGB(250, 238, 215), Enum.Material.Pavement)
+local function wall(x1, z1, x2, z2, h)
+	local a, b = Vector3.new(x1, 0, z1), Vector3.new(x2, 0, z2)
+	local mid = (a + b) / 2
+	local len = (b - a).Magnitude
+	return block(Vector3.new(4, h, len + 4), CFrame.lookAt(mid, b) * CFrame.new(0, h / 2, 0) * CFrame.Angles(0, math.rad(90), 0) * CFrame.Angles(0, math.rad(-90), 0), WALL_COLOR, Enum.Material.SmoothPlastic)
 end
-local endWall = block(Vector3.new(4, WALL_H, ROAD_W + 8), CFrame.new(ROAD_END + 2, WALL_H / 2, 0), wallColor, Enum.Material.Brick)
+-- outer walls
+wall(MAP_X1, -MAP_Z, MAP_X1, MAP_Z, WALL_H + 4)
+wall(MAP_X2, -MAP_Z, MAP_X2, MAP_Z, WALL_H + 4)
+wall(MAP_X1, -MAP_Z, MAP_X2, -MAP_Z, WALL_H + 4)
+wall(MAP_X1, MAP_Z, MAP_X2, MAP_Z, WALL_H + 4)
+-- walls along the Mog Road + walls closing off the grass next to it
+for _, z in ipairs({ -ROAD_W / 2 - 2, ROAD_W / 2 + 2 }) do
+	wall(ROAD_X0, z, ROAD_END, z, WALL_H)
+	wall(ROAD_X0, z, ROAD_X0, z > 0 and MAP_Z or -MAP_Z, WALL_H)
+end
+local endWall = wall(ROAD_END + 2, -ROAD_W / 2, ROAD_END + 2, ROAD_W / 2, WALL_H)
 surfaceText(endWall, "MORE ZONES COMING SOON...", Enum.NormalId.Left)
+surfaceText(endWall, "MORE ZONES COMING SOON...", Enum.NormalId.Right)
+
+-- MOG ROAD zones
+local zoneInfo = {}
 for k = 1, #ZONES do
 	local rarity = RARITIES[k]
 	local x0 = ROAD_X0 + (k - 1) * ZONE_LEN
-	local floorPart = block(Vector3.new(ZONE_LEN, 0.4, ROAD_W), CFrame.new(x0 + ZONE_LEN / 2, 0.2, 0), rarity.Color:Lerp(Color3.fromRGB(40, 40, 50), 0.55), Enum.Material.Slate)
+	local floorColor = rarity.Color:Lerp(Color3.new(1, 1, 1), 0.45)
+	if k == 7 then
+		floorColor = Color3.fromRGB(120, 120, 135)
+	end
+	local floorPart = block(Vector3.new(ZONE_LEN, 0.4, ROAD_W), CFrame.new(x0 + ZONE_LEN / 2, 0.2, 0), floorColor, Enum.Material.SmoothPlastic)
 	floorPart.Name = "Zone" .. k
-	-- colored stripe on top of each wall
-	for _, z in ipairs({ -ROAD_W / 2 - 2, ROAD_W / 2 + 2 }) do
-		local stripe = block(Vector3.new(ZONE_LEN, 1, 4.2), CFrame.new(x0 + ZONE_LEN / 2, WALL_H + 0.5, z), rarity.Color, Enum.Material.Neon)
-		stripe.CanCollide = false
-		-- torch lights along the wall
-		local torch = block(Vector3.new(1.2, 1.2, 1.2), CFrame.new(x0 + ZONE_LEN / 2, 14, z + (z > 0 and -2.6 or 2.6)), rarity.Color, Enum.Material.Neon)
-		local light = Instance.new("PointLight")
-		light.Color = rarity.Color
-		light.Range = 30
-		light.Parent = torch
-	end
-	-- gate arch + glowing barrier
-	for _, z in ipairs({ -ROAD_W / 2 + 1, ROAD_W / 2 - 1 }) do
-		block(Vector3.new(4, WALL_H + 6, 4), CFrame.new(x0, (WALL_H + 6) / 2, z), Color3.fromRGB(45, 40, 60), Enum.Material.Basalt)
-	end
-	local top = block(Vector3.new(4, 6, ROAD_W), CFrame.new(x0, WALL_H + 3, 0), Color3.fromRGB(45, 40, 60), Enum.Material.Basalt)
+	-- gate: a sign beam over the road and a glowing barrier
+	local top = block(Vector3.new(3, 5, ROAD_W), CFrame.new(x0, WALL_H - 2.5, 0), WALL_COLOR, Enum.Material.SmoothPlastic)
 	local gateText = "ZONE " .. k .. ": " .. rarity.Name:upper() .. (k > 1 and ("  |  NEED " .. fmt(rarity.Mog) .. " MOG") or "")
-	surfaceText(top, gateText, Enum.NormalId.Left).TextColor3 = rarity.Color
-	surfaceText(top, gateText, Enum.NormalId.Right).TextColor3 = rarity.Color
+	surfaceText(top, gateText, Enum.NormalId.Left).TextColor3 = rarity.Color:Lerp(Color3.new(0, 0, 0), 0.25)
+	surfaceText(top, gateText, Enum.NormalId.Right).TextColor3 = rarity.Color:Lerp(Color3.new(0, 0, 0), 0.25)
 	if k > 1 then
-		local barrier = block(Vector3.new(0.4, WALL_H, ROAD_W - 4), CFrame.new(x0, WALL_H / 2, 0), rarity.Color, Enum.Material.ForceField)
+		local barrier = block(Vector3.new(0.4, WALL_H - 5, ROAD_W), CFrame.new(x0, (WALL_H - 5) / 2, 0), rarity.Color, Enum.Material.ForceField)
 		barrier.CanCollide = false
 		barrier.CanQuery = false
 		barrier.Transparency = 0.3
 	end
 	zoneInfo[k] = { X0 = x0, X1 = x0 + ZONE_LEN, Need = k == 1 and 0 or rarity.Mog }
 end
-local rushLabel = sign(Vector3.new(ROAD_X0 - 6, WALL_H + 12, 0), "MOG ROAD", Color3.fromRGB(255, 80, 80))
+local rushLabel = sign(Vector3.new(ROAD_X0 - 10, WALL_H + 10, 0), "MOG ROAD", Color3.fromRGB(255, 90, 90))
 
 local function zoneAtX(x)
 	if x < ROAD_X0 then
@@ -397,10 +450,10 @@ local function zoneAtX(x)
 end
 
 -- FUSION MACHINE (in the hub)
-local fusionPos = Vector3.new(-210, 0, 0)
-local fusionBase = block(Vector3.new(2, 16, 16), CFrame.new(fusionPos + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(50, 30, 80), Enum.Material.Metal)
+local fusionPos = Vector3.new(-250, 0, 0)
+local fusionBase = block(Vector3.new(2, 16, 16), CFrame.new(fusionPos + Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(230, 220, 255), Enum.Material.SmoothPlastic)
 fusionBase.Shape = Enum.PartType.Cylinder
-local fusionCore = block(Vector3.new(6, 6, 6), CFrame.new(fusionPos + Vector3.new(0, 7, 0)), Color3.fromRGB(200, 80, 255), Enum.Material.ForceField)
+local fusionCore = block(Vector3.new(6, 6, 6), CFrame.new(fusionPos + Vector3.new(0, 7, 0)), Color3.fromRGB(210, 110, 255), Enum.Material.ForceField)
 fusionCore.Shape = Enum.PartType.Ball
 fusionCore.CanCollide = false
 local fusionPrompt = Instance.new("ProximityPrompt")
@@ -409,18 +462,45 @@ fusionPrompt.ObjectText = "Fusion Machine"
 fusionPrompt.MaxActivationDistance = 16
 fusionPrompt.RequiresLineOfSight = false
 fusionPrompt.Parent = fusionCore
-sign(fusionPos + Vector3.new(0, 14, 0), "FUSION MACHINE", Color3.fromRGB(200, 80, 255)).Text = "2 same monsters = next level!"
+sign(fusionPos + Vector3.new(0, 14, 0), "FUSION MACHINE", Color3.fromRGB(210, 110, 255)).Text = "2 same monsters = next level!"
 
--- BASES (big fenced pens in two rows next to the hub)
-local PLOT_W, PLOT_D = 88, 76
-local PEN = { X1 = -40, X2 = 40, Z1 = -32, Z2 = 19 }   -- where your monsters walk (local)
-local VAULT = { X1 = -40, X2 = 40, Z1 = 27, Z2 = 35 }  -- glass vault pen at the back (local)
+-- LEADERBOARD (end of the hub)
+local boardPart = block(Vector3.new(2, 26, 34), CFrame.new(MAP_X1 + 14, 15, 0), Color3.fromRGB(40, 45, 70), Enum.Material.SmoothPlastic)
+local boardGui = Instance.new("SurfaceGui")
+boardGui.Face = Enum.NormalId.Right
+boardGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+boardGui.PixelsPerStud = 20
+boardGui.Parent = boardPart
+local boardTitle = Instance.new("TextLabel")
+boardTitle.Size = UDim2.new(1, 0, 0.12, 0)
+boardTitle.BackgroundTransparency = 1
+boardTitle.Font = Enum.Font.FredokaOne
+boardTitle.TextScaled = true
+boardTitle.TextColor3 = Color3.fromRGB(255, 210, 60)
+boardTitle.Text = "TOP MOG"
+boardTitle.Parent = boardGui
+local boardRows = {}
+for i = 1, 10 do
+	local row = Instance.new("TextLabel")
+	row.Size = UDim2.new(0.92, 0, 0.08, 0)
+	row.Position = UDim2.new(0.04, 0, 0.13 + (i - 1) * 0.087, 0)
+	row.BackgroundTransparency = 1
+	row.Font = Enum.Font.FredokaOne
+	row.TextScaled = true
+	row.TextXAlignment = Enum.TextXAlignment.Left
+	row.TextColor3 = i == 1 and Color3.fromRGB(255, 215, 60) or i == 2 and Color3.fromRGB(220, 220, 230) or i == 3 and Color3.fromRGB(230, 150, 90) or Color3.new(1, 1, 1)
+	row.Text = ""
+	row.Parent = boardGui
+	boardRows[i] = row
+end
+
+-- BASES (big fenced enclosures in two rows next to the hub)
+local PLOT_W, PLOT_D = 96, 80
+local PEN = { X1 = -42, X2 = 42, Z1 = -34, Z2 = 34 } -- where your monsters walk (local)
 local PLOT_COLORS = {
-	Color3.fromRGB(255, 120, 120), Color3.fromRGB(120, 180, 255), Color3.fromRGB(140, 230, 140), Color3.fromRGB(255, 210, 110),
-	Color3.fromRGB(210, 140, 255), Color3.fromRGB(120, 230, 230), Color3.fromRGB(255, 160, 210), Color3.fromRGB(220, 220, 220),
+	Color3.fromRGB(255, 130, 130), Color3.fromRGB(130, 190, 255), Color3.fromRGB(150, 235, 150), Color3.fromRGB(255, 215, 120),
+	Color3.fromRGB(215, 150, 255), Color3.fromRGB(130, 235, 235), Color3.fromRGB(255, 170, 215), Color3.fromRGB(230, 230, 230),
 }
-local VAULT_OFFSET = 100
-local MAX_VAULT = 4
 
 local plots = {}
 local playerPlot = {}
@@ -428,33 +508,33 @@ local playerPlot = {}
 local function buildPlot(index)
 	local north = index <= 4
 	local col = (index - 1) % 4
-	local center = Vector3.new(-360 + col * 100, 0, north and 88 or -88)
+	local center = Vector3.new(-400 + col * 110, 0, north and 90 or -90)
 	local cf = CFrame.lookAt(center, center + Vector3.new(0, 0, north and -1 or 1)) -- -Z points at the hub
 	local color = PLOT_COLORS[index]
 	local folder = Instance.new("Folder")
 	folder.Name = "Base" .. index
 	folder.Parent = map
 
-	block(Vector3.new(PLOT_W, 1, PLOT_D), cf * CFrame.new(0, 0.5, 0), color:Lerp(Color3.fromRGB(110, 190, 90), 0.6), Enum.Material.Grass, folder)
+	block(Vector3.new(PLOT_W, 1, PLOT_D), cf * CFrame.new(0, 0.5, 0), Color3.fromRGB(140, 225, 110), Enum.Material.Grass, folder)
 
-	-- wooden fence with a gate at the front
-	local wood = Color3.fromRGB(150, 105, 60)
+	-- white fence with a gate at the front
+	local white = Color3.fromRGB(255, 255, 255)
 	local fenceH = 5
 	local function fenceLine(x1, z1, x2, z2)
 		local a, b = Vector3.new(x1, 0, z1), Vector3.new(x2, 0, z2)
 		local len = (b - a).Magnitude
 		local mid = (a + b) / 2
 		local dirCF = cf * CFrame.lookAt(mid, b)
-		for _, h in ipairs({ 1.8, 3.8 }) do
-			block(Vector3.new(0.5, 0.6, len), dirCF * CFrame.new(0, h, 0), wood, Enum.Material.WoodPlanks, folder)
+		for _, h in ipairs({ 2, 4 }) do
+			block(Vector3.new(0.4, 0.5, len), dirCF * CFrame.new(0, h, 0), white, Enum.Material.SmoothPlastic, folder)
 		end
-		local posts = math.max(1, math.floor(len / 6))
+		local posts = math.max(1, math.floor(len / 5))
 		for i = 0, posts do
 			local p = a:Lerp(b, i / posts)
-			block(Vector3.new(0.9, fenceH, 0.9), cf * CFrame.new(p.X, fenceH / 2 + 0.5, p.Z), wood:Lerp(Color3.new(0, 0, 0), 0.2), Enum.Material.Wood, folder)
+			block(Vector3.new(0.8, fenceH, 0.8), cf * CFrame.new(p.X, fenceH / 2 + 0.5, p.Z), color, Enum.Material.SmoothPlastic, folder)
 		end
-		local wall = block(Vector3.new(0.5, 10, len), dirCF * CFrame.new(0, 5.5, 0), wood, nil, folder)
-		wall.Transparency = 1 -- invisible wall so nobody can just jump over
+		local inv = block(Vector3.new(0.5, 12, len), dirCF * CFrame.new(0, 6.5, 0), white, nil, folder)
+		inv.Transparency = 1
 	end
 	local hw, hd, door = PLOT_W / 2, PLOT_D / 2, 8
 	fenceLine(-hw, hd, hw, hd)
@@ -463,33 +543,34 @@ local function buildPlot(index)
 	fenceLine(-hw, -hd, -door, -hd)
 	fenceLine(door, -hd, hw, -hd)
 
-	local laser = block(Vector3.new(door * 2, 8, 0.5), cf * CFrame.new(0, 4.5, -hd), Color3.fromRGB(255, 30, 30), Enum.Material.Neon, folder)
-	laser.CanCollide = false
-	laser.Transparency = 1
+	-- cosy pen stuff: a pond and a feeding trough
+	local pond = block(Vector3.new(1, 14, 14), cf * CFrame.new(28, 1.05, 22) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(90, 190, 255), Enum.Material.Glass, folder)
+	pond.Shape = Enum.PartType.Cylinder
+	pond.Transparency = 0.2
+	pond.CanCollide = false
+	local trough = block(Vector3.new(9, 1.6, 3), cf * CFrame.new(-30, 1.8, 28), Color3.fromRGB(200, 150, 100), Enum.Material.WoodPlanks, folder)
+	local hay = block(Vector3.new(8.4, 0.3, 2.4), trough.CFrame * CFrame.new(0, 0.7, 0), Color3.fromRGB(240, 210, 110), Enum.Material.Grass, folder)
+	hay.CanCollide = false
 
-	-- glass vault pen at the back (players can't get in, so it can't be stolen from)
-	local glassZ = VAULT.Z1 - 2
-	local glass = block(Vector3.new(PLOT_W - 2, 12, 0.6), cf * CFrame.new(0, 7, glassZ), Color3.fromRGB(150, 210, 255), Enum.Material.Glass, folder)
-	glass.Transparency = 0.6
-	local roof = block(Vector3.new(PLOT_W - 2, 0.6, hd - glassZ), cf * CFrame.new(0, 13, (glassZ + hd) / 2), Color3.fromRGB(150, 210, 255), Enum.Material.Glass, folder)
-	roof.Transparency = 0.7
-	block(Vector3.new(PLOT_W - 2, 0.2, hd - glassZ), cf * CFrame.new(0, 1.1, (glassZ + hd) / 2), Color3.fromRGB(60, 90, 150), Enum.Material.DiamondPlate, folder)
-	local vaultSign = block(Vector3.new(30, 3, 0.4), cf * CFrame.new(0, 10, glassZ - 0.5), Color3.fromRGB(40, 60, 110), nil, folder)
-	surfaceText(vaultSign, "VAULT (can't be stolen)", Enum.NormalId.Front)
-
-	-- some decoration inside the pen
-	local rng = Random.new(index * 7)
-	for _ = 1, 3 do
-		local x, z = rng:NextNumber(-34, 34), rng:NextNumber(-20, 12)
-		local rock = block(Vector3.new(rng:NextNumber(3, 6), rng:NextNumber(2, 4), rng:NextNumber(3, 6)), cf * CFrame.new(x, 1.5, z) * CFrame.Angles(0, rng:NextNumber(0, 3), 0), Color3.fromRGB(130, 130, 135), Enum.Material.Rock, folder)
-		rock.CanCollide = false
-	end
-	local trough = block(Vector3.new(8, 1.6, 3), cf * CFrame.new(30, 1.8, 15), Color3.fromRGB(110, 75, 45), Enum.Material.WoodPlanks, folder)
-	local water = block(Vector3.new(7.4, 0.2, 2.4), trough.CFrame * CFrame.new(0, 0.75, 0), Color3.fromRGB(60, 140, 255), Enum.Material.Glass, folder)
-	water.Transparency = 0.3
-
-	local lockPad = block(Vector3.new(5, 0.4, 5), cf * CFrame.new(-38, 1.2, -33), Color3.fromRGB(255, 60, 60), Enum.Material.Neon, folder)
-	surfaceText(lockPad, "LOCK")
+	-- MOG TRAINING STATION (outside, next to the gate)
+	local stationCF = cf * CFrame.new(24, 0, -hd - 10)
+	block(Vector3.new(12, 0.4, 12), stationCF * CFrame.new(0, 0.3, 0), color:Lerp(Color3.new(1, 1, 1), 0.4), Enum.Material.SmoothPlastic, folder)
+	local stone = block(Vector3.new(5, 4.5, 5), stationCF * CFrame.new(0, 2.6, 0), Color3.fromRGB(190, 190, 200), Enum.Material.Rock, folder)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = stone
+	stone.Name = "MogStone"
+	local trainPrompt = Instance.new("ProximityPrompt")
+	trainPrompt.Name = "Train"
+	trainPrompt.ActionText = "Train MOG"
+	trainPrompt.ObjectText = "Mog Stone"
+	trainPrompt.MaxActivationDistance = 12
+	trainPrompt.RequiresLineOfSight = false
+	trainPrompt.Parent = stone
+	local _, stoneLabels = billboard(stone, 220, 50, Vector3.new(0, 5, 0), 2)
+	stoneLabels[1].Text = "MOG TRAINING"
+	stoneLabels[1].TextColor3 = Color3.fromRGB(255, 120, 200)
+	stoneLabels[2].Text = "Press E to train"
 
 	local signPart = block(Vector3.new(1, 1, 1), cf * CFrame.new(0, 12, -hd), color, nil, folder)
 	signPart.Transparency = 1
@@ -497,21 +578,12 @@ local function buildPlot(index)
 	local _, labels = billboard(signPart, 300, 90, Vector3.new(), 3)
 	labels[1].TextColor3 = color
 	labels[1].Text = "Empty Base"
-	local alarmLight = Instance.new("PointLight")
-	alarmLight.Color = Color3.fromRGB(255, 0, 0)
-	alarmLight.Range = 60
-	alarmLight.Brightness = 5
-	alarmLight.Enabled = false
-	alarmLight.Parent = signPart
 
 	local plot = {
-		Index = index, CF = cf, Owner = nil, Slots = {},
-		Laser = laser, LockPad = lockPad, AlarmLight = alarmLight,
+		Index = index, CF = cf, Owner = nil, Slots = {}, Stone = stone, TrainPrompt = trainPrompt,
 		NameLabel = labels[1], IncomeLabel = labels[2], StatusLabel = labels[3],
-		LockUntil = 0, LockCooldownUntil = 0, AlarmUntil = 0,
 	}
 	plot.PenRegion = { CF = cf, X1 = PEN.X1, X2 = PEN.X2, Z1 = PEN.Z1, Z2 = PEN.Z2, GroundY = 1, Speed = CONFIG.PEN_SPEED }
-	plot.VaultRegion = { CF = cf, X1 = VAULT.X1, X2 = VAULT.X2, Z1 = VAULT.Z1, Z2 = VAULT.Z2, GroundY = 1.2, Speed = CONFIG.PEN_SPEED * 0.6 }
 	plots[index] = plot
 	return plot
 end
@@ -535,69 +607,47 @@ for k = 1, #ZONES do
 	local z = zoneInfo[k]
 	zoneRegions[k] = {
 		CF = CFrame.new(z.X0 + ZONE_LEN / 2, 0, 0),
-		X1 = -ZONE_LEN / 2 + 8, X2 = ZONE_LEN / 2 - 8, Z1 = -ROAD_W / 2 + 8, Z2 = ROAD_W / 2 - 8,
+		X1 = -ZONE_LEN / 2 + 10, X2 = ZONE_LEN / 2 - 10, Z1 = -ROAD_W / 2 + 10, Z2 = ROAD_W / 2 - 10,
 		GroundY = 0.4, Speed = CONFIG.WANDER_SPEED,
 	}
 end
 
--- DECORATIONS: lamps and trees
-do
-	local deco = Instance.new("Folder")
-	deco.Name = "Decorations"
-	deco.Parent = map
-	for x = -410, -10, 50 do
-		for _, z in ipairs({ -46, 46 }) do
-			block(Vector3.new(0.8, 12, 0.8), CFrame.new(x, 6, z), Color3.fromRGB(40, 40, 50), Enum.Material.Metal, deco)
-			local bulb = block(Vector3.new(2.2, 2.2, 2.2), CFrame.new(x, 12.6, z), Color3.fromRGB(255, 220, 150), Enum.Material.Neon, deco)
-			bulb.Shape = Enum.PartType.Ball
-			bulb.CanCollide = false
-			local light = Instance.new("PointLight")
-			light.Color = Color3.fromRGB(255, 210, 140)
-			light.Range = 28
-			light.Parent = bulb
-		end
-	end
-	local rng = Random.new(42)
-	local placed = 0
-	for _ = 1, 800 do
-		if placed >= 110 then
-			break
-		end
-		local pos = Vector3.new(rng:NextNumber(-500, ROAD_END + 100), 0, rng:NextNumber(-300, 300))
-		local inBases = pos.X > -420 and pos.X < 0 and math.abs(pos.Z) < 140
-		local onRoad = pos.X > -40 and pos.X < ROAD_END + 20 and math.abs(pos.Z) < ROAD_W / 2 + 14
-		if not inBases and not onRoad then
-			placed = placed + 1
-			local h = rng:NextNumber(8, 15)
-			local trunk = block(Vector3.new(h, 1.8, 1.8), CFrame.new(pos + Vector3.new(0, h / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(110, 75, 45), Enum.Material.Wood, deco)
-			trunk.Shape = Enum.PartType.Cylinder
-			local size = rng:NextNumber(9, 15)
-			local leaves = block(Vector3.new(size, size, size), CFrame.new(pos + Vector3.new(0, h + size * 0.3, 0)), Color3.fromRGB(rng:NextInteger(50, 90), rng:NextInteger(140, 190), rng:NextInteger(50, 80)), Enum.Material.Grass, deco)
-			leaves.Shape = Enum.PartType.Ball
-		end
+-- a few lamps along the hub
+for x = -470, -30, 55 do
+	for _, z in ipairs({ -47, 47 }) do
+		block(Vector3.new(0.8, 12, 0.8), CFrame.new(x, 6, z), Color3.fromRGB(255, 255, 255), Enum.Material.SmoothPlastic)
+		local bulb = block(Vector3.new(2.4, 2.4, 2.4), CFrame.new(x, 12.6, z), Color3.fromRGB(255, 235, 170), Enum.Material.Neon)
+		bulb.Shape = Enum.PartType.Ball
+		bulb.CanCollide = false
 	end
 end
 
 ----------------------------------------------------------------------
 -- PLAYER DATA
 ----------------------------------------------------------------------
-local store
+local store, boardStore
 do
 	local ok, result = pcall(function()
-		return DataStoreService:GetDataStore("MogMonsters_v1")
+		return DataStoreService:GetDataStore("MogMonsters_v2")
 	end)
 	if ok then
 		store = result
 	else
 		warn("Saving is off: " .. tostring(result))
 	end
+	local ok2, result2 = pcall(function()
+		return DataStoreService:GetOrderedDataStore("MogLeaderboard_v1")
+	end)
+	if ok2 then
+		boardStore = result2
+	end
 end
 local sessions = {}
 
 local function newData()
 	return {
-		Cash = CONFIG.START_CASH, MogLevel = 0, Boost = 0, Slots = CONFIG.START_SLOTS,
-		Rebirths = 0, Steals = 0, Monsters = {}, Discovered = {}, LastDaily = 0, Streak = 0,
+		Cash = CONFIG.START_CASH, Mog = CONFIG.START_MOG, Hammer = 1, Swing = 1, Auras = {}, Aura = "",
+		Boost = 0, Slots = CONFIG.START_SLOTS, Rebirths = 0, Monsters = {}, Discovered = {}, LastDaily = 0, Streak = 0,
 	}
 end
 
@@ -656,54 +706,31 @@ local function saveData(player)
 	end
 end
 
-local function mogAtLevel(level, rebirths)
-	return math.floor(10 * 1.5 ^ level) * (1 + rebirths)
-end
-
 local function playerMog(player)
 	local data = sessions[player]
-	if not data then
-		return 0
-	end
-	return mogAtLevel(data.MogLevel, data.Rebirths)
+	return data and math.floor(data.Mog) or 0
 end
 
 local function updateStats(player)
 	local data = sessions[player]
 	local stats = player:FindFirstChild("leaderstats")
 	if data and stats then
+		stats.MOG.Value = math.floor(data.Mog)
 		stats.Cash.Value = math.floor(data.Cash)
-		stats.MOG.Value = playerMog(player)
 		stats.Rebirths.Value = data.Rebirths
 	end
 	if data then
-		player:SetAttribute("Mog", playerMog(player))
+		player:SetAttribute("Mog", math.floor(data.Mog))
 	end
 end
 
-local function normalLimit(player)
+local function slotLimit(player)
 	local data = sessions[player]
 	local n = data and data.Slots or CONFIG.START_SLOTS
 	if player:GetAttribute("ExtraSlots") then
-		n = n + 3
+		n = n + 5
 	end
 	return n
-end
-
-local function vaultLimit(player)
-	local data = sessions[player]
-	local r = data and data.Rebirths or 0
-	local n = 1
-	if r >= 2 then
-		n = n + 1
-	end
-	if r >= 5 then
-		n = n + 1
-	end
-	if player:GetAttribute("ExtraVault") then
-		n = n + 1
-	end
-	return math.min(n, MAX_VAULT)
 end
 
 local function moneyMultiplier(player)
@@ -718,14 +745,28 @@ local function moneyMultiplier(player)
 	return m
 end
 
+local function auraMult(data)
+	local a = AURA_BY_NAME[data.Aura or ""]
+	return a and a.Mult or 1
+end
+
+local function mogPerHit(player)
+	local data = sessions[player]
+	if not data then
+		return 0
+	end
+	local m = HAMMERS[data.Hammer].Power * auraMult(data) * (1 + data.Rebirths)
+	if player:GetAttribute("DoubleMog") then
+		m = m * 2
+	end
+	return m
+end
+
 local function rebirthCost(data)
 	return CONFIG.REBIRTH_BASE_COST * CONFIG.REBIRTH_COST_MULT ^ data.Rebirths
 end
 local function slotCost(data)
-	return CONFIG.SLOT_BASE_COST * 3 ^ (data.Slots - CONFIG.START_SLOTS)
-end
-local function mogCost(data)
-	return math.floor(40 * 1.7 ^ data.MogLevel)
+	return math.floor(CONFIG.SLOT_BASE_COST * 2.2 ^ (data.Slots - CONFIG.START_SLOTS))
 end
 local function boostCost(data)
 	return BOOST_BASE_COST * 4 ^ data.Boost
@@ -771,28 +812,24 @@ local function randomSpecies(rarity)
 end
 
 ----------------------------------------------------------------------
--- MONSTER LOOKS
+-- MONSTER LOOKS (round, smooth bodies made of ellipsoids)
 ----------------------------------------------------------------------
 local modelFolder = ServerStorage:FindFirstChild("MonsterModels")
+if not modelFolder then
+	modelFolder = Instance.new("Folder")
+	modelFolder.Name = "MonsterModels"
+	modelFolder.Parent = ServerStorage
+end
 
--- Builds the monster body out of parts. Returns root part, size, foot height, hover.
 local function buildBody(def, variant)
 	local rarity = RARITIES[def.Rarity]
 	local v = VARIANTS[variant]
-	local s = (2.6 + def.Rarity * 0.5) * (def.Scale or 1)
+	local s = (2.8 + def.Rarity * 0.55) * (def.Scale or 1)
 	local skin = v.Color or def.Color
-	local accent = def.Accent or skin:Lerp(Color3.new(0, 0, 0), 0.35)
-	local skinMat = def.Material or Enum.Material.SmoothPlastic
-	if variant == 2 then
-		skinMat = Enum.Material.Foil
-	elseif variant == 3 then
-		skinMat = Enum.Material.Glass
-	elseif variant >= 5 then
-		skinMat = Enum.Material.Neon
-	end
+	local accent = def.Accent or skin:Lerp(Color3.new(0, 0, 0), 0.3)
+	local skinMat = v.Material or def.Material or Enum.Material.SmoothPlastic
 	local plan = def.Plan
-	local white, black = Color3.new(1, 1, 1), Color3.fromRGB(20, 20, 20)
-	local BALL, BLOCK = Enum.PartType.Ball, Enum.PartType.Block
+	local white, black = Color3.new(1, 1, 1), Color3.fromRGB(25, 25, 30)
 
 	local root = Instance.new("Part")
 	root.Name = "Monster"
@@ -803,26 +840,27 @@ local function buildBody(def, variant)
 	root.Color = skin
 	root.Material = skinMat
 	root:SetAttribute("Skin", true)
+	local rootMesh = Instance.new("SpecialMesh")
+	rootMesh.MeshType = Enum.MeshType.Sphere
+	rootMesh.Parent = root
 	if plan == "beast" or plan == "dragon" then
-		root.Size = Vector3.new(s * 0.8, s * 0.7, s * 1.3)
+		root.Size = Vector3.new(s * 0.85, s * 0.8, s * 1.4)
 	elseif plan == "golem" then
-		root.Size = Vector3.new(s * 0.9, s * 0.9, s * 0.6)
-	elseif plan == "bird" or plan == "spider" then
-		root.Shape = BALL
-		root.Size = Vector3.new(s * 0.8, s * 0.8, s * 0.8)
+		root.Size = Vector3.new(s * 1.0, s * 1.0, s * 0.75)
+	elseif plan == "bird" then
+		root.Size = Vector3.new(s * 0.8, s * 0.85, s * 1.0)
+	elseif plan == "spider" then
+		root.Size = Vector3.new(s * 0.85, s * 0.7, s * 1.0)
 	elseif plan == "serpent" then
-		root.Shape = BALL
-		root.Size = Vector3.new(s * 0.85, s * 0.85, s * 0.85)
+		root.Size = Vector3.new(s * 0.75, s * 0.7, s * 0.95)
 	else
-		root.Shape = BALL
-		root.Size = Vector3.new(s, s, s)
+		root.Size = Vector3.new(s, s * 0.9, s)
 	end
 
-	local function add(size, offset, color, material, shape)
+	-- kind: "egg" (smooth ellipsoid), "ball", "cyl" (round stick along Y), "block"
+	local function add(size, offset, color, kind, material)
 		local p = Instance.new("Part")
 		p.Name = "Deco"
-		p.Shape = shape or BLOCK
-		p.Size = size
 		if color == "skin" then
 			p.Color = skin
 			p.Material = skinMat
@@ -839,7 +877,21 @@ local function buildBody(def, variant)
 		p.CanTouch = false
 		p.Massless = true
 		p.Anchored = false
-		p.CFrame = offset
+		if kind == "cyl" then
+			p.Shape = Enum.PartType.Cylinder
+			p.Size = Vector3.new(size.Y, size.X, size.Z)
+			p.CFrame = offset * CFrame.Angles(0, 0, math.rad(90))
+		else
+			p.Size = size
+			p.CFrame = offset
+			if kind == "egg" then
+				local m = Instance.new("SpecialMesh")
+				m.MeshType = Enum.MeshType.Sphere
+				m.Parent = p
+			elseif kind == "ball" then
+				p.Shape = Enum.PartType.Ball
+			end
+		end
 		local w = Instance.new("WeldConstraint")
 		w.Part0 = root
 		w.Part1 = p
@@ -850,134 +902,140 @@ local function buildBody(def, variant)
 	local function eyes(x, y, z, size, glow)
 		for _, sx in ipairs({ -1, 1 }) do
 			if glow then
-				add(Vector3.new(size, size, size), CFrame.new(sx * x, y, z), glow, Enum.Material.Neon, BALL)
+				add(Vector3.new(size, size, size), CFrame.new(sx * x, y, z), glow, "ball", Enum.Material.Neon)
 			else
-				add(Vector3.new(size, size, size), CFrame.new(sx * x, y, z), white, nil, BALL)
-				add(Vector3.new(size * 0.45, size * 0.45, size * 0.45), CFrame.new(sx * x, y, z - size * 0.4), black, nil, BALL)
+				add(Vector3.new(size, size, size), CFrame.new(sx * x, y, z), white, "ball")
+				add(Vector3.new(size * 0.5, size * 0.5, size * 0.5), CFrame.new(sx * x, y + size * 0.05, z - size * 0.38), black, "ball")
+				add(Vector3.new(size * 0.15, size * 0.15, size * 0.15), CFrame.new(sx * x + size * 0.1, y + size * 0.2, z - size * 0.5), white, "ball")
 			end
 		end
 	end
 
 	local foot, hover = s * 0.5, 0
 	if plan == "blob" then
-		eyes(s * 0.2, s * 0.15, -s * 0.38, s * 0.32)
-		add(Vector3.new(s * 0.35, s * 0.08, s * 0.1), CFrame.new(0, -s * 0.08, -s * 0.48), black)
+		eyes(s * 0.2, s * 0.15, -s * 0.36, s * 0.3)
+		add(Vector3.new(s * 0.3, s * 0.12, s * 0.12), CFrame.new(0, -s * 0.1, -s * 0.46), Color3.fromRGB(200, 60, 80), "egg")
 		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.3, s * 0.3, s * 0.3), CFrame.new(sx * s * 0.25, -s * 0.45, -s * 0.05), "accent", nil, BALL)
+			add(Vector3.new(s * 0.2, s * 0.12, s * 0.06), CFrame.new(sx * s * 0.32, -s * 0.02, -s * 0.4), Color3.fromRGB(255, 150, 160), "egg") -- cheeks
+			add(Vector3.new(s * 0.32, s * 0.2, s * 0.4), CFrame.new(sx * s * 0.25, -s * 0.44, -s * 0.05), "accent", "egg")
 		end
-		foot = s * 0.6
+		foot = s * 0.54
 
 	elseif plan == "beast" or plan == "dragon" then
-		local head = add(Vector3.new(s * 0.62, s * 0.58, s * 0.62), CFrame.new(0, s * 0.3, -s * 0.85), "skin", nil, BALL)
-		head.Name = "Head"
-		add(Vector3.new(s * 0.34, s * 0.24, s * 0.34), CFrame.new(0, s * 0.18, -s * 1.12), "accent", nil, BALL) -- snout
-		add(Vector3.new(s * 0.1, s * 0.08, s * 0.06), CFrame.new(0, s * 0.22, -s * 1.3), black, nil, BALL) -- nose
-		eyes(s * 0.15, s * 0.42, -s * 1.07, s * 0.16, plan == "dragon" and Color3.fromRGB(255, 220, 60) or nil)
+		add(Vector3.new(s * 0.62, s * 0.6, s * 0.66), CFrame.new(0, s * 0.35, -s * 0.85), "skin", "egg") -- head
+		add(Vector3.new(s * 0.38, s * 0.28, s * 0.42), CFrame.new(0, s * 0.22, -s * 1.12), "accent", "egg") -- snout
+		add(Vector3.new(s * 0.14, s * 0.1, s * 0.08), CFrame.new(0, s * 0.3, -s * 1.32), black, "egg") -- nose
+		eyes(s * 0.16, s * 0.47, -s * 1.06, s * 0.17, plan == "dragon" and Color3.fromRGB(255, 220, 60) or nil)
+		add(Vector3.new(s * 0.55, s * 0.45, s * 0.5), CFrame.new(0, s * 0.12, -s * 0.5), "skin", "egg") -- neck
 		for _, sx in ipairs({ -1, 1 }) do
 			for _, sz in ipairs({ -1, 1 }) do
-				add(Vector3.new(s * 0.22, s * 0.55, s * 0.22), CFrame.new(sx * s * 0.28, -s * 0.55, sz * s * 0.45), "skin")
-				add(Vector3.new(s * 0.26, s * 0.1, s * 0.3), CFrame.new(sx * s * 0.28, -s * 0.82, sz * s * 0.45 - s * 0.03), "accent")
+				add(Vector3.new(s * 0.36, s * 0.42, s * 0.4), CFrame.new(sx * s * 0.3, -s * 0.28, sz * s * 0.42), "skin", "egg") -- thigh
+				add(Vector3.new(s * 0.18, s * 0.42, s * 0.18), CFrame.new(sx * s * 0.3, -s * 0.6, sz * s * 0.42), "skin", "cyl") -- leg
+				add(Vector3.new(s * 0.26, s * 0.12, s * 0.32), CFrame.new(sx * s * 0.3, -s * 0.82, sz * s * 0.42 - s * 0.04), "accent", "egg") -- paw
 			end
 			if def.Ears then
-				add(Vector3.new(s * 0.1, s * 0.28, s * 0.14), CFrame.new(sx * s * 0.2, s * 0.65, -s * 0.8) * CFrame.Angles(0, 0, -sx * 0.3), "accent")
+				add(Vector3.new(s * 0.14, s * 0.3, s * 0.1), CFrame.new(sx * s * 0.2, s * 0.68, -s * 0.8) * CFrame.Angles(0, 0, -sx * 0.3), "accent", "egg")
 			end
 			if def.Horns or plan == "dragon" then
-				add(Vector3.new(s * 0.1, s * 0.5, s * 0.1), CFrame.new(sx * s * 0.22, s * 0.7, -s * 0.75) * CFrame.Angles(0.5, 0, -sx * 0.5), "accent", Enum.Material.Neon)
+				add(Vector3.new(s * 0.1, s * 0.55, s * 0.1), CFrame.new(sx * s * 0.2, s * 0.75, -s * 0.72) * CFrame.Angles(0.5, 0, -sx * 0.45), "accent", "cyl", Enum.Material.Neon)
 			end
 		end
-		add(Vector3.new(s * 0.14, s * 0.14, s * (plan == "dragon" and 1.2 or 0.7)), CFrame.new(0, s * 0.15, s * (plan == "dragon" and 1.15 or 0.9)) * CFrame.Angles(0.35, 0, 0), "skin")
+		local tailLen = plan == "dragon" and 1.3 or 0.8
+		add(Vector3.new(s * 0.16, s * tailLen, s * 0.16), CFrame.new(0, s * 0.18, s * (0.7 + tailLen / 2)) * CFrame.Angles(math.rad(70), 0, 0), "skin", "cyl")
 		if plan == "dragon" then
 			for _, sx in ipairs({ -1, 1 }) do
-				add(Vector3.new(s * 0.06, s * 0.9, s * 1.1), CFrame.new(sx * s * 0.75, s * 0.55, 0) * CFrame.Angles(0, 0, -sx * 0.7), "accent", Enum.Material.Neon)
+				add(Vector3.new(s * 0.08, s * 0.9, s * 1.2), CFrame.new(sx * s * 0.8, s * 0.6, 0) * CFrame.Angles(0, 0, -sx * 0.75), "accent", "egg", Enum.Material.Neon)
 			end
 			for i = -1, 1 do
-				add(Vector3.new(s * 0.12, s * 0.28, s * 0.2), CFrame.new(0, s * 0.45, i * s * 0.35), "accent", Enum.Material.Neon)
+				add(Vector3.new(s * 0.1, s * 0.3, s * 0.22), CFrame.new(0, s * 0.45, i * s * 0.38), "accent", "egg", Enum.Material.Neon)
 			end
 		end
-		foot = s * 0.87
+		foot = s * 0.88
 
 	elseif plan == "golem" then
-		add(Vector3.new(s * 0.5, s * 0.45, s * 0.45), CFrame.new(0, s * 0.68, -s * 0.05), "skin")
+		add(Vector3.new(s * 0.55, s * 0.5, s * 0.5), CFrame.new(0, s * 0.68, -s * 0.06), "skin", "egg") -- head
 		eyes(s * 0.12, s * 0.74, -s * 0.3, s * 0.14, def.Accent or Color3.fromRGB(255, 220, 80))
-		add(Vector3.new(s * 0.42, s * 0.07, s * 0.08), CFrame.new(0, s * 0.84, -s * 0.29), "accent") -- angry brow
-		add(Vector3.new(s * 0.22, s * 0.06, s * 0.06), CFrame.new(0, s * 0.58, -s * 0.29), black) -- mouth
+		add(Vector3.new(s * 0.42, s * 0.08, s * 0.1), CFrame.new(0, s * 0.86, -s * 0.28), "accent", "egg") -- brow
 		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.32, s * 0.85, s * 0.32), CFrame.new(sx * s * 0.63, -s * 0.05, 0), "skin")
-			add(Vector3.new(s * 0.38, s * 0.3, s * 0.38), CFrame.new(sx * s * 0.63, -s * 0.5, 0), "accent")
-			add(Vector3.new(s * 0.32, s * 0.4, s * 0.32), CFrame.new(sx * s * 0.22, -s * 0.65, 0), "skin")
+			add(Vector3.new(s * 0.4, s * 0.4, s * 0.4), CFrame.new(sx * s * 0.58, s * 0.28, 0), "skin", "egg") -- shoulder
+			add(Vector3.new(s * 0.34, s * 0.7, s * 0.34), CFrame.new(sx * s * 0.66, -s * 0.15, 0), "skin", "egg") -- arm
+			add(Vector3.new(s * 0.42, s * 0.36, s * 0.42), CFrame.new(sx * s * 0.68, -s * 0.52, -s * 0.02), "accent", "egg") -- fist
+			add(Vector3.new(s * 0.36, s * 0.42, s * 0.38), CFrame.new(sx * s * 0.22, -s * 0.62, 0), "skin", "egg") -- leg
 		end
 		if def.Crystals then
 			for i = 1, 4 do
-				add(Vector3.new(s * 0.14, s * 0.4, s * 0.14), CFrame.new((i - 2.5) * s * 0.2, s * 0.5, s * 0.25) * CFrame.Angles(-0.4, 0, (i - 2.5) * 0.3), "accent", Enum.Material.Neon)
+				add(Vector3.new(s * 0.14, s * 0.45, s * 0.14), CFrame.new((i - 2.5) * s * 0.2, s * 0.5, s * 0.28) * CFrame.Angles(-0.4, 0, (i - 2.5) * 0.3), "accent", "cyl", Enum.Material.Neon)
 			end
 		end
-		foot = s * 0.85
+		foot = s * 0.83
 
 	elseif plan == "bird" then
-		add(Vector3.new(s * 0.48, s * 0.48, s * 0.48), CFrame.new(0, s * 0.38, -s * 0.35), "skin", nil, BALL)
-		add(Vector3.new(s * 0.12, s * 0.1, s * 0.32), CFrame.new(0, s * 0.33, -s * 0.68), Color3.fromRGB(255, 170, 30))
-		eyes(s * 0.13, s * 0.45, -s * 0.52, s * 0.12)
-		add(Vector3.new(s * 0.06, s * 0.3, s * 0.06), CFrame.new(0, s * 0.68, -s * 0.3), "accent", Enum.Material.Neon) -- crest
+		add(Vector3.new(s * 0.5, s * 0.5, s * 0.5), CFrame.new(0, s * 0.42, -s * 0.38), "skin", "ball") -- head
+		add(Vector3.new(s * 0.12, s * 0.12, s * 0.34), CFrame.new(0, s * 0.37, -s * 0.72), Color3.fromRGB(255, 175, 40), "egg") -- beak
+		eyes(s * 0.14, s * 0.5, -s * 0.56, s * 0.13)
+		add(Vector3.new(s * 0.08, s * 0.32, s * 0.2), CFrame.new(0, s * 0.72, -s * 0.33), "accent", "egg", Enum.Material.Neon) -- crest
 		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.08, s * 0.55, s * 0.75), CFrame.new(sx * s * 0.45, s * 0.1, s * 0.05) * CFrame.Angles(0, 0, sx * 0.55), "accent")
-			add(Vector3.new(s * 0.06, s * 0.42, s * 0.06), CFrame.new(sx * s * 0.15, -s * 0.55, 0), Color3.fromRGB(255, 170, 30))
+			add(Vector3.new(s * 0.12, s * 0.6, s * 0.85), CFrame.new(sx * s * 0.46, s * 0.1, s * 0.05) * CFrame.Angles(0, 0, sx * 0.5), "accent", "egg") -- wing
+			add(Vector3.new(s * 0.07, s * 0.42, s * 0.07), CFrame.new(sx * s * 0.15, -s * 0.58, 0), Color3.fromRGB(255, 175, 40), "cyl")
+			add(Vector3.new(s * 0.18, s * 0.05, s * 0.22), CFrame.new(sx * s * 0.15, -s * 0.78, -s * 0.06), Color3.fromRGB(255, 175, 40), "egg")
 		end
-		add(Vector3.new(s * 0.35, s * 0.06, s * 0.45), CFrame.new(0, s * 0.12, s * 0.5) * CFrame.Angles(0.4, 0, 0), "accent")
-		foot = s * 0.76
+		add(Vector3.new(s * 0.4, s * 0.08, s * 0.55), CFrame.new(0, s * 0.12, s * 0.58) * CFrame.Angles(0.4, 0, 0), "accent", "egg") -- tail
+		foot = s * 0.8
 
 	elseif plan == "spider" then
-		add(Vector3.new(s * 0.5, s * 0.5, s * 0.5), CFrame.new(0, -s * 0.02, -s * 0.5), "skin", nil, BALL)
+		add(Vector3.new(s * 0.52, s * 0.48, s * 0.5), CFrame.new(0, -s * 0.02, -s * 0.58), "skin", "egg") -- head
 		for i = 1, 3 do
-			eyes(s * 0.07 * i, s * 0.1 - i * s * 0.04, -s * 0.7, s * 0.08, def.Accent or Color3.fromRGB(255, 50, 50))
+			eyes(s * 0.07 * i, s * 0.12 - i * s * 0.04, -s * 0.8, s * 0.09, def.Accent or Color3.fromRGB(255, 60, 60))
 		end
 		for _, sx in ipairs({ -1, 1 }) do
 			for i = 1, 4 do
-				add(Vector3.new(s * 0.9, s * 0.08, s * 0.08), CFrame.new(sx * s * 0.6, -s * 0.2, (i - 2.5) * s * 0.22) * CFrame.Angles(0, (i - 2.5) * sx * 0.25, -sx * 0.55), "accent")
+				local z = (i - 2.5) * s * 0.24
+				add(Vector3.new(s * 0.08, s * 0.6, s * 0.08), CFrame.new(sx * s * 0.55, s * 0.05, z) * CFrame.Angles(0, 0, -sx * 1.0), "accent", "cyl")
+				add(Vector3.new(s * 0.07, s * 0.6, s * 0.07), CFrame.new(sx * s * 0.88, -s * 0.3, z) * CFrame.Angles(0, 0, sx * 0.35), "accent", "cyl")
 			end
 		end
-		add(Vector3.new(s * 0.3, s * 0.06, s * 0.3), CFrame.new(0, s * 0.38, s * 0.1), "accent", Enum.Material.Neon)
-		foot = s * 0.45
+		add(Vector3.new(s * 0.36, s * 0.08, s * 0.36), CFrame.new(0, s * 0.33, s * 0.1), "accent", "egg", Enum.Material.Neon)
+		foot = s * 0.58
 
 	elseif plan == "serpent" then
-		eyes(s * 0.17, s * 0.15, -s * 0.36, s * 0.15, def.Accent)
+		eyes(s * 0.18, s * 0.16, -s * 0.38, s * 0.16, def.Accent)
 		for _, sx in ipairs({ -1, 1 }) do
-			add(Vector3.new(s * 0.06, s * 0.2, s * 0.06), CFrame.new(sx * s * 0.1, -s * 0.28, -s * 0.36), white)
+			add(Vector3.new(s * 0.06, s * 0.2, s * 0.06), CFrame.new(sx * s * 0.1, -s * 0.28, -s * 0.38), white, "cyl")
 		end
-		for i = 1, 6 do
-			local seg = s * (0.8 - i * 0.07)
-			add(Vector3.new(seg, seg, seg), CFrame.new(math.sin(i * 0.9) * s * 0.3, -s * 0.05, s * (0.3 + i * 0.5)), i % 2 == 0 and "accent" or "skin", nil, BALL)
+		for i = 1, 7 do
+			local seg = s * (0.78 - i * 0.07)
+			add(Vector3.new(seg, seg * 0.9, seg * 1.2), CFrame.new(math.sin(i * 0.9) * s * 0.32, -s * 0.05, s * (0.3 + i * 0.5)), i % 2 == 0 and "accent" or "skin", "egg")
 		end
-		foot = s * 0.43
+		foot = s * 0.4
 
 	elseif plan == "ghost" then
-		root.Transparency = 0.35
+		root.Transparency = 0.3
 		for i = 1, 3 do
 			local seg = s * (0.75 - i * 0.18)
-			local tail = add(Vector3.new(seg, seg, seg), CFrame.new(0, -s * (0.35 + i * 0.22), s * i * 0.18), "skin", nil, BALL)
-			tail.Transparency = 0.35 + i * 0.15
+			local tail = add(Vector3.new(seg, seg, seg), CFrame.new(0, -s * (0.35 + i * 0.22), s * i * 0.18), "skin", "ball")
+			tail.Transparency = 0.3 + i * 0.15
 		end
 		eyes(s * 0.18, s * 0.1, -s * 0.42, s * 0.18, Color3.fromRGB(255, 255, 255))
-		add(Vector3.new(s * 0.3, s * 0.2, s * 0.08), CFrame.new(0, -s * 0.15, -s * 0.46), black, nil, BALL)
+		add(Vector3.new(s * 0.3, s * 0.22, s * 0.08), CFrame.new(0, -s * 0.15, -s * 0.46), black, "egg")
 		foot = s * 0.5
 		hover = 2.5
 	end
 
-	-- effects for rare ones
-	if def.Rarity >= 5 or variant >= 4 then
+	if def.Rarity >= 5 or variant >= 5 then
 		local light = Instance.new("PointLight")
 		light.Color = rarity.Color
 		light.Range = 10 + def.Rarity * 2
 		light.Brightness = 2
 		light.Parent = root
 	end
-	if variant >= 5 or def.Rarity >= 7 then
+	if variant >= 6 or def.Rarity >= 7 then
 		local sparkles = Instance.new("Sparkles")
 		sparkles.SparkleColor = Color3.new(1, 1, 1)
 		sparkles.Parent = root
 	end
-	if def.Rarity >= 4 then
+	if def.Rarity >= 4 or variant >= 3 then
 		local aura = Instance.new("ParticleEmitter")
-		aura.Color = ColorSequence.new(rarity.Color)
+		aura.Color = ColorSequence.new(v.Color or rarity.Color)
 		aura.LightEmission = 1
 		aura.Rate = 4 + def.Rarity * 3
 		aura.Lifetime = NumberRange.new(0.8, 1.4)
@@ -991,7 +1049,7 @@ end
 
 -- Uses your own 3D model from ServerStorage.MonsterModels if there is one
 local function useCustomModel(def, root, s)
-	local template = modelFolder and modelFolder:FindFirstChild(def.Id)
+	local template = modelFolder:FindFirstChild(def.Id)
 	if not template or not template:IsA("Model") then
 		return nil
 	end
@@ -1022,7 +1080,7 @@ local function useCustomModel(def, root, s)
 		end
 	end
 	for _, d in ipairs(root:GetChildren()) do
-		if d:IsA("BasePart") then
+		if d:IsA("BasePart") or d:IsA("SpecialMesh") then
 			d:Destroy()
 		end
 	end
@@ -1039,6 +1097,7 @@ local monstersByPart = {}
 local carriers = {}
 local wild = {}     -- [m] = true for monsters walking in a zone
 local battles = {}  -- [player] = m
+local trainers = {} -- [player] = { Plot, Next }
 local zoneCount = {}
 for k = 1, #ZONES do
 	zoneCount[k] = 0
@@ -1052,10 +1111,6 @@ local function setState(m, state)
 	m.Part:SetAttribute("State", state)
 end
 
-local function isVaultSlot(slot)
-	return slot ~= nil and slot > VAULT_OFFSET
-end
-
 local function updateLabel(m)
 	local info = m.InfoLabel
 	if m.State == "Lane" then
@@ -1063,13 +1118,11 @@ local function updateLabel(m)
 	elseif m.State == "Battle" then
 		info.Text = "MOG BATTLE!"
 	elseif m.State == "Placed" or m.State == "Flying" then
-		info.Text = "$" .. fmt(m.Income) .. "/s" .. (isVaultSlot(m.Slot) and "  (VAULT)" or "")
+		info.Text = "$" .. fmt(m.Income) .. "/s"
 	elseif m.State == "Loose" then
 		info.Text = "DROPPED! Grab it!"
-	elseif m.State == "Carried" and not m.HomeOwner then
-		info.Text = "SLAP THEM TO STEAL IT!"
 	else
-		info.Text = "STOLEN!"
+		info.Text = "HIT THEM TO TAKE IT!"
 	end
 end
 
@@ -1093,7 +1146,7 @@ local function createMonster(id, variant)
 		labels[2].TextStrokeColor3 = Color3.new(1, 1, 1)
 	end
 	labels[3].Name = "MogLabel"
-	labels[1].Parent.MaxDistance = 110
+	labels[1].Parent.MaxDistance = 120
 
 	local m = {
 		Part = body, Id = id, Def = def, Variant = variant, State = "New", Size = s,
@@ -1104,9 +1157,7 @@ local function createMonster(id, variant)
 
 	local prompts = {
 		{ Name = "Mog", Action = "MOG BATTLE!", Hold = 0.2 },
-		{ Name = "Steal", Action = "STEAL", Hold = 1 + def.Rarity * 0.4 },
 		{ Name = "Sell", Action = "Sell $" .. fmt(m.Value * CONFIG.SELL_PERCENT), Hold = 1, Key = Enum.KeyCode.R },
-		{ Name = "Vault", Action = "Move to/from Vault", Hold = 0.3 },
 		{ Name = "Grab", Action = "Pick up", Hold = 0.3 },
 	}
 	for _, info in ipairs(prompts) do
@@ -1162,7 +1213,6 @@ local function destroyMonster(m)
 	m.Part:Destroy()
 end
 
--- random spot in a region (zone or pen), on the ground
 local function regionPoint(region, m)
 	local x = region.X1 + math.random() * (region.X2 - region.X1)
 	local z = region.Z1 + math.random() * (region.Z2 - region.Z1)
@@ -1171,7 +1221,7 @@ local function regionPoint(region, m)
 end
 
 local function freeSlot(plot, player)
-	for i = 1, normalLimit(player) do
+	for i = 1, slotLimit(player) do
 		if not plot.Slots[i] then
 			return i
 		end
@@ -1179,32 +1229,18 @@ local function freeSlot(plot, player)
 	return nil
 end
 
-local function freeVaultSlot(plot, player)
-	for i = 1, vaultLimit(player) do
-		if not plot.Slots[VAULT_OFFSET + i] then
-			return VAULT_OFFSET + i
-		end
-	end
-	return nil
-end
-
 local function countMonsters(plot)
-	local normal, vault = 0, 0
-	for slot in pairs(plot.Slots) do
-		if isVaultSlot(slot) then
-			vault = vault + 1
-		else
-			normal = normal + 1
-		end
+	local n = 0
+	for _ in pairs(plot.Slots) do
+		n = n + 1
 	end
-	return normal, vault
+	return n
 end
 
 local function place(m, plot, slot, owner, position)
 	plot.Slots[slot] = m
 	m.Plot, m.Slot, m.Owner = plot, slot, owner
-	m.HomeOwner, m.HomeSlot = nil, nil
-	m.Region = isVaultSlot(slot) and plot.VaultRegion or plot.PenRegion
+	m.Region = plot.PenRegion
 	local part = m.Part
 	part.Anchored = true
 	part.CanCollide = false
@@ -1221,7 +1257,7 @@ end
 local function flyToSlot(m, plot, slot, owner)
 	plot.Slots[slot] = m
 	m.Plot, m.Slot, m.Owner = plot, slot, owner
-	m.Region = isVaultSlot(slot) and plot.VaultRegion or plot.PenRegion
+	m.Region = plot.PenRegion
 	local part = m.Part
 	part.Anchored = true
 	part.CanCollide = false
@@ -1281,8 +1317,11 @@ local function detach(m)
 	end
 end
 
--- a wild monster nobody got home goes back to its zone
+-- a monster nobody got home goes back to its zone
 local function returnToWild(m)
+	if not monsterAlive(m) then
+		return
+	end
 	detach(m)
 	if not m.Zone or zoneCount[m.Zone] >= ZONES[m.Zone].Max then
 		destroyMonster(m)
@@ -1302,31 +1341,6 @@ local function returnToWild(m)
 	effect(pos, RARITIES[m.Def.Rarity].Color, "Escaped!")
 end
 
-local function returnHome(m)
-	if not monsterAlive(m) then
-		return
-	end
-	detach(m)
-	local owner = m.HomeOwner
-	if not owner then
-		returnToWild(m)
-		return
-	end
-	local plot = owner.Parent and playerPlot[owner]
-	if plot then
-		local slot = m.HomeSlot
-		if not slot or plot.Slots[slot] then
-			slot = freeSlot(plot, owner)
-		end
-		if slot then
-			m.HomeOwner, m.HomeSlot = nil, nil
-			flyToSlot(m, plot, slot, owner)
-			return
-		end
-	end
-	destroyMonster(m)
-end
-
 local function discover(player, m)
 	local data = sessions[player]
 	if data and not data.Discovered[m.Id] then
@@ -1336,31 +1350,15 @@ local function discover(player, m)
 end
 
 local function deliver(m, player, plot, slot)
-	local victim = m.HomeOwner
 	detach(m)
 	local pos = regionPoint(plot.PenRegion, m)
 	place(m, plot, slot, player, pos)
 	discover(player, m)
 	local name = displayName(m.Id, m.Variant)
-	if victim and victim ~= player then
-		local data = sessions[player]
-		if data then
-			data.Steals = data.Steals + 1
-		end
-		effect(pos, Color3.fromRGB(255, 60, 60), "STOLEN!")
-		notify(player, "You stole " .. name .. " from " .. victim.Name .. "!")
-		if victim.Parent then
-			notify(victim, player.Name .. " STOLE your " .. name .. "!")
-		end
-		if m.Def.Rarity >= 5 or m.Variant >= 3 then
-			announce(player.Name .. " stole " .. victim.Name .. "'s " .. name .. "!")
-		end
-	elseif not victim then
-		effect(pos, RARITIES[m.Def.Rarity].Color, "MOGGED!")
-		notify(player, name .. " is yours!")
-		if m.Def.Rarity >= 5 or m.Variant >= 3 then
-			announce(player.Name .. " MOGGED a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "!")
-		end
+	effect(pos, RARITIES[m.Def.Rarity].Color, "MOGGED!")
+	notify(player, name .. " is yours!")
+	if m.Def.Rarity >= 5 or m.Variant >= 4 then
+		announce(player.Name .. " brought home a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "!")
 	end
 end
 
@@ -1394,7 +1392,7 @@ local function makeLoose(m, position)
 	m.LooseToken = token
 	task.delay(CONFIG.LOOSE_TIME, function()
 		if monsterAlive(m) and m.State == "Loose" and m.LooseToken == token then
-			returnHome(m)
+			returnToWild(m)
 		end
 	end)
 end
@@ -1405,7 +1403,7 @@ local function giveMonster(player, id, variant)
 	if not plot then
 		return false
 	end
-	local slot = freeSlot(plot, player) or freeVaultSlot(plot, player)
+	local slot = freeSlot(plot, player)
 	if not slot then
 		return false
 	end
@@ -1417,7 +1415,7 @@ local function giveMonster(player, id, variant)
 end
 
 ----------------------------------------------------------------------
--- MOVEMENT
+-- MOVEMENT & AURAS
 ----------------------------------------------------------------------
 local function isAlive(player)
 	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -1430,17 +1428,58 @@ applyMovement = function(player)
 	if not hum or not data then
 		return
 	end
-	local speed = 16
+	local speed = 18
 	if data.Rebirths >= 3 then
 		speed = speed + math.min(10, 4 + (data.Rebirths - 3) * 2)
 	end
-	if carriers[player] and not player:GetAttribute("FastSteal") then
+	if carriers[player] then
 		speed = speed - 3
 	end
 	if battles[player] then
 		speed = 0
 	end
 	hum.WalkSpeed = speed
+end
+
+local function applyAura(player)
+	local data = sessions[player]
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not data or not root then
+		return
+	end
+	local old = root:FindFirstChild("AuraFX")
+	if old then
+		old:Destroy()
+	end
+	local oldLight = root:FindFirstChild("AuraLight")
+	if oldLight then
+		oldLight:Destroy()
+	end
+	local a = AURA_BY_NAME[data.Aura or ""]
+	player:SetAttribute("Aura", a and a.Name or "")
+	if not a then
+		return
+	end
+	local fx = Instance.new("ParticleEmitter")
+	fx.Name = "AuraFX"
+	fx.Color = a.Rainbow and ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 60, 60)),
+		ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 240, 60)),
+		ColorSequenceKeypoint.new(0.66, Color3.fromRGB(60, 200, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(220, 60, 255)),
+	}) or ColorSequence.new(a.Color)
+	fx.LightEmission = 1
+	fx.Rate = 30
+	fx.Lifetime = NumberRange.new(0.6, 1.1)
+	fx.Speed = NumberRange.new(2, 4)
+	fx.SpreadAngle = Vector2.new(180, 180)
+	fx.Size = NumberSequence.new(0.8, 0)
+	fx.Parent = root
+	local light = Instance.new("PointLight")
+	light.Name = "AuraLight"
+	light.Color = a.Color
+	light.Range = 12
+	light.Parent = root
 end
 
 ----------------------------------------------------------------------
@@ -1460,7 +1499,7 @@ local function spawnZoneMonster(k, id)
 	wild[m] = true
 	zoneCount[k] = zoneCount[k] + 1
 	effect(start, RARITIES[k].Color, nil)
-	if k >= 6 or variant >= 4 or (k >= 5 and variant >= 2) then
+	if k >= 6 or variant >= 5 or (k >= 5 and variant >= 3) then
 		announce("A " .. RARITIES[k].Name:upper() .. " " .. displayName(id, variant) .. " appeared in ZONE " .. k .. "!")
 	end
 end
@@ -1483,7 +1522,7 @@ end
 
 local function startBattle(m, player)
 	local mog = playerMog(player)
-	local ratio = math.clamp(m.MogReq / math.max(mog, 1), 0, 1) -- 1 = just strong enough (hard), small = easy
+	local ratio = math.clamp(m.MogReq / math.max(mog, 1), 0, 1) -- 1 = just strong enough (hard)
 	local r = m.Def.Rarity
 	m.BattleBy = player
 	m.BattleStart = os.clock()
@@ -1491,14 +1530,13 @@ local function startBattle(m, player)
 	setState(m, "Battle")
 	updateLabel(m)
 	applyMovement(player)
-	local gameType = math.random() < 0.5 and "Clash" or "Timing"
 	battleRemote:FireClient(player, m.Part, {
 		Name = displayName(m.Id, m.Variant),
 		Rarity = r,
-		Type = gameType,
-		Pull = 0.05 + 0.15 * ratio + r * 0.015,                       -- Clash: how hard it pushes back
-		ZoneWidth = math.clamp(0.3 - 0.12 * ratio - r * 0.015, 0.07, 0.3), -- Timing: size of green zone
-		Speed = 0.7 + r * 0.12 + ratio * 0.3,                           -- Timing: how fast the needle moves
+		Type = math.random() < 0.5 and "Clash" or "Timing",
+		Pull = 0.05 + 0.15 * ratio + r * 0.015,
+		ZoneWidth = math.clamp(0.3 - 0.12 * ratio - r * 0.015, 0.07, 0.3),
+		Speed = 0.7 + r * 0.12 + ratio * 0.3,
 		Time = 12,
 	})
 end
@@ -1519,20 +1557,19 @@ local function battleResult(player, part, won)
 		return false, "You can't carry it right now"
 	end
 	leaveWild(m)
-	m.HomeOwner, m.HomeSlot = nil, nil
 	if not attachToCarrier(m, player) then
 		returnToWild(m)
 		return false, "Something went wrong"
 	end
 	effect(m.Part.Position, RARITIES[m.Def.Rarity].Color, "YOU WON!")
-	if m.Def.Rarity >= 5 or m.Variant >= 3 then
-		announce(player.Name .. " beat a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "! Slap them to steal it!")
+	if m.Def.Rarity >= 5 or m.Variant >= 4 then
+		announce(player.Name .. " beat a " .. RARITIES[m.Def.Rarity].Name .. " " .. name .. "! Hit them to take it!")
 	end
-	return true, "You won! CARRY " .. name .. " HOME before someone slaps you!"
+	return true, "You won! CARRY " .. name .. " HOME before someone hits you!"
 end
 
 ----------------------------------------------------------------------
--- MONSTER PROMPTS (Mog / Steal / Sell / Vault / Grab)
+-- MONSTER PROMPTS (Mog / Sell / Grab) - no stealing from bases!
 ----------------------------------------------------------------------
 onMonsterPrompt = function(m, action, player)
 	local data = sessions[player]
@@ -1548,35 +1585,15 @@ onMonsterPrompt = function(m, action, player)
 		end
 		local mog = playerMog(player)
 		if mog < m.MogReq then
-			notify(player, "Your MOG is too low! You have " .. fmt(mog) .. ", need " .. fmt(m.MogReq) .. ". Train MOG in UPGRADES!")
+			notify(player, "Your MOG is too low! You have " .. fmt(mog) .. ", need " .. fmt(m.MogReq) .. ". Train at your MOG STONE!")
 			return
 		end
 		if not freeSlot(plot, player) then
-			notify(player, "Your base is full! Sell a monster or buy more slots (UPGRADES).")
+			notify(player, "Your enclosure is full! Sell a monster or upgrade it (UPGRADES).")
 			return
 		end
+		trainers[player] = nil
 		startBattle(m, player)
-
-	elseif action == "Steal" then
-		if m.State ~= "Placed" or m.Owner == player or carriers[player] or isVaultSlot(m.Slot) then
-			return
-		end
-		if not freeSlot(plot, player) then
-			notify(player, "Your base is full! Make room first.")
-			return
-		end
-		local victim, fromPlot, fromSlot = m.Owner, m.Plot, m.Slot
-		if not attachToCarrier(m, player) then
-			return
-		end
-		fromPlot.Slots[fromSlot] = nil
-		m.Plot, m.Slot, m.Owner = nil, nil, nil
-		m.HomeOwner, m.HomeSlot = victim, fromSlot
-		fromPlot.AlarmUntil = os.clock() + 10
-		notify(player, "Run home or THROW it into your base! (F)")
-		if victim and victim.Parent then
-			alarmRemote:FireClient(victim, player.Name .. " is stealing your " .. name .. "!")
-		end
 
 	elseif action == "Sell" then
 		if m.State ~= "Placed" or m.Owner ~= player then
@@ -1589,38 +1606,12 @@ onMonsterPrompt = function(m, action, player)
 		destroyMonster(m)
 		notify(player, "Sold " .. name .. " for $" .. fmt(amount))
 
-	elseif action == "Vault" then
-		if m.State ~= "Placed" or m.Owner ~= player then
-			return
-		end
-		local target
-		if isVaultSlot(m.Slot) then
-			target = freeSlot(plot, player)
-			if not target then
-				notify(player, "No free slot outside the vault.")
-				return
-			end
-		else
-			target = freeVaultSlot(plot, player)
-			if not target then
-				notify(player, "Your vault is full! Rebirth or get Extra Vault for more.")
-				return
-			end
-		end
-		plot.Slots[m.Slot] = nil
-		flyToSlot(m, plot, target, player)
-
 	elseif action == "Grab" then
-		if m.State ~= "Loose" or carriers[player] then
-			return
-		end
-		if m.HomeOwner == player then
-			returnHome(m)
-			notify(player, "You got your " .. name .. " back!")
+		if m.State ~= "Loose" or carriers[player] or battles[player] then
 			return
 		end
 		if not freeSlot(plot, player) then
-			notify(player, "Your base is full! Make room first.")
+			notify(player, "Your enclosure is full! Make room first.")
 			return
 		end
 		attachToCarrier(m, player)
@@ -1645,10 +1636,6 @@ local function landed(m, thrower)
 			deliver(m, thrower, plot, slot)
 			return
 		end
-	end
-	if plot and plot.Owner and plot.Owner == m.HomeOwner then
-		returnHome(m)
-		return
 	end
 	makeLoose(m, pos)
 end
@@ -1689,7 +1676,7 @@ throwRemote.OnServerEvent:Connect(function(player, direction)
 			task.wait(0.1)
 			local t = os.clock() - start
 			if part.Position.Y < -30 then
-				returnHome(m)
+				returnToWild(m)
 				return
 			end
 			if (t > 0.5 and part.AssemblyLinearVelocity.Magnitude < 4) or t > 5 then
@@ -1701,9 +1688,10 @@ throwRemote.OnServerEvent:Connect(function(player, direction)
 end)
 
 ----------------------------------------------------------------------
--- MOG SLAP (defense + steal from carriers)
+-- HAMMER (train MOG + hit players who carry a monster)
 ----------------------------------------------------------------------
-local lastSlap = {}
+local lastHit = {}
+local hammers = {} -- [player] = { Tool, BaseGrip }
 
 local function knockback(root, velocity)
 	local att = Instance.new("Attachment")
@@ -1717,84 +1705,117 @@ local function knockback(root, velocity)
 	Debris:AddItem(att, 0.15)
 end
 
-local function slap(player)
-	if lastSlap[player] and os.clock() - lastSlap[player] < 0.7 then
+local function swingHammer(player)
+	local h = hammers[player]
+	if not h or not h.Tool.Parent then
 		return
 	end
-	lastSlap[player] = os.clock()
+	h.Tool.Grip = (h.BaseGrip or CFrame.new()) * CFrame.Angles(math.rad(-75), 0, 0)
+	task.delay(0.1, function()
+		if h.Tool.Parent then
+			h.Tool.Grip = h.BaseGrip or CFrame.new()
+		end
+	end)
+end
+
+local function hammerHit(player)
+	if lastHit[player] and os.clock() - lastHit[player] < 0.6 then
+		return
+	end
+	lastHit[player] = os.clock()
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not root or not isAlive(player) or battles[player] then
 		return
 	end
-	local myPlot = playerPlot[player]
+	swingHammer(player)
 	for _, other in ipairs(Players:GetPlayers()) do
 		local oroot = other ~= player and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
-		if oroot and isAlive(other) then
+		local carrying = oroot and carriers[other]
+		if carrying and isAlive(other) then
 			local offset = oroot.Position - root.Position
 			if offset.Magnitude < 10 and offset.Magnitude > 0 and root.CFrame.LookVector:Dot(offset.Unit) > 0.2 then
-				local carrying = carriers[other]
-				local intruder = myPlot ~= nil and plotAt(oroot.Position) == myPlot
-				if carrying or intruder then
-					local flat = Vector3.new(offset.X, 0, offset.Z)
-					knockback(oroot, (flat.Magnitude > 0.1 and flat.Unit or root.CFrame.LookVector) * 55 + Vector3.new(0, 30, 0))
-					effect(oroot.Position, Color3.fromRGB(255, 220, 60), "MOG SLAP!")
-					if carrying then
-						makeLoose(carrying, oroot.Position)
-						notify(player, "You slapped " .. other.Name .. " and they DROPPED it! Pick it up!")
-						notify(other, "You got MOG SLAPPED and dropped the monster!")
-					end
-				end
+				local flat = Vector3.new(offset.X, 0, offset.Z)
+				knockback(oroot, (flat.Magnitude > 0.1 and flat.Unit or root.CFrame.LookVector) * 55 + Vector3.new(0, 30, 0))
+				effect(oroot.Position, Color3.fromRGB(255, 220, 60), "BONK!")
+				makeLoose(carrying, oroot.Position)
+				notify(player, "BONK! " .. other.Name .. " DROPPED it! Pick it up!")
+				notify(other, "You got hit by a hammer and dropped the monster!")
 			end
 		end
 	end
 end
 
-local function giveSlap(player)
+local function giveHammer(player)
+	local data = sessions[player]
 	local tool = Instance.new("Tool")
-	tool.Name = "Mog Slap"
+	tool.Name = "Hammer"
 	tool.CanBeDropped = false
 	tool.GripForward = Vector3.new(-1, 0, 0)
 	tool.GripRight = Vector3.new(0, 1, 0)
 	tool.GripUp = Vector3.new(0, 0, 1)
-	tool.GripPos = Vector3.new(0, 0, -1)
+	tool.GripPos = Vector3.new(0, 0, -1.2)
 	local handle = Instance.new("Part")
 	handle.Name = "Handle"
-	handle.Size = Vector3.new(1.2, 0.4, 2.4)
-	handle.Color = Color3.fromRGB(255, 200, 60)
-	handle.Material = Enum.Material.Neon
+	handle.Size = Vector3.new(0.4, 0.4, 3.4)
+	handle.Color = Color3.fromRGB(150, 100, 60)
+	handle.Material = Enum.Material.Wood
 	handle.CanCollide = false
 	handle.Parent = tool
+	local level = data and data.Hammer or 1
+	local headColor = Color3.fromHSV(((level - 1) * 0.07) % 1, 0.6, 1)
+	local head = Instance.new("Part")
+	head.Name = "Head"
+	head.Size = Vector3.new(1.1 + level * 0.05, 1.1 + level * 0.05, 1.8 + level * 0.06)
+	head.Color = headColor
+	head.Material = level >= 8 and Enum.Material.Neon or Enum.Material.Metal
+	head.CanCollide = false
+	head.Massless = true
+	head.CFrame = handle.CFrame * CFrame.new(0, 0, 1.6) * CFrame.Angles(0, math.rad(90), 0)
+	local w = Instance.new("WeldConstraint")
+	w.Part0 = handle
+	w.Part1 = head
+	w.Parent = head
+	head.Parent = tool
 	tool.Activated:Connect(function()
-		slap(player)
+		hammerHit(player)
 	end)
 	tool.Parent = player:WaitForChild("Backpack")
+	hammers[player] = { Tool = tool, BaseGrip = tool.Grip }
 end
 
-----------------------------------------------------------------------
--- BASE LOCK
-----------------------------------------------------------------------
-local function lockBase(plot, seconds)
-	plot.LockUntil = os.clock() + seconds
-	plot.LockCooldownUntil = plot.LockUntil + CONFIG.LOCK_COOLDOWN
+-- MOG training at your stone
+local function stopTraining(player, why)
+	if trainers[player] then
+		trainers[player] = nil
+		player:SetAttribute("Training", false)
+		if why then
+			notify(player, why)
+		end
+	end
 end
 
 for _, plot in ipairs(plots) do
-	plot.LockPad.Touched:Connect(function(hit)
-		local model = hit:FindFirstAncestorOfClass("Model")
-		local player = model and Players:GetPlayerFromCharacter(model)
-		if not player or plot.Owner ~= player then
+	plot.TrainPrompt.Triggered:Connect(function(player)
+		local data = sessions[player]
+		if not data or not isAlive(player) or battles[player] then
 			return
 		end
-		local now = os.clock()
-		if now < plot.LockUntil then
+		if trainers[player] then
+			stopTraining(player, "Training stopped.")
 			return
 		end
-		if now < plot.LockCooldownUntil then
-			notify(player, "Lock ready in " .. math.ceil(plot.LockCooldownUntil - now) .. "s")
+		if carriers[player] then
+			notify(player, "Bring your monster home first!")
 			return
 		end
-		lockBase(plot, CONFIG.LOCK_TIME)
-		notify(player, "Base LOCKED for " .. CONFIG.LOCK_TIME .. " seconds!")
+		trainers[player] = { Plot = plot, Next = os.clock() + 0.3 }
+		player:SetAttribute("Training", true)
+		local hum = player.Character:FindFirstChildOfClass("Humanoid")
+		local h = hammers[player]
+		if hum and h and h.Tool.Parent ~= player.Character then
+			hum:EquipTool(h.Tool)
+		end
+		notify(player, "Training MOG! Press E again or walk away to stop.")
 	end)
 end
 
@@ -1821,7 +1842,7 @@ local function myMonstersList(player)
 			if m.Owner == player and m.State == "Placed" then
 				table.insert(list, {
 					Slot = slot, Id = m.Id, Variant = m.Variant, Name = displayName(m.Id, m.Variant),
-					Rarity = m.Def.Rarity, Income = m.Income, Value = m.Value, Vault = isVaultSlot(slot),
+					Rarity = m.Def.Rarity, Income = m.Income, Value = m.Value,
 				})
 			end
 		end
@@ -1850,14 +1871,24 @@ local function getInfo(player)
 	for i, v in ipairs(VARIANTS) do
 		variants[i] = { Name = v.Name, Mult = v.Mult, Odds = math.floor(1 / variantChance(i) + 0.5) }
 	end
+	local auras = {}
+	for i, a in ipairs(AURAS) do
+		auras[i] = { Name = a.Name, Mult = a.Mult, Cost = a.Cost, Color = a.Color, Owned = data.Auras[a.Name] == true }
+	end
+	local nextHammer = HAMMERS[data.Hammer + 1]
+	local nextSwing = SWINGS[data.Swing + 1]
 	local ready, wait = dailyStatus(data)
 	return {
-		Cash = data.Cash, Rebirths = data.Rebirths, RebirthCost = rebirthCost(data),
-		Slots = normalLimit(player), BaseSlots = data.Slots, MaxSlots = CONFIG.MAX_SLOTS, SlotCost = slotCost(data),
-		Vaults = vaultLimit(player), Mog = playerMog(player), MogCost = mogCost(data),
-		NextMog = mogAtLevel(data.MogLevel + 1, data.Rebirths),
+		Cash = data.Cash, Mog = playerMog(player), MogPerHit = mogPerHit(player),
+		Rebirths = data.Rebirths, RebirthCost = rebirthCost(data),
+		Hammer = data.Hammer, HammerPower = HAMMERS[data.Hammer].Power, MaxHammer = #HAMMERS,
+		NextHammerPower = nextHammer and nextHammer.Power, NextHammerCost = nextHammer and nextHammer.Cost,
+		Swing = data.Swing, SwingTime = SWINGS[data.Swing].Time, MaxSwing = #SWINGS,
+		NextSwingTime = nextSwing and nextSwing.Time, NextSwingCost = nextSwing and nextSwing.Cost,
+		Slots = slotLimit(player), BaseSlots = data.Slots, MaxSlots = CONFIG.MAX_SLOTS, SlotCost = slotCost(data),
 		Boost = BOOST_MULTS[data.Boost + 1], NextBoost = BOOST_MULTS[data.Boost + 2],
 		BoostCost = BOOST_MULTS[data.Boost + 2] and boostCost(data) or nil,
+		Aura = data.Aura, Auras = auras,
 		DailyReady = ready, DailyWait = wait, Streak = data.Streak,
 		Index = index, Variants = variants, Monsters = myMonstersList(player),
 	}
@@ -1874,7 +1905,7 @@ local function doFuse(player, slotA, slotB)
 	end
 	local a, b = plot.Slots[slotA], plot.Slots[slotB]
 	if not a or not b or a.Owner ~= player or b.Owner ~= player or a.State ~= "Placed" or b.State ~= "Placed" then
-		return false, "Those monsters are not in your base"
+		return false, "Those monsters are not in your enclosure"
 	end
 	if a.Id ~= b.Id or a.Variant ~= b.Variant then
 		return false, "You need 2 of the SAME monster with the SAME level!"
@@ -1896,7 +1927,7 @@ local function doFuse(player, slotA, slotB)
 	updateStats(player)
 	local name = displayName(id, variant)
 	effect(fusionCore.Position, VARIANTS[variant].Color or Color3.fromRGB(255, 120, 255), name .. "!")
-	if variant >= 4 then
+	if variant >= 5 then
 		announce(player.Name .. " fused a " .. name .. "!")
 	end
 	return true, "You made " .. name .. "!"
@@ -1909,25 +1940,35 @@ local function doRebirth(player)
 	if data.Cash < cost then
 		return false, "You need $" .. fmt(cost)
 	end
-	for slot, m in pairs(plot.Slots) do
-		if not isVaultSlot(slot) and m.Owner == player then
+	for _, m in pairs(plot.Slots) do
+		if m.Owner == player then
 			destroyMonster(m)
 		end
 	end
 	data.Rebirths = data.Rebirths + 1
 	data.Cash = CONFIG.START_CASH
-	data.MogLevel = 0
+	data.Mog = CONFIG.START_MOG
+	data.Hammer = 1
+	data.Swing = 1
 	data.Boost = 0
 	data.Slots = CONFIG.START_SLOTS
 	applyMovement(player)
 	updateStats(player)
 	announce(player.Name .. " reached REBIRTH " .. data.Rebirths .. "!")
 	if data.Rebirths == 10 then
-		giveMonster(player, "Phoenixmog", 2)
+		giveMonster(player, "Phoenixmog", 3)
 		announce(player.Name .. " unlocked the exclusive GOLDEN PHOENIXMOG!")
 	end
 	saveData(player)
-	return true, "REBIRTH " .. data.Rebirths .. "! Your vault monsters were kept."
+	return true, "REBIRTH " .. data.Rebirths .. "! You now get x" .. (1 + data.Rebirths) .. " MOG and money!"
+end
+
+local function buyThing(data, cost)
+	if data.Cash < cost then
+		return false
+	end
+	data.Cash = data.Cash - cost
+	return true
 end
 
 requestRemote.OnServerInvoke = function(player, action, a, b)
@@ -1946,41 +1987,82 @@ requestRemote.OnServerInvoke = function(player, action, a, b)
 	elseif action == "Rebirth" then
 		return doRebirth(player)
 
-	elseif action == "TrainMog" then
-		local cost = mogCost(data)
-		if data.Cash < cost then
-			return false, "You need $" .. fmt(cost)
+	elseif action == "BuyHammer" then
+		local nextH = HAMMERS[data.Hammer + 1]
+		if not nextH then
+			return false, "Your hammer is max level!"
 		end
-		data.Cash = data.Cash - cost
-		data.MogLevel = data.MogLevel + 1
+		if not buyThing(data, nextH.Cost) then
+			return false, "You need $" .. fmt(nextH.Cost)
+		end
+		data.Hammer = data.Hammer + 1
 		updateStats(player)
-		return true, "MOG is now " .. fmt(playerMog(player)) .. "!"
+		local h = hammers[player]
+		if h and h.Tool.Parent then
+			local wasEquipped = h.Tool.Parent == player.Character
+			h.Tool:Destroy()
+			giveHammer(player)
+			local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if wasEquipped and hum then
+				hum:EquipTool(hammers[player].Tool)
+			end
+		end
+		return true, "Hammer level " .. data.Hammer .. "! +" .. fmt(nextH.Power) .. " MOG per hit"
+
+	elseif action == "BuySwing" then
+		local nextS = SWINGS[data.Swing + 1]
+		if not nextS then
+			return false, "Swing speed is max level!"
+		end
+		if not buyThing(data, nextS.Cost) then
+			return false, "You need $" .. fmt(nextS.Cost)
+		end
+		data.Swing = data.Swing + 1
+		updateStats(player)
+		return true, "Faster swing! One hit every " .. nextS.Time .. " seconds"
+
+	elseif action == "BuyAura" or action == "EquipAura" then
+		local aura = AURA_BY_NAME[a]
+		if not aura then
+			return false, "Unknown aura"
+		end
+		if not data.Auras[aura.Name] then
+			if action == "EquipAura" then
+				return false, "You don't own that aura"
+			end
+			if not buyThing(data, aura.Cost) then
+				return false, "You need $" .. fmt(aura.Cost)
+			end
+			data.Auras[aura.Name] = true
+		end
+		data.Aura = aura.Name
+		updateStats(player)
+		applyAura(player)
+		return true, aura.Name .. " equipped! x" .. aura.Mult .. " MOG"
 
 	elseif action == "BuyBoost" then
 		if not BOOST_MULTS[data.Boost + 2] then
 			return false, "Money Boost is max level!"
 		end
 		local cost = boostCost(data)
-		if data.Cash < cost then
+		if not buyThing(data, cost) then
 			return false, "You need $" .. fmt(cost)
 		end
-		data.Cash = data.Cash - cost
 		data.Boost = data.Boost + 1
 		updateStats(player)
 		return true, "Money Boost is now x" .. BOOST_MULTS[data.Boost + 1] .. "!"
 
 	elseif action == "BuySlot" then
 		if data.Slots >= CONFIG.MAX_SLOTS then
-			return false, "You have all slots!"
+			return false, "Your enclosure is max size!"
 		end
 		local cost = slotCost(data)
-		if data.Cash < cost then
+		if not buyThing(data, cost) then
 			return false, "You need $" .. fmt(cost)
 		end
-		data.Cash = data.Cash - cost
 		data.Slots = data.Slots + 1
 		updateStats(player)
-		return true, "You can now keep " .. normalLimit(player) .. " monsters!"
+		return true, "Bigger enclosure! You can keep " .. slotLimit(player) .. " monsters."
 
 	elseif action == "ClaimDaily" then
 		if not dailyStatus(data) then
@@ -2015,17 +2097,16 @@ end
 ----------------------------------------------------------------------
 local PASS_ATTRIBUTES = {
 	[CONFIG.DOUBLE_MONEY_PASS_ID] = "DoubleMoney",
+	[CONFIG.DOUBLE_MOG_PASS_ID] = "DoubleMog",
 	[CONFIG.VIP_PASS_ID] = "VIP",
 	[CONFIG.EXTRA_SLOTS_PASS_ID] = "ExtraSlots",
-	[CONFIG.FAST_STEAL_PASS_ID] = "FastSteal",
-	[CONFIG.EXTRA_VAULT_PASS_ID] = "ExtraVault",
 }
 PASS_ATTRIBUTES[0] = nil
 
 local function updateNameSign(player)
 	local plot = playerPlot[player]
 	if plot then
-		plot.NameLabel.Text = (player:GetAttribute("VIP") and "[VIP] " or "") .. player.Name .. "'s Base"
+		plot.NameLabel.Text = (player:GetAttribute("VIP") and "[VIP] " or "") .. player.Name .. "'s Enclosure"
 	end
 end
 
@@ -2036,7 +2117,6 @@ local function grantPass(player, passId)
 	end
 	player:SetAttribute(attr, true)
 	updateNameSign(player)
-	applyMovement(player)
 end
 
 local function checkPasses(player)
@@ -2064,17 +2144,13 @@ MarketplaceService.ProcessReceipt = function(receipt)
 	end
 	local player = Players:GetPlayerByUserId(receipt.PlayerId)
 	local data = player and sessions[player]
-	local plot = player and playerPlot[player]
-	if not data or not plot then
+	if not data then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	if receipt.ProductId == CONFIG.CASH_PACK_PRODUCT_ID then
 		local amount = math.max(5000, math.floor((player:GetAttribute("Income") or 0) * 600))
 		data.Cash = data.Cash + amount
 		notify(player, "+$" .. fmt(amount) .. "!")
-	elseif receipt.ProductId == CONFIG.SUPER_LOCK_PRODUCT_ID then
-		lockBase(plot, 180)
-		notify(player, "SUPER LOCK! Your base is locked for 3 minutes.")
 	elseif receipt.ProductId == CONFIG.SERVER_LUCK_PRODUCT_ID then
 		luckUntil = math.max(os.clock(), luckUntil) + 900
 		announce(player.Name .. " activated 2x SERVER LUCK for everyone! Thank you!")
@@ -2089,14 +2165,73 @@ MarketplaceService.ProcessReceipt = function(receipt)
 end
 
 ----------------------------------------------------------------------
+-- LEADERBOARD
+----------------------------------------------------------------------
+local nameCache = {}
+local function nameOf(userId)
+	if nameCache[userId] then
+		return nameCache[userId]
+	end
+	local ok, name = pcall(function()
+		return Players:GetNameFromUserIdAsync(userId)
+	end)
+	if ok and type(name) == "string" then
+		nameCache[userId] = name
+		return name
+	end
+	return "Player"
+end
+
+local function updateLeaderboard()
+	local entries
+	if boardStore then
+		for _, player in ipairs(Players:GetPlayers()) do
+			local data = sessions[player]
+			if data and not data.NoSave then
+				pcall(function()
+					boardStore:SetAsync(tostring(player.UserId), math.floor(data.Mog))
+				end)
+			end
+		end
+		local ok, page = pcall(function()
+			return boardStore:GetSortedAsync(false, 10):GetCurrentPage()
+		end)
+		if ok and type(page) == "table" then
+			entries = {}
+			for _, e in ipairs(page) do
+				table.insert(entries, { Name = nameOf(tonumber(e.key) or 0), Mog = e.value })
+			end
+			boardTitle.Text = "TOP MOG (ALL PLAYERS)"
+		end
+	end
+	if not entries then
+		entries = {}
+		for _, player in ipairs(Players:GetPlayers()) do
+			local data = sessions[player]
+			if data then
+				table.insert(entries, { Name = player.Name, Mog = data.Mog })
+			end
+		end
+		table.sort(entries, function(x, y)
+			return x.Mog > y.Mog
+		end)
+		boardTitle.Text = "TOP MOG (THIS SERVER)"
+	end
+	for i = 1, 10 do
+		local e = entries[i]
+		boardRows[i].Text = e and (i .. ". " .. e.Name .. "   " .. fmt(e.Mog) .. " MOG") or ""
+	end
+end
+
+----------------------------------------------------------------------
 -- JOIN / LEAVE
 ----------------------------------------------------------------------
 local function spawnCFrame(player)
 	local plot = playerPlot[player]
 	if plot then
-		return plot.CF * CFrame.new(0, 4, -30)
+		return plot.CF * CFrame.new(0, 4, -PLOT_D / 2 - 6)
 	end
-	return CFrame.new(-210, 6, -20)
+	return CFrame.new(-250, 6, -20)
 end
 
 local function onCharacter(player, char)
@@ -2105,16 +2240,18 @@ local function onCharacter(player, char)
 	task.wait()
 	char:PivotTo(spawnCFrame(player))
 	applyMovement(player)
-	giveSlap(player)
+	giveHammer(player)
+	applyAura(player)
 	hum.Died:Connect(function()
 		local m = carriers[player]
 		if m then
-			returnHome(m)
+			makeLoose(m, char:GetPivot().Position)
 		end
 		local b = battles[player]
 		if b then
 			endBattle(b, player)
 		end
+		stopTraining(player)
 	end)
 end
 
@@ -2123,11 +2260,17 @@ local function onPlayerAdded(player)
 	if not player.Parent then
 		return
 	end
+	if not HAMMERS[data.Hammer] then
+		data.Hammer = 1
+	end
+	if not SWINGS[data.Swing] then
+		data.Swing = 1
+	end
 	sessions[player] = data
 
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
-	for _, name in ipairs({ "Cash", "MOG", "Rebirths" }) do
+	for _, name in ipairs({ "MOG", "Cash", "Rebirths" }) do
 		local v = Instance.new("IntValue")
 		v.Name = name
 		v.Parent = stats
@@ -2145,7 +2288,6 @@ local function onPlayerAdded(player)
 	if plot then
 		plot.Owner = player
 		playerPlot[player] = plot
-		plot.LockUntil, plot.LockCooldownUntil, plot.AlarmUntil = 0, 0, 0
 		updateNameSign(player)
 	end
 
@@ -2170,10 +2312,11 @@ local function onPlayerAdded(player)
 	end
 
 	if not plot then
-		notify(player, "All bases are taken, try another server!")
+		notify(player, "All enclosures are taken, try another server!")
 	elseif data.NoSave then
 		notify(player, "Saving is OFF (turn on API access in Game Settings).")
 	end
+	task.spawn(updateLeaderboard)
 end
 
 Players.PlayerAdded:Connect(onPlayerAdded)
@@ -2189,11 +2332,11 @@ Players.PlayerRemoving:Connect(function(player)
 	end
 	local carried = carriers[player]
 	if carried then
-		returnHome(carried)
-	end
-	for _, m in pairs(monstersByPart) do
-		if m.HomeOwner == player then
-			m.HomeOwner = nil
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			makeLoose(carried, root.Position)
+		else
+			returnToWild(carried)
 		end
 	end
 	local plot = playerPlot[player]
@@ -2203,15 +2346,16 @@ Players.PlayerRemoving:Connect(function(player)
 		end
 		plot.Slots = {}
 		plot.Owner = nil
-		plot.NameLabel.Text = "Empty Base"
+		plot.NameLabel.Text = "Empty Enclosure"
 		plot.IncomeLabel.Text = ""
 		plot.StatusLabel.Text = ""
-		plot.LockUntil, plot.LockCooldownUntil, plot.AlarmUntil = 0, 0, 0
 	end
 	playerPlot[player] = nil
 	sessions[player] = nil
+	trainers[player] = nil
+	hammers[player] = nil
 	lastThrow[player] = nil
-	lastSlap[player] = nil
+	lastHit[player] = nil
 end)
 
 game:BindToClose(function()
@@ -2229,6 +2373,13 @@ task.spawn(function()
 	end
 end)
 
+task.spawn(function()
+	while true do
+		task.wait(60)
+		updateLeaderboard()
+	end
+end)
+
 ----------------------------------------------------------------------
 -- GAME LOOPS
 ----------------------------------------------------------------------
@@ -2237,13 +2388,14 @@ local function timeText(seconds)
 	return string.format("%d:%02d", seconds // 60, seconds % 60)
 end
 
--- Spawning in every zone + all monsters walking around (wild and in bases)
+-- Spawning in every zone, monsters walking around, MOG training
 local zoneTimers = {}
 for k = 1, #ZONES do
-	zoneTimers[k] = (ZONES[k].Every or 0) * 0.8 -- first monsters come quickly
+	zoneTimers[k] = (ZONES[k].Every or 0) * 0.8
 end
 RunService.Heartbeat:Connect(function(dt)
-	local rush = os.clock() < rushUntil
+	local now = os.clock()
+	local rush = now < rushUntil
 	for k, zone in ipairs(ZONES) do
 		if zone.Every then
 			zoneTimers[k] = zoneTimers[k] + dt * (rush and 3 or 1)
@@ -2257,6 +2409,7 @@ RunService.Heartbeat:Connect(function(dt)
 			end
 		end
 	end
+
 	for _, m in pairs(monstersByPart) do
 		if (m.State == "Lane" or m.State == "Placed") and m.Region and m.Target then
 			local pos = m.Part.Position
@@ -2270,12 +2423,29 @@ RunService.Heartbeat:Connect(function(dt)
 				else
 					local step = flat.Unit * math.min(flat.Magnitude, m.Region.Speed * dt)
 					m.Walked = m.Walked + step.Magnitude
-					local bob = math.abs(math.sin(m.Walked * 1.6)) * 0.5 + (m.Hover > 0 and math.sin(os.clock() * 2) * 0.5 or 0)
+					local bob = math.abs(math.sin(m.Walked * 1.6)) * 0.5 + (m.Hover > 0 and math.sin(now * 2) * 0.5 or 0)
 					local baseY = m.Region.GroundY + m.Foot + m.Hover
 					local newPos = Vector3.new(pos.X + step.X, baseY + bob, pos.Z + step.Z)
 					m.Part.CFrame = CFrame.lookAt(newPos, newPos + Vector3.new(step.X, 0, step.Z))
 				end
 			end
+		end
+	end
+
+	for player, t in pairs(trainers) do
+		local data = sessions[player]
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not data or not root or not isAlive(player) then
+			stopTraining(player)
+		elseif (root.Position - t.Plot.Stone.Position).Magnitude > 16 then
+			stopTraining(player, "You walked away - training stopped.")
+		elseif now >= t.Next then
+			t.Next = now + SWINGS[data.Swing].Time
+			local gain = mogPerHit(player)
+			data.Mog = data.Mog + gain
+			updateStats(player)
+			swingHammer(player)
+			effectRemote:FireClient(player, t.Plot.Stone.Position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 120, 200), "+" .. fmt(gain) .. " MOG")
 		end
 	end
 end)
@@ -2301,17 +2471,9 @@ task.spawn(function()
 				data.Cash = data.Cash + income
 				owner:SetAttribute("Income", income)
 				updateStats(owner)
-				local normal, vault = countMonsters(plot)
-				plot.IncomeLabel.Text = "$" .. fmt(income) .. "/s  |  " .. normal .. "/" .. normalLimit(owner) .. " monsters" .. (vault > 0 and (" +" .. vault .. " vault") or "")
-				if now < plot.LockUntil then
-					plot.StatusLabel.Text = "LOCKED " .. math.ceil(plot.LockUntil - now) .. "s"
-				elseif now < plot.LockCooldownUntil then
-					plot.StatusLabel.Text = "Lock ready in " .. math.ceil(plot.LockCooldownUntil - now) .. "s"
-				else
-					plot.StatusLabel.Text = data.Rebirths > 0 and ("Rebirth " .. data.Rebirths) or "Unlocked"
-				end
+				plot.IncomeLabel.Text = "$" .. fmt(income) .. "/s  |  " .. countMonsters(plot) .. "/" .. slotLimit(owner) .. " monsters"
+				plot.StatusLabel.Text = fmt(data.Mog) .. " MOG" .. (data.Rebirths > 0 and ("  |  Rebirth " .. data.Rebirths) or "")
 			end
-			plot.Laser.Transparency = now < plot.LockUntil and 0.35 or 1
 		end
 
 		if now >= nextRush then
@@ -2330,13 +2492,11 @@ task.spawn(function()
 	end
 end)
 
--- Fast loop: deliveries, zone gates, locks, alarms, battle timeouts
+-- Fast loop: deliveries, zone gates, battle timeouts
 task.spawn(function()
-	local flash = false
 	while true do
 		task.wait(0.2)
 		local now = os.clock()
-		flash = not flash
 
 		for player, m in pairs(carriers) do
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -2355,7 +2515,6 @@ task.spawn(function()
 			end
 		end
 
-		-- zone gates: push players back if their MOG is too low
 		for _, player in ipairs(Players:GetPlayers()) do
 			local char = player.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -2367,24 +2526,8 @@ task.spawn(function()
 						local z = math.clamp(root.Position.Z, -ROAD_W / 2 + 4, ROAD_W / 2 - 4)
 						local back = Vector3.new(zoneInfo[k].X0 - 6, root.Position.Y + 1, z)
 						char:PivotTo(CFrame.lookAt(back, back - Vector3.new(1, 0, 0)))
-						notify(player, "You need " .. fmt(zoneInfo[k].Need) .. " MOG for ZONE " .. k .. "! Train MOG in UPGRADES.")
+						notify(player, "You need " .. fmt(zoneInfo[k].Need) .. " MOG for ZONE " .. k .. "! Train at your MOG STONE.")
 						break
-					end
-				end
-			end
-		end
-
-		for _, plot in ipairs(plots) do
-			plot.AlarmLight.Enabled = now < plot.AlarmUntil and flash
-			if plot.Owner and now < plot.LockUntil then
-				for _, player in ipairs(Players:GetPlayers()) do
-					if player ~= plot.Owner then
-						local char = player.Character
-						local root = char and char:FindFirstChild("HumanoidRootPart")
-						if root and isAlive(player) and plotAt(root.Position) == plot then
-							char:PivotTo(plot.CF * CFrame.new(0, 4, -PLOT_D / 2 - 10))
-							notify(player, "This base is LOCKED!")
-						end
 					end
 				end
 			end
@@ -2392,4 +2535,4 @@ task.spawn(function()
 	end
 end)
 
-print("MOG MONSTERS server v3 started OK!")
+print("MOG MONSTERS server v4 started OK!")
