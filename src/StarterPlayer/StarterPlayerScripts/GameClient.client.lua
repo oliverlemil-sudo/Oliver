@@ -27,6 +27,7 @@ local panelRemote = remotes:WaitForChild("OpenPanel")
 local throwRemote = remotes:WaitForChild("Throw")
 local effectRemote = remotes:WaitForChild("Effect")
 local requestRemote = remotes:WaitForChild("Request")
+local battleRemote = remotes:WaitForChild("Battle")
 
 local RARITY_NAMES = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "GODLY" }
 local RARITY_COLORS = {
@@ -296,6 +297,164 @@ player:GetAttributeChangedSignal("Carrying"):Connect(function()
 end)
 
 ----------------------------------------------------------------------
+-- MOG BATTLE (mini game)
+----------------------------------------------------------------------
+local battleFrame = box(gui, UDim2.new(0, 460, 0, 270), UDim2.new(0.5, -230, 0.5, -40), Color3.fromRGB(35, 25, 55))
+battleFrame.Visible = false
+battleFrame.ZIndex = 10
+local bTitle = label(battleFrame, "", UDim2.new(1, -70, 0, 40), UDim2.new(0, 12, 0, 8))
+bTitle.TextColor3 = Color3.fromRGB(255, 120, 200)
+local bHelp = label(battleFrame, "", UDim2.new(1, -24, 0, 26), UDim2.new(0, 12, 0, 52))
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(1, -40, 0, 42)
+bar.Position = UDim2.new(0, 20, 0, 90)
+bar.BackgroundColor3 = Color3.fromRGB(200, 50, 60)
+bar.ClipsDescendants = true
+bar.Parent = battleFrame
+corner(bar, 10)
+stroke(bar)
+local fill = Instance.new("Frame")
+fill.Size = UDim2.new(0.5, 0, 1, 0)
+fill.BackgroundColor3 = Color3.fromRGB(60, 200, 90)
+fill.BorderSizePixel = 0
+fill.Parent = bar
+local greenZone = Instance.new("Frame")
+greenZone.Size = UDim2.new(0.2, 0, 1, 0)
+greenZone.BackgroundColor3 = Color3.fromRGB(60, 220, 90)
+greenZone.BorderSizePixel = 0
+greenZone.Parent = bar
+local needle = Instance.new("Frame")
+needle.Size = UDim2.new(0, 6, 1, 0)
+needle.BackgroundColor3 = Color3.new(1, 1, 1)
+needle.BorderSizePixel = 0
+needle.Parent = bar
+local bTimer = label(battleFrame, "", UDim2.new(0.5, -20, 0, 26), UDim2.new(0, 20, 0, 142))
+bTimer.TextXAlignment = Enum.TextXAlignment.Left
+local bScore = label(battleFrame, "", UDim2.new(0.5, -20, 0, 26), UDim2.new(0.5, 0, 0, 142))
+bScore.TextXAlignment = Enum.TextXAlignment.Right
+local actBtn = button(battleFrame, "CLICK!", Color3.fromRGB(255, 120, 30), UDim2.new(0.6, 0, 0, 64), UDim2.new(0.2, 0, 1, -80))
+local quitBtn = button(battleFrame, "X", Color3.fromRGB(120, 60, 60), UDim2.new(0, 40, 0, 40), UDim2.new(1, -50, 0, 8))
+
+local battle = nil
+
+local function finishBattle(won)
+	local b = battle
+	if not b or b.Done then
+		return
+	end
+	b.Done = true
+	actBtn.Text = won and "YOU WIN!" or "LOST..."
+	if won and b.Elapsed < 2.2 then
+		task.wait(2.2 - b.Elapsed)
+	end
+	local _, msg = requestRemote:InvokeServer("BattleResult", b.Part, won)
+	showMessage(msg or "", won and Color3.fromRGB(110, 255, 110) or Color3.fromRGB(255, 120, 120))
+	task.wait(0.6)
+	if battle == b then
+		battle = nil
+		battleFrame.Visible = false
+	end
+end
+
+local function newGreenZone(b)
+	b.ZoneStart = 0.05 + math.random() * (0.9 - b.Info.ZoneWidth)
+	greenZone.Position = UDim2.new(b.ZoneStart, 0, 0, 0)
+	greenZone.Size = UDim2.new(b.Info.ZoneWidth, 0, 1, 0)
+end
+
+local function battleAction()
+	local b = battle
+	if not b or b.Done then
+		return
+	end
+	if b.Info.Type == "Clash" then
+		b.Progress = b.Progress + 0.07
+	else
+		if b.Needle >= b.ZoneStart and b.Needle <= b.ZoneStart + b.Info.ZoneWidth then
+			b.Hits = b.Hits + 1
+			greenZone.BackgroundColor3 = Color3.new(1, 1, 1)
+			task.delay(0.1, function()
+				greenZone.BackgroundColor3 = Color3.fromRGB(60, 220, 90)
+			end)
+			if b.Hits >= 3 then
+				task.spawn(finishBattle, true)
+				return
+			end
+			newGreenZone(b)
+		else
+			b.Misses = b.Misses + 1
+			if b.Misses >= 3 then
+				task.spawn(finishBattle, false)
+			end
+		end
+	end
+end
+
+battleRemote.OnClientEvent:Connect(function(part, info)
+	if type(info) ~= "table" then
+		return
+	end
+	battle = { Part = part, Info = info, Time = info.Time or 12, Elapsed = 0, Progress = 0.5, Needle = 0, Dir = 1, Hits = 0, Misses = 0 }
+	bTitle.Text = "MOG BATTLE vs " .. tostring(info.Name)
+	local clash = info.Type == "Clash"
+	fill.Visible = clash
+	greenZone.Visible = not clash
+	needle.Visible = not clash
+	bar.BackgroundColor3 = clash and Color3.fromRGB(200, 50, 60) or Color3.fromRGB(60, 60, 80)
+	if clash then
+		bHelp.Text = "CLICK FAST! Push the bar all the way to the right!"
+		actBtn.Text = "CLICK!"
+	else
+		bHelp.Text = "Hit STOP when the needle is in the GREEN zone (3 times)!"
+		actBtn.Text = "STOP!"
+		newGreenZone(battle)
+	end
+	battleFrame.Visible = true
+end)
+
+actBtn.Activated:Connect(battleAction)
+quitBtn.Activated:Connect(function()
+	task.spawn(finishBattle, false)
+end)
+UserInputService.InputBegan:Connect(function(input, processed)
+	if not processed and input.KeyCode == Enum.KeyCode.Space and battle then
+		battleAction()
+	end
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+	local b = battle
+	if not b or b.Done then
+		return
+	end
+	b.Elapsed = b.Elapsed + dt
+	local left = b.Time - b.Elapsed
+	bTimer.Text = string.format("Time: %.1f", math.max(0, left))
+	if b.Info.Type == "Clash" then
+		b.Progress = b.Progress - (b.Info.Pull or 0.3) * dt
+		fill.Size = UDim2.new(math.clamp(b.Progress, 0, 1), 0, 1, 0)
+		bScore.Text = math.floor(math.clamp(b.Progress, 0, 1) * 100) .. "%"
+		if b.Progress >= 1 then
+			task.spawn(finishBattle, true)
+		elseif b.Progress <= 0 then
+			task.spawn(finishBattle, false)
+		end
+	else
+		b.Needle = b.Needle + b.Dir * (b.Info.Speed or 1) * dt
+		if b.Needle >= 1 then
+			b.Needle, b.Dir = 1, -1
+		elseif b.Needle <= 0 then
+			b.Needle, b.Dir = 0, 1
+		end
+		needle.Position = UDim2.new(b.Needle, -3, 0, 0)
+		bScore.Text = "Hits " .. b.Hits .. "/3   Misses " .. b.Misses .. "/3"
+	end
+	if left <= 0 then
+		task.spawn(finishBattle, false)
+	end
+end)
+
+----------------------------------------------------------------------
 -- PANELS
 ----------------------------------------------------------------------
 local panels = {}
@@ -408,9 +567,9 @@ local SHOP_ITEMS = {
 	{ Header = "GAME PASSES (forever)" },
 	{ Text = "2x Money", Attr = "DoubleMoneyPassId", Pass = true, Owned = "DoubleMoney" },
 	{ Text = "VIP: tag, +20% money, 2x daily", Attr = "VipPassId", Pass = true, Owned = "VIP" },
-	{ Text = "+3 Monster Spots", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
+	{ Text = "+3 Monster Slots", Attr = "ExtraSlotsPassId", Pass = true, Owned = "ExtraSlots" },
 	{ Text = "Fast Stealing", Attr = "FastStealPassId", Pass = true, Owned = "FastSteal" },
-	{ Text = "+1 Vault Spot", Attr = "ExtraVaultPassId", Pass = true, Owned = "ExtraVault" },
+	{ Text = "+1 Vault Slot", Attr = "ExtraVaultPassId", Pass = true, Owned = "ExtraVault" },
 	{ Header = "BOOSTS" },
 	{ Text = "2x SERVER LUCK (15 min, everyone!)", Attr = "ServerLuckProductId" },
 	{ Text = "Super Lock (3 min)", Attr = "SuperLockProductId" },
@@ -468,15 +627,15 @@ refreshUpgrades = function()
 	else
 		upgradePanel.ButtonRow("Money Boost", "MAX", GRAY)
 	end
-	upgradePanel.Text("Monster spots: " .. info.Slots, Color3.fromRGB(255, 210, 80))
+	upgradePanel.Text("Monsters you can keep: " .. info.Slots, Color3.fromRGB(255, 210, 80))
 	if info.BaseSlots < info.MaxSlots then
-		upgradePanel.ButtonRow("+1 monster spot", "$" .. fmt(info.SlotCost), GREEN, function()
+		upgradePanel.ButtonRow("+1 monster in your base", "$" .. fmt(info.SlotCost), GREEN, function()
 			buy("BuySlot")
 		end)
 	else
-		upgradePanel.ButtonRow("Monster spots", "MAX", GRAY)
+		upgradePanel.ButtonRow("Monster slots", "MAX", GRAY)
 	end
-	upgradePanel.Text("Vault spots: " .. info.Vaults .. " (can't be stolen)", nil, 26)
+	upgradePanel.Text("Vault slots: " .. info.Vaults .. " (can't be stolen)", nil, 26)
 	upgradePanel.Text("Stand on the red LOCK pad to lock your base", nil, 26)
 	upgradePanel.Text("Use MOG SLAP on thieves to make them drop it", nil, 26)
 end
@@ -647,7 +806,7 @@ local function refreshRebirth()
 	rebirthPanel.Text("You KEEP: vault monsters, index", Color3.fromRGB(110, 255, 110), 26)
 	rebirthPanel.Text("REWARDS", Color3.fromRGB(255, 210, 80))
 	rebirthPanel.Text("Every rebirth: +1x money AND +1x MOG", nil, 26)
-	rebirthPanel.Text("Rebirth 2 and 5: +1 vault spot", nil, 26)
+	rebirthPanel.Text("Rebirth 2 and 5: +1 vault slot", nil, 26)
 	rebirthPanel.Text("Rebirth 3+: run faster", nil, 26)
 	rebirthPanel.Text("Rebirth 10: exclusive GOLDEN PHOENIXMOG!", Color3.fromRGB(255, 160, 60), 26)
 end
@@ -738,7 +897,16 @@ local function trackMonster(part)
 	end)
 	local v = part:GetAttribute("Variant")
 	if v == "Rainbow" or v == "Rainbow Cosmic" then
-		rainbowParts[part] = true
+		local skins = {}
+		if part:GetAttribute("Skin") then
+			table.insert(skins, part)
+		end
+		for _, d in ipairs(part:GetDescendants()) do
+			if d:IsA("BasePart") and d:GetAttribute("Skin") then
+				table.insert(skins, d)
+			end
+		end
+		rainbowParts[part] = skins
 	end
 end
 for _, part in ipairs(CollectionService:GetTagged("Monster")) do
@@ -758,8 +926,10 @@ player:GetAttributeChangedSignal("Mog"):Connect(refreshAllMonsters)
 
 RunService.RenderStepped:Connect(function()
 	local color = Color3.fromHSV((os.clock() * 0.3) % 1, 1, 1)
-	for part in pairs(rainbowParts) do
-		part.Color = color
+	for _, skins in pairs(rainbowParts) do
+		for _, p in ipairs(skins) do
+			p.Color = color
+		end
 	end
 end)
 
@@ -767,7 +937,7 @@ end)
 -- WELCOME
 ----------------------------------------------------------------------
 task.delay(2, function()
-	showMessage("Welcome to MOG MONSTERS! Walk down the MOG ROAD and hold E on monsters to MOG them!", Color3.fromRGB(255, 210, 60))
+	showMessage("Welcome to MOG MONSTERS! Walk down the MOG ROAD, press E on a monster and win the MOG BATTLE!", Color3.fromRGB(255, 210, 60))
 end)
 
-print("MOG MONSTERS client v2 started OK!")
+print("MOG MONSTERS client v3 started OK!")
